@@ -1,8 +1,8 @@
 #include <cassert>
 #include <algorithm>
 #include <hyperlib/math.hpp>
-#include <hyperlib/memory.hpp>
-#include <hyperlib/ts_memory_pool.hpp>
+#include <hyperlib/memory/memory.hpp>
+#include <hyperlib/memory/ts_memory_pool.hpp>
 
 namespace hyper
 {

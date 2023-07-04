@@ -1,0 +1,3 @@
+[submodule "thirdparty/dxsdk"]
+	path = thirdparty/dxsdk
+	url = https://github.com/devklauss/dxsdk.git

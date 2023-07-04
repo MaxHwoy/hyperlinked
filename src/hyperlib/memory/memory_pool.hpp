@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <mutex>
 
-#include <hyperlib/shared.hpp>
 #include <hyperlib/linked_list.hpp>
 
 #define CONCURRENT_POOL_ACCESS

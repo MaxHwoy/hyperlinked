@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hyperlib/ts_memory_pool.hpp>
+#include <hyperlib/memory/ts_memory_pool.hpp>
 
 namespace hyper
 {

@@ -1,0 +1,331 @@
+#pragma once
+
+#include <hyperlib/shared.hpp>
+#include <hyperlib/assets/textures.hpp>
+
+namespace hyper
+{
+    enum class solid_flags : std::uint16_t
+    {
+        compressed_verts = 0x1,
+        shadow_map = 0x8,
+        vertex_animation = 0x10,
+        randomize_start_frame = 0x20,
+        is_lit = 0x40,
+        is_windy = 0x80,
+        duplicate_name = 0x100,
+        duplicate_name_error = 0x200,
+        duplicated = 0x400,
+        want_spotlight_context = 0x800,
+        morph_initialized = 0x1000,
+        skin_info_created = 0x2000,
+        pixel_damage_cleared = 0x4000,
+    };
+
+    struct light_material_platform_info
+    {
+    };
+
+    struct light_material_platform_interface
+    {
+        light_material_platform_info* info;
+    };
+
+    struct light_material_data
+    {
+        float diffuse_power;
+        float diffuse_clamp;
+        float diffuse_flakes;
+        float diffuse_vinyl_scale;
+        float diffusemin_scale;
+        float diffuse_min_r;
+        float diffuse_min_g;
+        float diffuse_min_b;
+        float diffuse_max_scale;
+        float diffuse_max_r;
+        float diffuse_max_g;
+        float diffuse_max_b;
+        float diffuse_min_a;
+        float diffuse_max_a;
+        float specular_power;
+        float specular_flakes;
+        float specular_vinyl_scale;
+        float specular_min_scale;
+        float specular_min_r;
+        float specular_min_g;
+        float specular_min_b;
+        float specular_max_scale;
+        float specular_max_r;
+        float specular_max_g;
+        float specular_max_b;
+        float envmap_power;
+        float envmap_clamp;
+        float envmap_vinyl_scale;
+        float envmap_min_scale;
+        float envmap_min_r;
+        float envmap_min_g;
+        float envmap_min_b;
+        float envmap_max_scale;
+        float envmap_max_r;
+        float envmap_max_g;
+        float envmap_max_b;
+        float vinyl_luminance_min_scale;
+        float vinyl_luminance_max_scale;
+    };
+
+    struct light_material : public light_material_platform_interface, public linked_node<light_material>
+    {
+        std::uint32_t key;
+        std::uint32_t version;
+        std::uint8_t name[64];
+        light_material_data data;
+    };
+
+    struct texture_entry
+    {
+        std::uint32_t key;
+        texture_info* texture_onfo;
+    };
+
+    struct light_material_entry
+    {
+        std::uint32_t key;
+        light_material* light_material;
+    };
+
+    struct position_marker
+    {
+        std::uint32_t key;
+        std::int32_t iparam;
+        float fparam;
+        std::int32_t pad;
+        matrix4x4 matrix;
+    };
+
+    struct smooth_vertex
+    {
+        std::uint32_t vertex_key;
+        char smoothing_group_number;
+        char normal_x;
+        char normal_y;
+        char normal_z;
+    };
+
+    struct smooth_vertex_info
+    {
+        std::uint32_t vertex_key;
+        std::uint32_t smoothing_group;
+        std::uint32_t vertex_offset;
+    };
+
+    struct normal_smoother
+    {
+        smooth_vertex* smooth_vertex_table;
+        smooth_vertex_info* smooth_vertex_info_table;
+        std::uint16_t smooth_vertex_count;
+        std::uint16_t smooth_vertex_info_count;
+    };
+
+    struct morph_target
+    {
+        std::uint32_t key;
+        struct solid* target;
+        float blend_amount;
+    };
+
+    struct edge
+    {
+        std::uint16_t vertex_index[2];
+        std::uint16_t counter;
+        std::uint16_t ref_count;
+        std::uint16_t mesh_entry_index;
+    };
+
+    struct edge_list
+    {
+        std::uint16_t is_looped;
+        std::uint16_t edge_count;
+        edge* edges;
+    };
+
+    struct selection_set
+    {
+        std::uint32_t key;
+        std::uint32_t solid_key;
+        std::uint16_t edge_count;
+        __declspec(align(0x04)) edge_list* edges;
+    };
+
+    struct mesh_entry
+    {
+        vector3 bbox_min;
+        vector3 bbox_max;
+        std::uint8_t diffuse_texture_index;
+        std::uint8_t normal_texture_index;
+        std::uint8_t height_texture_index;
+        std::uint8_t specular_texture_index;
+        std::uint8_t opacity_texture_index;
+        std::uint8_t light_material_table_index;
+        std::uint16_t padding;
+        std::uint32_t blending_matrix_indices[4];
+        std::uint32_t shader_index;
+        struct effect* effect;
+        std::uint32_t flags;
+        std::uint32_t texture_sort_key;
+        std::uint32_t vertex_count;
+        char* chunk_data; // #TODO
+        std::uint32_t chunk_data_size;
+        std::uint32_t unknown_4;
+        std::uint32_t unknown_5;
+        std::uint32_t unknown_6;
+        std::uint32_t unknown_7;
+        std::uint32_t unknown_8;
+        std::uint32_t primitive_count;
+        std::uint32_t triangle_count;
+        std::uint32_t index_start;
+        void* file_vertex_buffer;
+        std::uint32_t file_vertex_buffer_size;
+        IDirect3DVertexBuffer9* d3d_vertex_buffer;
+        std::uint32_t vertex_buffer_vertex_count;
+        std::uint32_t index_count;
+        const char* vlt_material_name;
+        std::uint32_t overriden_material_key;
+        void* vertex_buffer_data;
+        std::uint32_t vertex_offset;
+    };
+
+    struct solid_platform_info : public linked_node<solid_platform_info>
+    {
+        std::uint16_t version;
+        std::uint8_t chunks_loaded_count;
+        std::uint8_t padding;
+        std::uint32_t mesh_flags;
+        std::uint32_t submesh_count;
+        mesh_entry* mesh_entry_table;
+        std::uint32_t vertex_buffer_count;
+        unsigned int* unknown_0;
+        std::uint32_t are_chunks_loaded;
+        std::uint16_t* file_index_buffer;
+        IDirect3DIndexBuffer9* d3d_index_buffer;
+        std::uint32_t polygon_count;
+        std::uint32_t vertex_count;
+    };
+
+    struct solid_platform_interface
+    {
+        solid_platform_info* info;
+    };
+
+    struct solid : public solid_platform_interface, public linked_node<solid>
+    {
+        std::uint8_t version;
+        bool endian_swapped;
+        solid_flags flags;
+        std::uint32_t key;
+        std::uint16_t poly_count;
+        std::uint16_t vert_count;
+        std::uint8_t bone_count;
+        std::uint8_t texture_table_entry_count;
+        std::uint8_t light_material_count;
+        std::uint8_t position_marker_table_entry_count;
+        std::int32_t referenced_frame_counter;
+        vector3 bbox_min;
+        texture_entry* texture_table;
+        vector3 bbox_max;
+        light_material_entry* light_material_table;
+        matrix4x4 pivot_matrix;
+        position_marker* position_marker_table;
+        normal_smoother* normal_smoother;
+        linked_list<struct model> model_list;
+        morph_target* morph_target_list;
+        selection_set* selection_set_list;
+        float volume;
+        float density;
+        char name[0x40];
+    };
+
+    struct solid_index_entry
+    {
+        std::uint32_t key;
+        solid* solid;
+    };
+
+    struct solid_list_header
+    {
+        std::uint32_t version;
+        std::uint32_t solid_count;
+        linked_node<solid_list_header> node;
+        std::uint8_t filename[0x38];
+        std::uint8_t group_name[0x20];
+        std::uint32_t perm_chunk_byte_offset;
+        std::uint32_t perm_chunk_byte_size;
+        std::uint16_t max_solid_chunk_byte_alignment;
+        bool endian_swapped;
+        __declspec(align(0x04)) solid_index_entry* solid_index_entry_table;
+        struct streaming_entry* solid_stream_entry_table;
+        std::uint16_t texture_pack_count;
+        std::uint16_t default_texture_count;
+        linked_list<texture_pack> texture_pack_list;
+        linked_list<texture_pack> default_texture_list;
+    };
+
+    struct replacement_texture_table
+    {
+        std::uint32_t old_key;
+        std::uint32_t new_key;
+        texture_info* texture;
+    };
+
+    struct model : linked_node<model>
+    {
+        std::uint32_t key;
+        solid* solid;
+        replacement_texture_table* pReplacementTextureTable;
+        std::uint16_t replacement_texture_count;
+        std::uint16_t lod_level;
+    };
+
+    struct model_hierarchy
+    {
+        enum class flags : std::uint8_t
+        {
+            internal = 0x01,
+            endian_swapped = 0x02,
+        };
+
+        struct node
+        {
+            std::uint32_t model_key;
+            std::uint32_t solid_key;
+            model* model;
+            flags flags;
+            std::int8_t parent;
+            std::int8_t children_count;
+            std::int8_t child_index;
+        };
+
+        std::uint32_t key;
+        std::uint8_t node_count;
+        flags flags;
+        __declspec(align(0x04)) node nodes[1];
+    };
+
+    ASSERT_SIZE(light_material, 0xEC);
+    ASSERT_SIZE(texture_entry, 0x08);
+    ASSERT_SIZE(light_material_entry, 0x08);
+    ASSERT_SIZE(position_marker, 0x50);
+    ASSERT_SIZE(smooth_vertex, 0x08);
+    ASSERT_SIZE(smooth_vertex_info, 0x0C);
+    ASSERT_SIZE(normal_smoother, 0x0C);
+    ASSERT_SIZE(morph_target, 0x0C);
+    ASSERT_SIZE(edge, 0x0A);
+    ASSERT_SIZE(edge_list, 0x08);
+    ASSERT_SIZE(selection_set, 0x10);
+    ASSERT_SIZE(mesh_entry, 0x90);
+    ASSERT_SIZE(solid_platform_info, 0x34);
+    ASSERT_SIZE(solid, 0xE0);
+    ASSERT_SIZE(solid_list_header, 0x90);
+    ASSERT_SIZE(model, 0x18);
+    ASSERT_SIZE(model_hierarchy, 0x18);
+    ASSERT_SIZE(model_hierarchy::node, 0x10);
+}

@@ -5,6 +5,12 @@
 
 #pragma warning (disable : 6031)
 
+#define RUN_TESTS
+
+#if defined(RUN_TESTS)
+#include <hyperlinked/tests.hpp>
+#endif
+
 constexpr auto MAIN_ENTRY_POINT = 0x0087E926;
 
 BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
@@ -25,6 +31,10 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
             ::freopen("CONOUT$", "w", stderr);
 
             hyper::patches::init();
+
+#if defined(RUN_TESTS)
+            hyper::tests::init();
+#endif
         }
         else
         {

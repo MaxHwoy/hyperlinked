@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <hyperlib/linked_list.hpp>
-#include <hyperlib/memory_pool.hpp>
+#include <hyperlib/memory/memory_pool.hpp>
 
 namespace hyper
 {

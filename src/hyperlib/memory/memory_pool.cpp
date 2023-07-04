@@ -1,12 +1,20 @@
 #include <cassert>
 #include <hyperlib/math.hpp>
-#include <hyperlib/memory_pool.hpp>
-#include <hyperlib/memory.hpp>
+#include <hyperlib/memory/memory_pool.hpp>
+#include <hyperlib/memory/memory.hpp>
 
+#if defined(_WIN32)
+#include <Windows.h>
+
+#if defined(hyper)
+#under hyper
+#endif
+#else
 bool IsBadReadPtr(void* ptr, std::uint32_t size)
 {
     return false; // #TODO integrate good one
 }
+#endif
 
 namespace hyper
 {
@@ -726,7 +734,7 @@ namespace hyper
             return diff < 0 ? -1 : 1;
         });
 
-        ::printf("\nMemoryPool: \"%s\"\n", this->debug_name_);
+        ::printf("\nMemoryPool: \"%s\"     Amount Allocated: %d bytes      Amount Free: %d bytes\n", this->debug_name_, this->amount_allocated_, this->amount_free_);
         ::printf("AllocationNumber   Raw Address    Aligned Address          Size        True Size     Debug Text / Call Address (& Line)\n");
         ::printf("======================================================================================================================\n");
 

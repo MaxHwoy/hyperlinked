@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstdint>
 
-#include <hyperlib/memory_pool.hpp>
+#include <hyperlib/memory/memory_pool.hpp>
 
 namespace hyper
 {

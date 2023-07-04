@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <hyperlib/math.hpp>
-#include <hyperlib/memory.hpp>
+#include <hyperlib/memory/memory.hpp>
 
 namespace hyper
 {

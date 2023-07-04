@@ -87,6 +87,14 @@ workspace "hyperlinked"
 
 		includedirs {
 			"src/hyperlib",
+			"thirdparty/dxsdk/include",
+		}
+
+		libdirs("thirdparty/dxsdk/lib/x86")
+
+		links {
+			"d3d9",
+			"d3dx9"
 		}
 
 	project "hyperconsole"
@@ -102,10 +110,15 @@ workspace "hyperlinked"
 
 		includedirs {
 			"src/hyperconsole",
+			"thirdparty/dxsdk/include",
 		}
+
+		libdirs("thirdparty/dxsdk/lib/x86")
 
 		links {
 			"hyperlib",
+			"d3d9",
+			"d3dx9"
 		}
 
 	project "hyperlinked"
@@ -122,8 +135,13 @@ workspace "hyperlinked"
 
 		includedirs {
 			"src/hyperlinked",
+			"thirdparty/dxsdk/include",
 		}
+
+		libdirs("thirdparty/dxsdk/lib/x86")
 
 		links {
 			"hyperlib",
+			"d3d9",
+			"d3dx9"
 		}

@@ -1,8 +1,9 @@
-#include <hyperlinked/patches.hpp>
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
-#include <hyperlib/memory.hpp>
+#include <hyperlib/memory/memory.hpp>
+#include <hyperlib/memory/ts_memory_pool.hpp>
 
+#include <hyperlinked/patches.hpp>
 #include <hyperlinked/car_loader.hpp>
 #include <hyperlinked/track_streamer.hpp>
 
