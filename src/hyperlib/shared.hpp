@@ -4,6 +4,7 @@
 #pragma warning (disable : 4324)
 
 #include <cstdint>
+#include <cassert>
 
 #include <d3dx9.h>
 #include <d3d9.h>
@@ -22,6 +23,8 @@
 
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
+#include <hyperlib/array.hpp>
+#include <hyperlib/chunk.hpp>
 #include <hyperlib/hashing.hpp>
 #include <hyperlib/linked_list.hpp>
 

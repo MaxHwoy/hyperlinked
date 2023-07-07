@@ -6,14 +6,14 @@ namespace hyper
 {
     enum class instance_flags : std::uint32_t
     {
-        exclude_splitScreen         = 1u << 0,  // 0x00000001
-        exclude_mainView            = 1u << 1,  // 0x00000002
+        exclude_split_screen        = 1u << 0,  // 0x00000001
+        exclude_main_view           = 1u << 1,  // 0x00000002
         exclude_racing              = 1u << 2,  // 0x00000004
         exclude_freeroam            = 1u << 3,  // 0x00000008
         exclude_disable_rendering   = 1u << 4,  // 0x00000010
         driveable                   = 1u << 5,  // 0x00000020
-        enable_rear_view            = 1u << 6,  // 0x00000040
-        enable_reflection           = 1u << 7,  // 0x00000080
+        include_rear_view           = 1u << 6,  // 0x00000040
+        include_reflection          = 1u << 7,  // 0x00000080
         envmap_shadow               = 1u << 8,  // 0x00000100
         chopped_roadway             = 1u << 9,  // 0x00000200
         identity_matrix             = 1u << 10, // 0x00000400
@@ -33,7 +33,7 @@ namespace hyper
         reflect_in_ocean            = 1u << 24, // 0x01000000
         visible_further             = 1u << 25, // 0x02000000
         cast_shadow_map_mesh        = 1u << 26, // 0x04000000
-        enable_reflection_ng        = 1u << 27, // 0x08000000
+        include_reflection_ng       = 1u << 27, // 0x08000000
         aux_lighting                = 1u << 28, // 0x10000000
         pc_platform                 = 1u << 29, // 0x20000000
         collidable                  = 1u << 30, // 0x40000000
@@ -128,7 +128,7 @@ namespace hyper
             vector4 diag;
         };
 
-        struct pack_header : linked_node<pack_header>
+        struct pack : linked_node<pack>
         {
             std::uint32_t chunks_loaded;
             std::uint16_t section_number;
@@ -148,11 +148,13 @@ namespace hyper
         };
     };
 
+    DEFINE_ENUM_FLAG_OPERATORS(instance_flags);
+
     ASSERT_SIZE(scenery::info, 0x48);
     ASSERT_SIZE(scenery::instance, 0x60);
     ASSERT_SIZE(scenery::tree_node, 0x30);
     ASSERT_SIZE(scenery::override_info_hookup, 0x04);
     ASSERT_SIZE(scenery::preculler_info, 0x80);
     ASSERT_SIZE(scenery::override_info, 0x06);
-    ASSERT_SIZE(scenery::pack_header, 0x44);
+    ASSERT_SIZE(scenery::pack, 0x44);
 }

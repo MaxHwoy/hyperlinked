@@ -207,7 +207,7 @@ namespace hyper
         std::uint32_t version;
         std::uint32_t key;
         bool EndianSwapped;
-        __declspec(align(0x04)) struct chunk* vram_data_chunk;
+        __declspec(align(0x04)) chunk* vram_data_chunk;
     };
 
     struct texture_pack : public linked_node<texture_pack>

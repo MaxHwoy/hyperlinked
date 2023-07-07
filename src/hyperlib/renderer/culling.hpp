@@ -23,17 +23,34 @@ namespace hyper
         view* view;
         instance_flags flags;
         scenery_draw_info* first_draw_info;
-        scenery_draw_info* currentDraw_info;
+        scenery_draw_info* current_draw_info;
         scenery_draw_info* top_draw_info;
         __declspec(align(0x10)) vector3 position;
         __declspec(align(0x10)) vector3 direction;
-        float pixelation;
+        __declspec(align(0x10)) float pixelation;
         std::int32_t preculler_section_number;
         vectorized_visiblilty_info* vectorized_info;
     };
 
-    struct grand_scenery_cull_info
+    class grand_scenery_cull_info
     {
+    private:
+        void setup_scenery_cull_info(view* view, instance_flags flags);
+
+        void do_culling();
+        
+        void cull_view(scenery_cull_info& cull_info);
+
+        auto what_sections_should_we_draw(std::uint16_t* sections, std::uint32_t section_count, scenery_cull_info& cull_info) -> std::uint32_t;
+
+        void tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info);
+
+        void draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state);
+
+    public:
+        void setup_world_culling();
+
+    private:
         scenery_cull_info scenery_cull_infos[12];
         std::uint32_t cull_info_count;
         scenery_draw_info* first_draw_info;

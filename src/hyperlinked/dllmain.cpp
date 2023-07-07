@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <cstdio>
+#include <iostream>
 
 #include <hyperlinked/patches.hpp>
 
@@ -29,6 +30,10 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
             ::freopen("CONIN$", "r", stdin);
             ::freopen("CONOUT$", "w", stdout);
             ::freopen("CONOUT$", "w", stderr);
+
+            int temp;
+
+            std::cin >> temp;
 
             hyper::patches::init();
 
