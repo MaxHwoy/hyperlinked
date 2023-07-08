@@ -45,7 +45,17 @@ namespace hyper
 
         void tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info);
 
-        void draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state);
+        bool draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state);
+
+        bool commit_scenery(scenery::instance& instance, scenery::info& info, scenery_cull_info& cull_info, model_lod lod, visible_state state);
+
+        static bool info_has_markers(scenery::info& info, model_lod lod);
+
+        static void create_transform(const scenery::instance& instance, matrix4x4* matrix);
+
+        static auto get_pixel_size(const scenery_cull_info& cull_info, const vector3& position, float radius, float& distance) -> std::uint32_t;
+
+        static void create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix);
 
     public:
         void setup_world_culling();

@@ -40,7 +40,6 @@ namespace hyper
         lightmapped                 = 1u << 31, // 0x80000000
     };
 
-
     class scenery final
     {
     public:
@@ -68,8 +67,8 @@ namespace hyper
             vector3 bbox_max;
             std::int16_t preculler_info_index;
             std::int16_t lighting_context_number;
-            float position[3];
-            float rotation[9];
+            vector3 position;
+            matrix3x3 rotation;
             std::uint32_t scenery_guid;
             std::int16_t scenery_info_number;
             std::int8_t lod_level;
@@ -148,7 +147,7 @@ namespace hyper
         };
     };
 
-    DEFINE_ENUM_FLAG_OPERATORS(instance_flags);
+    CREATE_ENUM_FLAG_OPERATORS(instance_flags);
 
     ASSERT_SIZE(scenery::info, 0x48);
     ASSERT_SIZE(scenery::instance, 0x60);

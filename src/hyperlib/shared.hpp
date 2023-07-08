@@ -23,6 +23,7 @@
 
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
+#include <hyperlib/time.hpp>
 #include <hyperlib/array.hpp>
 #include <hyperlib/chunk.hpp>
 #include <hyperlib/hashing.hpp>
@@ -30,8 +31,7 @@
 
 #define ASSERT_SIZE(T, N) static_assert(sizeof(T) == N, "sizeof("#T") != "#N)
 
-#if !defined(DEFINE_ENUM_FLAG_OPERATORS)
-#define DEFINE_ENUM_FLAG_OPERATORS(T)																\
+#define CREATE_ENUM_FLAG_OPERATORS(T)																\
 	extern "C++"																					\
 	{																								\
 		constexpr inline T operator|(T a, T b) noexcept												\
@@ -68,5 +68,19 @@
 		{																							\
 			return (T&)(((std::underlying_type<T>::type&)a) ^= ((std::underlying_type<T>::type)b));	\
 		}																							\
+																									\
+		constexpr inline bool operator==(T a, std::int32_t b) noexcept								\
+		{																							\
+			return ((std::underlying_type<T>::type)a) == ((std::underlying_type<T>::type)b);		\
+		}																							\
+																									\
+		constexpr inline bool operator!=(T a, std::int32_t b) noexcept								\
+		{																							\
+			return ((std::underlying_type<T>::type)a) != ((std::underlying_type<T>::type)b);		\
+		}																							\
+																									\
+		/*constexpr inline T& operator++(T& a) noexcept												\
+		{																							\
+			return (T&)(++((std::underlying_type<T>::type)a));										\
+		}*/																							\
 	}
-#endif

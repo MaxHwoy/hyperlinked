@@ -226,8 +226,8 @@ namespace hyper
 
 
 
-    DEFINE_ENUM_FLAG_OPERATORS(texture_tileable_type);
-    DEFINE_ENUM_FLAG_OPERATORS(texture_bit_flags);
+    CREATE_ENUM_FLAG_OPERATORS(texture_tileable_type);
+    CREATE_ENUM_FLAG_OPERATORS(texture_bit_flags);
 
     ASSERT_SIZE(render_state, sizeof(std::uint32_t));
     ASSERT_SIZE(texture_info, 0x7C);

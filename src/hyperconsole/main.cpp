@@ -7,23 +7,21 @@
 
 #include <hyperlib/renderer/culling.hpp>
 
-template <typename T> auto null_ref() -> T&
+enum class test : std::uint32_t
 {
-    return *reinterpret_cast<T*>(nullptr);
-}
+    first = 1,
+    second = 2,
+    third = 3,
+};
 
-template <typename T> bool is_null_ref(T& ref)
-{
-    return &ref == nullptr;
-}
+
+CREATE_ENUM_FLAG_OPERATORS(test);
 
 int main()
 {
-    hyper::vector2 point(1.0f, -1.0f);
-    hyper::vector2 p1(2.0f, 0.0f);
-    hyper::vector2 p2(2.0f, 2.0f);
+    test t = test::first;
 
-    float distance = hyper::math::distance_to_line(point, p1, p2);
+    //++t;
 
     return 0;
 }

@@ -315,8 +315,292 @@ namespace hyper
         }
     }
 
-    void grand_scenery_cull_info::draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state)
+    bool grand_scenery_cull_info::draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state)
     {
-        reinterpret_cast<void(__thiscall*)(const scenery::pack*, std::uint32_t, scenery_cull_info*, visible_state)>(0x0079FA60)(&pack, instance_index, &cull_info, state);
+        scenery::instance& instance = pack.instances[instance_index];
+
+        std::int32_t preculler = cull_info.preculler_section_number;
+
+        if (preculler < 0 || ((1u << (preculler & 7)) & pack.preculler_infos[instance.preculler_info_index].visibility_bits[(preculler >> 3)]) == 0)
+        {
+            instance_flags include = instance.flags;
+            instance_flags exclude = cull_info.flags;
+
+            if ((include & instance_flags::envmap_shadow) == 0 || renderer::shadow_detail < 2)
+            {
+                if ((include & instance_flags::include_reflection) != 0 || (include & instance_flags::include_reflection_ng) != 0)
+                {
+                    include |= instance_flags::include_reflection | instance_flags::include_reflection_ng;
+                }
+
+                if ((static_cast<std::uint32_t>(exclude) & (static_cast<std::uint32_t>(include) ^ 0xFFFFFFC0u) & 0x80000FFu) == 0u)
+                {
+                    if (state == visible_state::partial)
+                    {
+                        state = cull_info.view->get_visible_state_sb(instance.bbox_min, instance.bbox_max, nullptr);
+                    }
+
+                    if (state != visible_state::outside)
+                    {
+                        float distance;
+
+                        scenery::info& info = pack.infos[instance.scenery_info_number];
+
+                        std::uint32_t pixel_size = grand_scenery_cull_info::get_pixel_size(cull_info, instance.position, info.radius + 6.0f, distance);
+
+                        if (pixel_size > 1u)
+                        {
+                            if ((include & instance_flags::visible_further) != 0)
+                            {
+                                pixel_size += 10u;
+                            }
+
+                            if ((exclude & (instance_flags::environment_map | instance_flags::reflection)) != 0)
+                            {
+                                if ((include & instance_flags::chopped_roadway) != 0)
+                                {
+                                    if (pixel_size >= 32u)
+                                    {
+                                        return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
+                                    }
+
+                                    return false;
+                                }
+
+                                if (pixel_size < 32)
+                                {
+                                    return false;
+                                }
+
+                                if ((include & (instance_flags::reflect_in_ocean | instance_flags::envmap_shadow)) == 0)
+                                {
+                                    return this->commit_scenery(instance, info, cull_info, model_lod::d, state);
+                                }
+
+                                return this->commit_scenery(instance, info, cull_info, model_lod::a, state);
+                            }
+                            
+                            if ((exclude & instance_flags::include_rear_view) != 0)
+                            {
+                                if ((include & instance_flags::include_rear_view) != 0 && pixel_size >= 32)
+                                {
+                                    return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
+                                }
+
+                                return false;
+                            }
+
+                            if (renderer::mode < view_mode::two_h)
+                            {
+                                if (pixel_size >= 18)
+                                {
+                                    const model* model = info.models[static_cast<std::uint32_t>(model_lod::a)];
+
+                                    if (model != nullptr)
+                                    {
+                                        solid* solid = model->solid;
+
+                                        if (solid != nullptr && solid->poly_count >= 40)
+                                        {
+                                            float density = solid->density;
+
+                                            density = math::max(density, 6.0f);
+
+                                            if (distance >= 25.0f && pixel_size < 8.7f * density)
+                                            {
+                                                return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
+                                            }
+                                        }
+                                    }
+
+                                    if (renderer::world_detail < 2)
+                                    {
+                                        return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
+                                    }
+                                    else
+                                    {
+                                        return this->commit_scenery(instance, info, cull_info, model_lod::a, state);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (pixel_size >= 23)
+                                {
+                                    return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    bool grand_scenery_cull_info::commit_scenery(scenery::instance& instance, scenery::info& info, scenery_cull_info& cull_info, model_lod lod, visible_state state)
+    {
+        model* rendered = info.models[static_cast<std::uint32_t>(lod)];
+
+        if (rendered == nullptr)
+        {
+            return false;
+        }
+
+        if (cull_info.current_draw_info == cull_info.top_draw_info)
+        {
+            return false;
+        }
+
+        if (grand_scenery_cull_info::info_has_markers(info, lod))
+        {
+            reinterpret_cast<void(__cdecl*)(scenery_cull_info*, scenery::info*, const scenery::instance*)>(0x0079A960)(&cull_info, &info, &instance); // #TODO
+        }
+
+        instance_flags include = instance.flags;
+        instance_flags exclude = cull_info.flags;
+
+        if ((include & instance_flags::identity_matrix) != 0)
+        {
+            scenery_draw_info* draw_info = cull_info.current_draw_info++;
+
+            draw_info->model = reinterpret_cast<model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
+            draw_info->matrix = nullptr;
+            draw_info->instance = &instance;
+        }
+        else
+        {
+            matrix4x4* matrix = reinterpret_cast<matrix4x4*(__cdecl*)(std::uint32_t)>(0x00402850)(1u);
+
+            if (matrix == nullptr)
+            {
+                return false;
+            }
+
+            scenery_draw_info* draw_info = cull_info.current_draw_info++;
+
+            grand_scenery_cull_info::create_transform(instance, matrix);
+
+            if ((exclude & include & instance_flags::envmap_shadow) != 0)
+            {
+                matrix->m43 += 2.0f;
+            }
+
+            if ((exclude & instance_flags::reflection) != 0)
+            {
+                math::flip_sign(matrix->m33);
+            }
+
+            if ((exclude & instance_flags::enable_wind) != 0 && (include & instance_flags::swayable) != 0)
+            {
+                grand_scenery_cull_info::create_wind_matrix(cull_info.view, static_cast<std::uint32_t>(matrix->m41 * 60.0f) % 360u, *matrix);
+            }
+
+            draw_info->model = reinterpret_cast<model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
+            draw_info->matrix = matrix;
+            draw_info->instance = &instance;
+        }
+
+        return true;
+    }
+
+    bool grand_scenery_cull_info::info_has_markers(scenery::info& info, model_lod lod)
+    {
+        std::uint32_t& flags = info.flags;
+
+        if ((flags & 1u) == 0)
+        {
+            for (std::uint32_t i = 0u; i < static_cast<std::uint32_t>(model_lod::count); ++i)
+            {
+                model* model = info.models[i];
+
+                if (model != nullptr && model->solid != nullptr && model->solid->position_marker_count != 0u)
+                {
+                    flags |= (2u << i);
+                }
+            }
+
+            flags |= 1u;
+        }
+
+        return (flags & (2u << static_cast<std::uint32_t>(lod))) != 0;
+    }
+
+    void grand_scenery_cull_info::create_transform(const scenery::instance& instance, matrix4x4* matrix)
+    {
+        matrix->m11 = instance.rotation.m11;
+        matrix->m12 = instance.rotation.m12;
+        matrix->m13 = instance.rotation.m13;
+        matrix->m14 = 0.0f;
+        matrix->m21 = instance.rotation.m21;
+        matrix->m22 = instance.rotation.m22;
+        matrix->m23 = instance.rotation.m23;
+        matrix->m24 = 0.0f;
+        matrix->m31 = instance.rotation.m31;
+        matrix->m32 = instance.rotation.m32;
+        matrix->m33 = instance.rotation.m33;
+        matrix->m34 = 0.0f;
+        matrix->m41 = instance.position.x;
+        matrix->m42 = instance.position.y;
+        matrix->m43 = instance.position.z;
+        matrix->m44 = 1.0f;
+    }
+
+    auto grand_scenery_cull_info::get_pixel_size(const scenery_cull_info& cull_info, const vector3& position, float radius, float& distance) -> std::uint32_t
+    {
+        vector3 direction = position - cull_info.position;
+
+        if (-radius <= vector3::dot(direction, cull_info.direction))
+        {
+            distance = direction.magnitude();
+
+            float radiidist = distance - radius;
+            float pixelsize = cull_info.pixelation;
+
+            if (radiidist > radius)
+            {
+                pixelsize *= radius / radiidist;
+            }
+
+            return static_cast<std::uint32_t>(pixelsize);
+        }
+
+        return 0u;
+    }
+
+    void grand_scenery_cull_info::create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix)
+    {
+        // #TODO there is a slight mismatch somewhere but perhaps it's fine? (either sin + cos vs sincos mismatch or float -> uint16 casting)
+
+        matrix4x4 stack(matrix);
+
+        float sin = math::sin(static_cast<std::uint16_t>(static_cast<std::int32_t>((degrees + renderer::wind_angle) * 65536.0f) / 360));
+
+        vector3 direction(1.0f, 0.0f, 0.0f);
+
+        if (view->rain != nullptr)
+        {
+            direction = view->rain->prevail_wind_speed.as_vector3().normalized();
+        }
+
+        stack.m12 = -stack.m12;
+        stack.m21 = -stack.m21;
+
+        math::transform_vector(stack, direction);
+
+        std::uint16_t angle = static_cast<std::uint16_t>(static_cast<std::int32_t>(sin * 1.5f * 65536.0f) / 360);
+
+        math::create_axis_rotation_matrix(direction, angle, stack);
+
+        math::rotate_matrix_z(stack, angle, stack);
+
+        math::multiply_matrix(stack, matrix, matrix);
+
+        //matrix4x4 game;
+
+        //reinterpret_cast<void(__cdecl*)(const hyper::view*, matrix4x4*, std::uint32_t, matrix4x4*)>(0x007B39B0)(view, &game, degrees, &matrix);
+
+        //math::multiply_matrix(game, matrix, matrix);
     }
 }

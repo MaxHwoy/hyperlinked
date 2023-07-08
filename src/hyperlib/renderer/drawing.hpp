@@ -5,6 +5,15 @@
 
 namespace hyper
 {
+    enum class model_lod : std::uint32_t
+    {
+        a,
+        b,
+        c,
+        d,
+        count,
+    };
+
     enum class visible_state : std::uint8_t
     {
         outside = 0x0,
@@ -344,14 +353,18 @@ namespace hyper
     public:
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);
 
+        static inline std::uint32_t& world_detail = *reinterpret_cast<std::uint32_t*>(0x00A65370);
+
         static inline std::uint32_t& shadow_detail = *reinterpret_cast<std::uint32_t*>(0x00A65398);
 
         static inline bool& road_reflection_enabled = *reinterpret_cast<bool*>(0x00A65358);
 
         static inline view_mode& mode = *reinterpret_cast<view_mode*>(0x00AB0A38);
+
+        static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
     };
 
-    DEFINE_ENUM_FLAG_OPERATORS(poly_flags);
+    CREATE_ENUM_FLAG_OPERATORS(poly_flags);
 
     ASSERT_SIZE(render_target, 0x1C);
     ASSERT_SIZE(render_view, 0x1E0);

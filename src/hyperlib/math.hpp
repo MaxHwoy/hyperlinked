@@ -254,6 +254,19 @@ namespace hyper
         std::uint8_t a;
     };
 
+    struct matrix3x3
+    {
+        float m11;
+        float m12;
+        float m13;
+        float m21;
+        float m22;
+        float m23;
+        float m31;
+        float m32;
+        float m33;
+    };
+
     struct matrix4x4
     {
         float m11;
@@ -324,11 +337,34 @@ namespace hyper
             return value;
         }
 
+        static inline void flip_sign(float& value)
+        {
+            *reinterpret_cast<std::uint32_t*>(&value) ^= 0x80000000;
+        }
+
+        static auto sin(std::uint16_t angle) -> float;
+
+        static auto sin(float angle) -> float;
+
+        static auto cos(std::uint16_t angle) -> float;
+
+        static auto cos(float angle) -> float;
+
+        static auto tan(std::uint16_t angle) -> float;
+
+        static auto tan(float angle) -> float;
+
+        static void sincos(std::uint16_t angle, float& sin, float& cos);
+
         static bool approximately(float a, float b);
+
+        static void multiply_matrix(const matrix4x4& a, const matrix4x4& b, matrix4x4& result);
 
         static void transform_point(const matrix4x4& trs, vector3& point);
 
         static void transform_bound(const matrix4x4& trs, vector3& min, vector3& max);
+
+        static void transform_vector(const matrix4x4& trs, vector3& vector);
 
         static bool is_in_bounding_box(const vector2& point, const vector2& min, const vector2& max);
 
@@ -342,8 +378,22 @@ namespace hyper
 
         static bool is_point_in_triangle(const vector3& point, const vector3& p1, const vector3& p2, const vector3& p3);
 
-        static bool get_triangle_height(const vector2& at, const vector3& p1, const vector3& p2, const vector3& p3);
+        static auto get_triangle_height(const vector2& at, const vector3& p1, const vector3& p2, const vector3& p3) -> float;
 
         static auto distance_to_line(const vector2& point, const vector2& p1, const vector2& p2) -> float;
+
+        static void create_axis_rotation_matrix(const vector3& axis, std::uint16_t angle, matrix4x4& result);
+
+        static void create_rotation_x(std::uint16_t angle, matrix4x4& result);
+
+        static void create_rotation_y(std::uint16_t angle, matrix4x4& result);
+
+        static void create_rotation_z(std::uint16_t angle, matrix4x4& result);
+
+        static void rotate_matrix_x(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
+
+        static void rotate_matrix_y(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
+
+        static void rotate_matrix_z(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
     };
 }

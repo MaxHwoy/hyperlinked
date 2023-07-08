@@ -52,14 +52,17 @@ namespace hyper
 
         std::uint32_t depth_name = this->get_depth_name(position);
 
-        if (depth_name == closest->depth_names[0])
+        if (depth_name != 0u)
         {
-            return this->get_drivable_section(closest->depth_sections[0]);
-        }
+            if (depth_name == closest->depth_names[0])
+            {
+                return this->get_drivable_section(closest->depth_sections[0]);
+            }
 
-        if (depth_name == closest->depth_names[1])
-        {
-            return this->get_drivable_section(closest->depth_sections[1]);
+            if (depth_name == closest->depth_names[1])
+            {
+                return this->get_drivable_section(closest->depth_sections[1]);
+            }
         }
 
         return this->get_drivable_section(closest->section_number);
@@ -126,7 +129,7 @@ namespace hyper
             {
                 float elevation = math::get_triangle_height(position.as_vector2(), p1, p2, p3);
 
-                if (position.y > elevation && elevation > maximum)
+                if (position.z > elevation && elevation > maximum)
                 {
                     maximum = elevation;
 
