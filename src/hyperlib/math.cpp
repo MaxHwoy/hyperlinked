@@ -460,10 +460,9 @@ namespace hyper
 
     void math::create_axis_rotation_matrix(const vector3& axis, std::uint16_t angle, matrix4x4& result)
     {
-        float sin;
-        float cos;
-
-        math::sincos(angle, sin, cos);
+        float sin = math::sin(angle);
+        float cos = math::cos(angle);
+        float inv = 1.0f - cos;
 
         float x2 = axis.x * axis.x;
         float y2 = axis.y * axis.y;
@@ -472,33 +471,31 @@ namespace hyper
         float yz = axis.y * axis.z;
         float zx = axis.z * axis.x;
 
-        result.m11 = x2 + cos * (1.0f - x2);
-        result.m12 = xy - cos * xy - sin * axis.z;
-        result.m13 = zx - cos * zx + sin * axis.y;
+        result.m11 = x2 * inv + cos;
+        result.m12 = xy * inv - sin * axis.z;
+        result.m13 = zx * inv + sin * axis.y;
         result.m14 = 0.0f;
 
-        result.m21 = xy - cos * xy + sin * axis.z;
-        result.m22 = y2 + cos * (1.0f - y2);
-        result.m23 = yz - cos * yz - sin * axis.x;
+        result.m21 = xy * inv + sin * axis.z;
+        result.m22 = y2 * inv + cos;
+        result.m23 = yz * inv - sin * axis.x;
         result.m24 = 0.0f;
 
-        result.m31 = zx - cos * zx - sin * axis.y;
-        result.m32 = yz - cos * yz + sin * axis.x;
-        result.m33 = z2 + cos * (1.0f - z2);
+        result.m31 = zx * inv - sin * axis.y;
+        result.m32 = yz * inv + sin * axis.x;
+        result.m33 = z2 * inv + cos;
         result.m34 = 0.0f;
 
-        result.m41 = 0.0f;
-        result.m42 = 0.0f;
-        result.m43 = 0.0f;
-        result.m44 = 1.0f;
+        result.m41 = 0.0;
+        result.m42 = 0.0;
+        result.m43 = 0.0;
+        result.m44 = 1.0;
     }
 
     void math::create_rotation_x(std::uint16_t angle, matrix4x4& result)
     {
-        float sin;
-        float cos;
-
-        math::sincos(angle, sin, cos);
+        float sin = math::sin(angle);
+        float cos = math::cos(angle);
 
         result.m11 = 1.0f;
         result.m12 = 0.0f;
@@ -523,10 +520,8 @@ namespace hyper
 
     void math::create_rotation_y(std::uint16_t angle, matrix4x4& result)
     {
-        float sin;
-        float cos;
-
-        math::sincos(angle, sin, cos);
+        float sin = math::sin(angle);
+        float cos = math::cos(angle);
 
         result.m11 = +cos;
         result.m12 = 0.0f;
@@ -551,10 +546,8 @@ namespace hyper
 
     void math::create_rotation_z(std::uint16_t angle, matrix4x4& result)
     {
-        float sin;
-        float cos;
-
-        math::sincos(angle, sin, cos);
+        float sin = math::sin(angle);
+        float cos = math::cos(angle);
 
         result.m11 = +cos;
         result.m12 = +sin;

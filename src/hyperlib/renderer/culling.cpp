@@ -571,8 +571,6 @@ namespace hyper
 
     void grand_scenery_cull_info::create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix)
     {
-        // #TODO there is a slight mismatch somewhere but perhaps it's fine? (either sin + cos vs sincos mismatch or float -> uint16 casting)
-
         matrix4x4 stack(matrix);
 
         float sin = math::sin(static_cast<std::uint16_t>(static_cast<std::int32_t>((degrees + renderer::wind_angle) * 65536.0f) / 360));
@@ -596,11 +594,5 @@ namespace hyper
         math::rotate_matrix_z(stack, angle, stack);
 
         math::multiply_matrix(stack, matrix, matrix);
-
-        //matrix4x4 game;
-
-        //reinterpret_cast<void(__cdecl*)(const hyper::view*, matrix4x4*, std::uint32_t, matrix4x4*)>(0x007B39B0)(view, &game, degrees, &matrix);
-
-        //math::multiply_matrix(game, matrix, matrix);
     }
 }
