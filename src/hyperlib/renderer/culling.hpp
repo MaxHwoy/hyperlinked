@@ -57,6 +57,8 @@ namespace hyper
 
         static void create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix);
 
+        static void commit_flares(const scenery::instance& instance, const solid& solid, const scenery_cull_info& cull_info);
+
     public:
         void setup_world_culling();
 

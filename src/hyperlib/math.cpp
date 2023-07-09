@@ -5,6 +5,10 @@
 #undef hyper
 #endif
 
+#if defined(USE_SIMD_VECTORIZATIONS)
+#include <xmmintrin.h>
+#endif
+
 namespace hyper
 {
     auto vector2::normalized() const -> vector2
@@ -145,6 +149,23 @@ namespace hyper
     {
 #if defined(USE_D3DX9_MATH_FUNCTIONS)
         ::D3DXMatrixMultiply(reinterpret_cast<D3DXMATRIX*>(&result), reinterpret_cast<const D3DXMATRIX*>(&a), reinterpret_cast<const D3DXMATRIX*>(&b));
+#elif defined(USE_SIMD_VECTORIZATIONS)
+        __m128 row1 = _mm_load_ps(&b[0x00u]);
+        __m128 row2 = _mm_load_ps(&b[0x04u]);
+        __m128 row3 = _mm_load_ps(&b[0x08u]);
+        __m128 row4 = _mm_load_ps(&b[0x0Cu]);
+
+        for (std::uint32_t i = 0u; i < 4u; ++i)
+        {
+            __m128 brod1 = _mm_set1_ps(a[(i << 2) + 0u]);
+            __m128 brod2 = _mm_set1_ps(a[(i << 2) + 1u]);
+            __m128 brod3 = _mm_set1_ps(a[(i << 2) + 2u]);
+            __m128 brod4 = _mm_set1_ps(a[(i << 2) + 3u]);
+
+            __m128 row = _mm_add_ps(_mm_add_ps(_mm_mul_ps(brod1, row1), _mm_mul_ps(brod2, row2)), _mm_add_ps(_mm_mul_ps(brod3, row3), _mm_mul_ps(brod4, row4)));
+            
+            _mm_store_ps(&result[i << 2], row);
+        }
 #else
         matrix4x4 stack;
 

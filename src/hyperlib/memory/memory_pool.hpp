@@ -5,10 +5,6 @@
 
 #include <hyperlib/linked_list.hpp>
 
-#define CONCURRENT_POOL_ACCESS
-#define LARGE_ADDRESS_ALLOC
-#define TRACE_HEAP_ALLOCATIONS
-
 #if defined(LARGE_ADDRESS_ALLOC)
 typedef size_t alloc_size_t;
 #else

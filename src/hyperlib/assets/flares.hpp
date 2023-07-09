@@ -77,6 +77,8 @@ namespace hyper
         };
     };
 
+    CREATE_ENUM_EXPR_OPERATORS(flare::type);
+
     ASSERT_SIZE(flare::instance, 0x30);
     ASSERT_SIZE(flare::pack, 0x60);
 }

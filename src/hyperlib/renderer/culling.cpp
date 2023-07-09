@@ -1,3 +1,4 @@
+#include <hyperlib/assets/flares.hpp>
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/renderer/culling.hpp>
@@ -104,7 +105,7 @@ namespace hyper
 
         if (renderer::draw_world && state != game_flow_state::loading_region && state != game_flow_state::loading_track)
         {
-            for (std::uint32_t i = static_cast<std::uint32_t>(view_id::player1); i <= static_cast<std::uint32_t>(view_id::player1_rvm); ++i)
+            for (view_id i = view_id::player1; i <= view_id::player1_rvm; ++i)
             {
                 view* current = view::views[i];
 
@@ -114,7 +115,7 @@ namespace hyper
                 }
             }
 
-            for (std::uint32_t i = static_cast<std::uint32_t>(view_id::env_z_pos); i <= static_cast<std::uint32_t>(view_id::env_y_neg); ++i)
+            for (view_id i = view_id::env_z_pos; i <= view_id::env_y_neg; ++i)
             {
                 view* current = view::views[i];
 
@@ -443,9 +444,9 @@ namespace hyper
     {
         model* rendered = info.models[static_cast<std::uint32_t>(lod)];
 
-        if (rendered == nullptr)
+        if (rendered == nullptr || rendered->solid == nullptr)
         {
-            return false;
+            return false; // do solid check ahead of time so that we don't recheck it later
         }
 
         if (cull_info.current_draw_info == cull_info.top_draw_info)
@@ -455,7 +456,9 @@ namespace hyper
 
         if (grand_scenery_cull_info::info_has_markers(info, lod))
         {
-            reinterpret_cast<void(__cdecl*)(scenery_cull_info*, scenery::info*, const scenery::instance*)>(0x0079A960)(&cull_info, &info, &instance); // #TODO
+            grand_scenery_cull_info::commit_flares(instance, *rendered->solid, cull_info);
+
+            //reinterpret_cast<void(__cdecl*)(scenery_cull_info*, scenery::info*, const scenery::instance*)>(0x0079A960)(&cull_info, &info, &instance);
         }
 
         instance_flags include = instance.flags;
@@ -511,13 +514,13 @@ namespace hyper
 
         if ((flags & 1u) == 0)
         {
-            for (std::uint32_t i = 0u; i < static_cast<std::uint32_t>(model_lod::count); ++i)
+            for (model_lod i = model_lod::a; i < model_lod::count; ++i)
             {
-                model* model = info.models[i];
+                model* model = info.models[static_cast<std::uint32_t>(i)];
 
                 if (model != nullptr && model->solid != nullptr && model->solid->position_marker_count != 0u)
                 {
-                    flags |= (2u << i);
+                    flags |= (2u << static_cast<std::uint32_t>(i));
                 }
             }
 
@@ -582,8 +585,8 @@ namespace hyper
             direction = view->rain->prevail_wind_speed.as_vector3().normalized();
         }
 
-        stack.m12 = -stack.m12;
-        stack.m21 = -stack.m21;
+        math::flip_sign(stack.m12);
+        math::flip_sign(stack.m21);
 
         math::transform_vector(stack, direction);
 
@@ -594,5 +597,83 @@ namespace hyper
         math::rotate_matrix_z(stack, angle, stack);
 
         math::multiply_matrix(stack, matrix, matrix);
+    }
+
+    void grand_scenery_cull_info::commit_flares(const scenery::instance& instance, const solid& solid, const scenery_cull_info& cull_info)
+    {
+        view_id id = cull_info.view->id;
+
+        if (renderer::can_render_flares_in_view(id) && !renderer::is_friend_flare_view_already_committed(id))
+        {
+            std::uint32_t mask = renderer::create_flare_view_mask(id);
+
+            for (std::uint32_t i = 0u; i < solid.position_marker_count; ++i)
+            {
+                const position_marker& marker = solid.position_markers[i];
+
+                flare::instance* pool_flare = renderer::get_next_light_flare_in_pool(mask);
+
+                if (pool_flare != nullptr)
+                {
+                    const matrix4x4& pivot = solid.pivot_matrix;
+
+                    vector3 position(marker.matrix.m41 - pivot.m41, marker.matrix.m42 - pivot.m42, marker.matrix.m43 - pivot.m43);
+
+                    matrix4x4 transform;
+                    
+                    grand_scenery_cull_info::create_transform(instance, &transform);
+
+                    math::transform_point(transform, position);
+
+                    float distance = (position - cull_info.position).sqr_magnitude();
+
+                    if (distance <= 500.0f * 500.0f)
+                    {
+                        rain* rain = cull_info.view->rain;
+
+                        if (rain != nullptr && rain->road_dampness > 0.0f && position != pool_flare->position)
+                        {
+                            pool_flare->reflect_pos_z = 999.0f;
+                        }
+
+                        pool_flare->position = position;
+
+                        if (marker.fparam <= 0.0f)
+                        {
+                            if (marker.iparam == 6)
+                            {
+                                pool_flare->type = flare::type::lamppost;
+                            }
+                            else
+                            {
+                                pool_flare->type = flare::type::catseye_orange + static_cast<flare::type>(marker.iparam);
+                            }
+                        }
+                        else
+                        {
+                            pool_flare->type = flare::type::sun_flare + static_cast<flare::type>(marker.fparam);
+                        }
+
+                        switch (pool_flare->type)
+                        {
+                            case flare::type::blinking_amber:
+                            case flare::type::blinking_red:
+                            case flare::type::blinking_green:
+                            case flare::type::generic_8:
+                                pool_flare->direction = vector3(vector2(position.x - transform.m41, position.y - transform.m42).normalized());
+                                pool_flare->flags = flare::flags::uni_directional;
+                                break;
+
+                            default:
+                                pool_flare->flags = flare::flags::n_directional;
+                        }
+                    }
+                    else
+                    {
+                        renderer::remove_current_light_flare_in_pool();
+                    }
+                }
+            }
+        }
     }
 }

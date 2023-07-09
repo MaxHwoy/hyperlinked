@@ -95,6 +95,16 @@ namespace hyper
             return this->x != other.x || this->y != other.y;
         }
 
+        inline auto operator[](std::uint32_t index) -> float&
+        {
+            return reinterpret_cast<float*>(this)[index];
+        }
+
+        inline auto operator[](std::uint32_t index) const -> const float&
+        {
+            return reinterpret_cast<const float*>(this)[index];
+        }
+
         auto normalized() const -> vector2;
 
         inline static auto dot(const vector2& lhs, const vector2& rhs) -> float
@@ -114,6 +124,10 @@ namespace hyper
         }
 
         inline vector3(float x, float y, float z) : x(x), y(y), z(z)
+        {
+        }
+
+        inline vector3(const vector2& vector) : x(vector.x), y(vector.y), z(0.0f)
         {
         }
 
@@ -204,6 +218,16 @@ namespace hyper
             return this->x != other.x || this->y != other.y || this->z != other.z;
         }
 
+        inline auto operator[](std::uint32_t index) -> float&
+        {
+            return reinterpret_cast<float*>(this)[index];
+        }
+
+        inline auto operator[](std::uint32_t index) const -> const float&
+        {
+            return reinterpret_cast<const float*>(this)[index];
+        }
+
         auto normalized() const -> vector3;
 
         inline static auto dot(const vector3& lhs, const vector3& rhs) -> float
@@ -285,6 +309,16 @@ namespace hyper
         float m42;
         float m43;
         float m44;
+
+        inline auto operator[](std::uint32_t index) -> float&
+        {
+            return reinterpret_cast<float*>(this)[index];
+        }
+
+        inline auto operator[](std::uint32_t index) const -> const float&
+        {
+            return reinterpret_cast<const float*>(this)[index];
+        }
     };
 
     struct plane

@@ -54,14 +54,22 @@ workspace "hyperlinked"
 	}
 
 	filter "configurations:debug"
-		defines "DEBUG"
+		defines {
+			"DEBUG",
+			"TRACE_HEAP_ALLOCATIONS",
+			"CONCURRENT_POOL_ACCESS",
+		}
 		optimize "debug"
 		inlining "disabled"
 		runtime "debug"
 		symbols "full"
 
 	filter "configurations:release"
-		defines "NDEBUG"
+		defines {
+			"NDEBUG",
+			"USE_SIMD_VECTORIZATIONS",
+			"CONCURRENT_POOL_ACCESS"
+		}
 		optimize "full"
 		inlining "auto"
 		runtime "release"

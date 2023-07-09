@@ -26,10 +26,45 @@
 #include <hyperlib/time.hpp>
 #include <hyperlib/array.hpp>
 #include <hyperlib/chunk.hpp>
+#include <hyperlib/bitset.hpp>
 #include <hyperlib/hashing.hpp>
 #include <hyperlib/linked_list.hpp>
 
 #define ASSERT_SIZE(T, N) static_assert(sizeof(T) == N, "sizeof("#T") != "#N)
+
+#define CREATE_ENUM_EXPR_OPERATORS(T)																\
+	extern "C++"																					\
+	{																								\
+		constexpr inline T& operator++(T& a) noexcept												\
+		{																							\
+			return (T&)(++((std::underlying_type<T>::type&)a));										\
+		}																							\
+																									\
+		constexpr inline T& operator--(T& a) noexcept												\
+		{																							\
+			return (T&)(--((std::underlying_type<T>::type&)a));										\
+		}																							\
+																									\
+		constexpr inline T operator+(T a, T b) noexcept												\
+		{																							\
+			return T(((std::underlying_type<T>::type)a) + ((std::underlying_type<T>::type)b));		\
+		}																							\
+																									\
+		constexpr inline T operator-(T a, T b) noexcept												\
+		{																							\
+			return T(((std::underlying_type<T>::type)a) + ((std::underlying_type<T>::type)b));		\
+		}																							\
+																									\
+		inline T& operator+=(T& a, T b) noexcept													\
+		{																							\
+			return (T&)(((std::underlying_type<T>::type&)a) += ((std::underlying_type<T>::type)b));	\
+		}																							\
+																									\
+		inline T& operator-=(T& a, T b) noexcept													\
+		{																							\
+			return (T&)(((std::underlying_type<T>::type&)a) -= ((std::underlying_type<T>::type)b));	\
+		}																							\
+	}
 
 #define CREATE_ENUM_FLAG_OPERATORS(T)																\
 	extern "C++"																					\
@@ -78,9 +113,4 @@
 		{																							\
 			return ((std::underlying_type<T>::type)a) != ((std::underlying_type<T>::type)b);		\
 		}																							\
-																									\
-		/*constexpr inline T& operator++(T& a) noexcept												\
-		{																							\
-			return (T&)(++((std::underlying_type<T>::type)a));										\
-		}*/																							\
 	}

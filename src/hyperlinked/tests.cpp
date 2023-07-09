@@ -75,5 +75,16 @@ namespace hyper
         hook::jump(0x00725C95, &test_render_state);
 
         hook::jump(0x0072ECAA, &test_setup_world_culling);
+
+        hook::set<flare::instance*>(0x0073A1C7, std::end(renderer::flare_pool_));
+        hook::set<flare::instance*>(0x0073A149, renderer::flare_pool_);
+        hook::set<flare::instance*>(0x0073A1AA, renderer::flare_pool_);
+
+        hook::set<std::uint8_t*>(0x00750883, reinterpret_cast<std::uint8_t*>(renderer::flare_pool_) + offsetof(flare::instance, type));
+
+        hook::set<std::uint32_t>(0x0073A128, std::size(renderer::flare_pool_));
+
+        hook::set<std::uint32_t*>(0x0073A13E, renderer::flare_bits_);
+        hook::set<std::uint32_t*>(0x00750A2F, renderer::flare_bits_);
     }
 }

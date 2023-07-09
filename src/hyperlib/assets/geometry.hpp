@@ -5,23 +5,6 @@
 
 namespace hyper
 {
-    enum class solid_flags : std::uint16_t
-    {
-        compressed_verts = 0x1,
-        shadow_map = 0x8,
-        vertex_animation = 0x10,
-        randomize_start_frame = 0x20,
-        is_lit = 0x40,
-        is_windy = 0x80,
-        duplicate_name = 0x100,
-        duplicate_name_error = 0x200,
-        duplicated = 0x400,
-        want_spotlight_context = 0x800,
-        morph_initialized = 0x1000,
-        skin_info_created = 0x2000,
-        pixel_damage_cleared = 0x4000,
-    };
-
     struct light_material_platform_info
     {
     };
@@ -218,9 +201,26 @@ namespace hyper
 
     struct solid : public solid_platform_interface, public linked_node<solid>
     {
+        enum class flags : std::uint16_t
+        {
+            compressed_verts = 0x1,
+            shadow_map = 0x8,
+            vertex_animation = 0x10,
+            randomize_start_frame = 0x20,
+            is_lit = 0x40,
+            is_windy = 0x80,
+            duplicate_name = 0x100,
+            duplicate_name_error = 0x200,
+            duplicated = 0x400,
+            want_spotlight_context = 0x800,
+            morph_initialized = 0x1000,
+            skin_info_created = 0x2000,
+            pixel_damage_cleared = 0x4000,
+        };
+
         std::uint8_t version;
         bool endian_swapped;
-        solid_flags flags;
+        flags flag;
         std::uint32_t key;
         std::uint16_t poly_count;
         std::uint16_t vert_count;
@@ -298,7 +298,7 @@ namespace hyper
             std::uint32_t model_key;
             std::uint32_t solid_key;
             model* model;
-            flags flags;
+            flags flag;
             std::int8_t parent;
             std::int8_t children_count;
             std::int8_t child_index;
@@ -306,9 +306,11 @@ namespace hyper
 
         std::uint32_t key;
         std::uint8_t node_count;
-        flags flags;
+        flags flag;
         __declspec(align(0x04)) node nodes[1];
     };
+
+    CREATE_ENUM_FLAG_OPERATORS(solid::flags);
 
     ASSERT_SIZE(light_material, 0xEC);
     ASSERT_SIZE(texture_entry, 0x08);

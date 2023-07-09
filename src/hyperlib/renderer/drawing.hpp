@@ -2,6 +2,7 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
+#include <hyperlib/assets/flares.hpp>
 
 namespace hyper
 {
@@ -351,6 +352,17 @@ namespace hyper
     class renderer final
     {
     public:
+        static auto create_flare_view_mask(view_id id) -> std::uint32_t;
+
+        static bool can_render_flares_in_view(view_id id);
+
+        static bool is_friend_flare_view_already_committed(view_id id);
+
+        static auto get_next_light_flare_in_pool(std::uint32_t mask) -> flare::instance*;
+
+        static void remove_current_light_flare_in_pool();
+
+    public:
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);
 
         static inline std::uint32_t& world_detail = *reinterpret_cast<std::uint32_t*>(0x00A65370);
@@ -362,8 +374,21 @@ namespace hyper
         static inline view_mode& mode = *reinterpret_cast<view_mode*>(0x00AB0A38);
 
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
+
+    private:
+        static bitset<static_cast<size_t>(view_id::count)> flare_mask_;
+
+        static bitset<static_cast<size_t>(view_id::count)> view_to_flare_;
+
+    public:
+        static inline flare::instance flare_pool_[1000]{};
+
+        static inline std::uint32_t flare_bits_[1000]{};
     };
 
+    CREATE_ENUM_EXPR_OPERATORS(model_lod);
+    CREATE_ENUM_EXPR_OPERATORS(render_target_id);
+    CREATE_ENUM_EXPR_OPERATORS(view_id);
     CREATE_ENUM_FLAG_OPERATORS(poly_flags);
 
     ASSERT_SIZE(render_target, 0x1C);
