@@ -25,37 +25,37 @@ namespace hyper
 
             switch (texture->blend_type)
             {
-            case texture::alpha_blend_type::blend:
-                this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
-                break;
-
-            case texture::alpha_blend_type::additive:
-                this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                this->alpha_blend_dest = D3DBLEND_ONE;
-                this->is_additive_blend = true;
-                this->colour_write_alpha = true;
-                break;
-
-            case texture::alpha_blend_type::subtractive:
-                this->alpha_blend_src = D3DBLEND_ZERO;
-                this->alpha_blend_dest = D3DBLEND_INVSRCCOLOR;
-                break;
-
-            case texture::alpha_blend_type::overbright:
-                this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
-                break;
-
-            case texture::alpha_blend_type::dest_blend:
-                this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                this->alpha_blend_dest = D3DBLEND_INVDESTALPHA;
-                break;
-
-            case texture::alpha_blend_type::dest_additive:
-                this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                this->alpha_blend_dest = D3DBLEND_ONE;
-                break;
+                case texture::alpha_blend_type::blend:
+                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                    break;
+                
+                case texture::alpha_blend_type::additive:
+                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = D3DBLEND_ONE;
+                    this->is_additive_blend = true;
+                    this->colour_write_alpha = true;
+                    break;
+                
+                case texture::alpha_blend_type::subtractive:
+                    this->alpha_blend_src = D3DBLEND_ZERO;
+                    this->alpha_blend_dest = D3DBLEND_INVSRCCOLOR;
+                    break;
+                
+                case texture::alpha_blend_type::overbright:
+                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                    break;
+                
+                case texture::alpha_blend_type::dest_blend:
+                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
+                    this->alpha_blend_dest = D3DBLEND_INVDESTALPHA;
+                    break;
+                
+                case texture::alpha_blend_type::dest_additive:
+                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
+                    this->alpha_blend_dest = D3DBLEND_ONE;
+                    break;
             }
         }
         else
