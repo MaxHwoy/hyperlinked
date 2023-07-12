@@ -1,40 +1,14 @@
 #include <hyperlib/assets/flares.hpp>
 #include <hyperlib/assets/scenery.hpp>
+#include <hyperlib/memory/frame_pool.hpp>
 #include <hyperlib/streamer/sections.hpp>
+#include <hyperlib/gameplay/g_race.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/culling.hpp>
 
 namespace hyper
 {
-    enum class game_flow_state : std::uint32_t
-    {
-        none = 0x0,
-        loading_frontend = 0x1,
-        unloading_frontend = 0x2,
-        in_frontend = 0x3,
-        loading_region = 0x4,
-        loading_track = 0x5,
-        racing = 0x6,
-        unloading_track = 0x7,
-        unloading_region = 0x8,
-        exit_demo_disc = 0x9,
-    };
-
-    struct game_flow_manager
-    {
-        void(__cdecl* single_function)(std::int32_t);
-        std::int32_t single_function_param;
-        const char* single_function_name;
-        void(__cdecl* looping_function)();
-        const char* looping_function_name;
-        bool waiting_for_callback;
-        const char* callback_name;
-        int callback_phase;
-        game_flow_state current_game_flow_state;
-    };
-
-    ASSERT_SIZE(game_flow_manager, 0x24);
-
-    void grand_scenery_cull_info::setup_scenery_cull_info(view* view, instance_flags flags)
+    void grand_scenery_cull_info::setup_scenery_cull_info(view::instance& view, instance_flags flags)
     {
         view_mode mode = renderer::mode;
 
@@ -42,7 +16,7 @@ namespace hyper
 
         flags |= instance_flags::exclude_disable_rendering;
 
-        switch (view->id)
+        switch (view.id)
         {
             case view_id::player1:
             case view_id::player2:
@@ -82,9 +56,7 @@ namespace hyper
             flags |= instance_flags::exclude_split_screen;
         }
 
-        char* g_race_status = *reinterpret_cast<char**>(0x00A98284);
-
-        if (g_race_status != nullptr && g_race_status[0x6A14] == 1)
+        if (g_race::status::is_racing())
         {
             flags |= instance_flags::exclude_racing;
         }
@@ -93,7 +65,7 @@ namespace hyper
             flags |= instance_flags::exclude_freeroam;
         }
 
-        cull_info.view = view;
+        cull_info.view = &view;
         cull_info.flags = flags;
     }
 
@@ -101,15 +73,15 @@ namespace hyper
     {
         this->cull_info_count = 0u;
 
-        game_flow_state state = reinterpret_cast<game_flow_manager*>(0x00A99B9C)->current_game_flow_state;
+        game_flow::state state = game_flow::manager::instance.current_state;
 
-        if (renderer::draw_world && state != game_flow_state::loading_region && state != game_flow_state::loading_track)
+        if (renderer::draw_world && state != game_flow::state::loading_region && state != game_flow::state::loading_track)
         {
             for (view_id i = view_id::player1; i <= view_id::player1_rvm; ++i)
             {
-                view* current = view::views[i];
+                view::instance& current = view::instance::views[i];
 
-                if (current->active && current->attached_target->active)
+                if (current.active && current.attached_target->active)
                 {
                     this->setup_scenery_cull_info(current, static_cast<instance_flags>(0u));
                 }
@@ -117,9 +89,9 @@ namespace hyper
 
             for (view_id i = view_id::env_z_pos; i <= view_id::env_y_neg; ++i)
             {
-                view* current = view::views[i];
+                view::instance& current = view::instance::views[i];
 
-                if (current->active && current->attached_target->active)
+                if (current.active && current.attached_target->active)
                 {
                     if (renderer::shadow_detail >= 2u)
                     {
@@ -132,22 +104,37 @@ namespace hyper
                 }
             }
 
-            view* reflection = view::views[view_id::player1_reflection];
+            view::instance& reflection = view::instance::views[view_id::player1_reflection];
 
-            if (renderer::road_reflection_enabled && reflection->rain->road_dampness >= 0.01f && reflection->active && reflection->attached_target->active)
+            if (renderer::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }
 
-            view* pip = view::views[view_id::player1_pip];
+            view::instance& pip = view::instance::views[view_id::player1_pip];
 
-            if (pip->active && pip->attached_target->active)
+            if (pip.active && pip.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }
 
             this->do_culling();
         }
+    }
+
+    auto grand_scenery_cull_info::get_cull_info_flags(const view::instance* view) const -> instance_flags
+    {
+        for (std::uint32_t i = 0u; i < this->cull_info_count; ++i)
+        {
+            const scenery_cull_info& cull_info = this->scenery_cull_infos[i];
+
+            if (cull_info.view->id == view->id)
+            {
+                return cull_info.flags;
+            }
+        }
+
+        return static_cast<instance_flags>(0u);
     }
 
     void grand_scenery_cull_info::do_culling()
@@ -190,7 +177,7 @@ namespace hyper
 
         for (std::uint32_t i = 0u; i < section_count; ++i)
         {
-            visible_section::user_info* user_info = visible_section::manager::instance->user_infos[sections[i]];
+            visible_section::user_info* user_info = visible_section::manager::instance.user_infos[sections[i]];
 
             if (user_info != nullptr)
             {
@@ -226,13 +213,13 @@ namespace hyper
         {
             id = static_cast<view_id>(static_cast<std::uint32_t>(id) - static_cast<std::uint32_t>(view_id::player1_shadowmap) + static_cast<std::uint32_t>(view_id::player1));
 
-            const vector3& position = view::views[id]->camera->current_key.position;
+            const vector3& position = view::instance::views[id].camera->current_key.position;
 
-            drivable = visible_section::manager::instance->find_drivable_section(position);
+            drivable = visible_section::manager::instance.find_drivable_section(position);
         }
         else
         {
-            drivable = visible_section::manager::instance->find_drivable_section(cull_info.position);
+            drivable = visible_section::manager::instance.find_drivable_section(cull_info.position);
         }
 
         if (id == view_id::player1)
@@ -320,6 +307,15 @@ namespace hyper
     {
         scenery::instance& instance = pack.instances[instance_index];
 
+        // const scenery::info& temp = pack.infos[instance.scenery_info_number];
+        // 
+        // if (temp.models[0] != nullptr && temp.models[0]->solid != nullptr &&
+        //     (temp.models[0]->solid->key == hashing::bin("TN_TNPARK_PLANTER_02_CHOP_C118_R0") ||
+        //      temp.models[0]->solid->key == hashing::bin("TN_TNPARK_PLANTER_02_CHOP_C106_R0")))
+        // {
+        //     int breakage = 0;
+        // }
+
         std::int32_t preculler = cull_info.preculler_section_number;
 
         if (preculler < 0 || ((1u << (preculler & 7)) & pack.preculler_infos[instance.preculler_info_index].visibility_bits[(preculler >> 3)]) == 0)
@@ -395,11 +391,11 @@ namespace hyper
                             {
                                 if (pixel_size >= 18)
                                 {
-                                    const model* model = info.models[static_cast<std::uint32_t>(model_lod::a)];
+                                    const geometry::model* model = info.models[static_cast<std::uint32_t>(model_lod::a)];
 
                                     if (model != nullptr)
                                     {
-                                        solid* solid = model->solid;
+                                        geometry::solid* solid = model->solid;
 
                                         if (solid != nullptr && solid->poly_count >= 40)
                                         {
@@ -442,7 +438,7 @@ namespace hyper
 
     bool grand_scenery_cull_info::commit_scenery(scenery::instance& instance, scenery::info& info, scenery_cull_info& cull_info, model_lod lod, visible_state state)
     {
-        model* rendered = info.models[static_cast<std::uint32_t>(lod)];
+        geometry::model* rendered = info.models[static_cast<std::uint32_t>(lod)];
 
         if (rendered == nullptr || rendered->solid == nullptr)
         {
@@ -457,8 +453,6 @@ namespace hyper
         if (grand_scenery_cull_info::info_has_markers(info, lod))
         {
             grand_scenery_cull_info::commit_flares(instance, *rendered->solid, cull_info);
-
-            //reinterpret_cast<void(__cdecl*)(scenery_cull_info*, scenery::info*, const scenery::instance*)>(0x0079A960)(&cull_info, &info, &instance);
         }
 
         instance_flags include = instance.flags;
@@ -468,13 +462,13 @@ namespace hyper
         {
             scenery_draw_info* draw_info = cull_info.current_draw_info++;
 
-            draw_info->model = reinterpret_cast<model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
+            draw_info->model = reinterpret_cast<geometry::model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
             draw_info->matrix = nullptr;
             draw_info->instance = &instance;
         }
         else
         {
-            matrix4x4* matrix = reinterpret_cast<matrix4x4*(__cdecl*)(std::uint32_t)>(0x00402850)(1u);
+            matrix4x4* matrix = frame_pool::malloc_matrix(1u);
 
             if (matrix == nullptr)
             {
@@ -500,7 +494,7 @@ namespace hyper
                 grand_scenery_cull_info::create_wind_matrix(cull_info.view, static_cast<std::uint32_t>(matrix->m41 * 60.0f) % 360u, *matrix);
             }
 
-            draw_info->model = reinterpret_cast<model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
+            draw_info->model = reinterpret_cast<geometry::model*>(reinterpret_cast<char*>(rendered) + static_cast<uintptr_t>(state));
             draw_info->matrix = matrix;
             draw_info->instance = &instance;
         }
@@ -516,7 +510,7 @@ namespace hyper
         {
             for (model_lod i = model_lod::a; i < model_lod::count; ++i)
             {
-                model* model = info.models[static_cast<std::uint32_t>(i)];
+                geometry::model* model = info.models[static_cast<std::uint32_t>(i)];
 
                 if (model != nullptr && model->solid != nullptr && model->solid->position_marker_count != 0u)
                 {
@@ -572,7 +566,7 @@ namespace hyper
         return 0u;
     }
 
-    void grand_scenery_cull_info::create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix)
+    void grand_scenery_cull_info::create_wind_matrix(const view::instance* view, std::uint32_t degrees, matrix4x4& matrix)
     {
         matrix4x4 stack(matrix);
 
@@ -599,7 +593,7 @@ namespace hyper
         math::multiply_matrix(stack, matrix, matrix);
     }
 
-    void grand_scenery_cull_info::commit_flares(const scenery::instance& instance, const solid& solid, const scenery_cull_info& cull_info)
+    void grand_scenery_cull_info::commit_flares(const scenery::instance& instance, const geometry::solid& solid, const scenery_cull_info& cull_info)
     {
         view_id id = cull_info.view->id;
 
@@ -609,7 +603,7 @@ namespace hyper
 
             for (std::uint32_t i = 0u; i < solid.position_marker_count; ++i)
             {
-                const position_marker& marker = solid.position_markers[i];
+                const geometry::position_marker& marker = solid.position_markers[i];
 
                 flare::instance* pool_flare = renderer::get_next_light_flare_in_pool(mask);
 
@@ -637,6 +631,7 @@ namespace hyper
                         }
 
                         pool_flare->position = position;
+                        pool_flare->tint = marker.tint;
 
                         if (marker.fparam <= 0.0f)
                         {

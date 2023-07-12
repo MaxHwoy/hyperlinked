@@ -45,19 +45,19 @@ namespace hyper
     public:
         struct light_texture_collection
         {
-            texture_entry light_map_entry[3];
-            texture_entry directional_map_entry;
+            geometry::texture_entry light_map_entry[3];
+            geometry::texture_entry directional_map_entry;
         };
 
         struct info
         {
             std::uint8_t debug_name[0x18];
             std::uint32_t solid_keys[4];
-            model* models[4];
+            geometry::model* models[4];
             float radius;
             std::uint32_t flags;
             std::uint32_t hierarchy_key;
-            model_hierarchy* hierarchy;
+            geometry::hierarchy* hierarchy;
         };
 
         struct instance

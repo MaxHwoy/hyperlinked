@@ -6,7 +6,7 @@
 
 namespace hyper
 {
-    void render_state::initialize(texture_info* texture)
+    void texture::render_state::initialize(texture::info* texture)
     {
         *reinterpret_cast<std::uint32_t*>(this) = 0u; // hard reset (idk why blackbox doesn't do it btw)
 
@@ -17,45 +17,45 @@ namespace hyper
             this->sub_sort_key = true;
         }
 
-        this->alpha_test_enabled = texture->alpha_usage_type == texture_alpha_usage_type::punchthru;
+        this->alpha_test_enabled = texture->usage_type == texture::alpha_usage_type::punchthru;
 
-        if (texture->alpha_blend_type > texture_alpha_blend_type::src_copy)
+        if (texture->blend_type > texture::alpha_blend_type::src_copy)
         {
             this->alpha_blend_enabled = true;
 
-            switch (texture->alpha_blend_type)
+            switch (texture->blend_type)
             {
-                case texture_alpha_blend_type::blend:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
-                    break;
+            case texture::alpha_blend_type::blend:
+                this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                break;
 
-                case texture_alpha_blend_type::additive:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_ONE;
-                    this->is_additive_blend = true;
-                    this->colour_write_alpha = true;
-                    break;
+            case texture::alpha_blend_type::additive:
+                this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                this->alpha_blend_dest = D3DBLEND_ONE;
+                this->is_additive_blend = true;
+                this->colour_write_alpha = true;
+                break;
 
-                case texture_alpha_blend_type::subtractive:
-                    this->alpha_blend_src = D3DBLEND_ZERO;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCCOLOR;
-                    break;
+            case texture::alpha_blend_type::subtractive:
+                this->alpha_blend_src = D3DBLEND_ZERO;
+                this->alpha_blend_dest = D3DBLEND_INVSRCCOLOR;
+                break;
 
-                case texture_alpha_blend_type::overbright:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
-                    break;
+            case texture::alpha_blend_type::overbright:
+                this->alpha_blend_src = D3DBLEND_SRCALPHA;
+                this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                break;
 
-                case texture_alpha_blend_type::dest_blend:
-                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVDESTALPHA;
-                    break;
+            case texture::alpha_blend_type::dest_blend:
+                this->alpha_blend_src = D3DBLEND_DESTALPHA;
+                this->alpha_blend_dest = D3DBLEND_INVDESTALPHA;
+                break;
 
-                case texture_alpha_blend_type::dest_additive:
-                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                    this->alpha_blend_dest = D3DBLEND_ONE;
-                    break;
+            case texture::alpha_blend_type::dest_additive:
+                this->alpha_blend_src = D3DBLEND_DESTALPHA;
+                this->alpha_blend_dest = D3DBLEND_ONE;
+                break;
             }
         }
         else
@@ -64,28 +64,28 @@ namespace hyper
             this->alpha_blend_src = D3DBLEND_ONE;
             this->alpha_blend_dest = D3DBLEND_ZERO;
 
-            if (!this->alpha_test_enabled && (texture->flags & texture_bit_flags::disable_culling) != texture_bit_flags::disable_culling)
+            if (!this->alpha_test_enabled && (texture->flags & texture::bit_flags::disable_culling) != texture::bit_flags::disable_culling)
             {
                 this->is_backface_culled = true;
             }
         }
 
-        if ((texture->tilable_uv & texture_tileable_type::u_mirror) == texture_tileable_type::u_mirror)
+        if ((texture->tilable_uv & texture::tileable_type::u_mirror) == texture::tileable_type::u_mirror)
         {
             this->texture_address_u = D3DTADDRESS_MIRROR;
         }
         else
         {
-            this->texture_address_u = (texture->tilable_uv & texture_tileable_type::u_repeat) == texture_tileable_type::u_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
+            this->texture_address_u = (texture->tilable_uv & texture::tileable_type::u_repeat) == texture::tileable_type::u_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
         }
 
-        if ((texture->tilable_uv & texture_tileable_type::v_mirror) == texture_tileable_type::v_mirror)
+        if ((texture->tilable_uv & texture::tileable_type::v_mirror) == texture::tileable_type::v_mirror)
         {
             this->texture_address_v = D3DTADDRESS_MIRROR;
         }
         else
         {
-            this->texture_address_v = (texture->tilable_uv & texture_tileable_type::v_repeat) == texture_tileable_type::v_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
+            this->texture_address_v = (texture->tilable_uv & texture::tileable_type::v_repeat) == texture::tileable_type::v_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
         }
 
         this->bias_level = texture->bias_level & 3;
@@ -115,6 +115,21 @@ namespace hyper
             }
         }
 
-        this->has_texture_animation = texture->scroll_type != texture_scroll_type::none;
+        this->has_texture_animation = texture->scroll != texture::scroll_type::none;
+    }
+
+    auto texture::get_texture_info(std::uint32_t key, bool default_if_not_found, bool include_unloaded) -> texture::info*
+    {
+        return call_function<texture::info*(__cdecl*)(std::uint32_t, bool, bool)>(0x0055CFD0)(key, default_if_not_found, include_unloaded);
+    }
+
+    auto texture::get_texture_page_range(std::uint32_t key, std::int32_t bucket) -> texture::page_range*
+    {
+        return call_function<texture::page_range*(__cdecl*)(std::uint32_t, std::int32_t)>(0x0055A100)(key, bucket);
+    }
+
+    void texture::set_e_texture_key(e_texture& texture, std::uint32_t texture_key)
+    {
+        call_function<void(__thiscall*)(e_texture*, std::uint32_t)>(0x0055DF50)(&texture, texture_key);
     }
 }

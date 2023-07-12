@@ -3,6 +3,7 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/renderer/view.hpp>
+#include <hyperlib/renderer/drawing.hpp>
 
 namespace hyper
 {
@@ -13,14 +14,14 @@ namespace hyper
 
     struct scenery_draw_info
     {
-        model* model;
+        geometry::model* model;
         matrix4x4* matrix;
         scenery::instance* instance;
     };
 
     struct scenery_cull_info
     {
-        view* view;
+        view::instance* view;
         instance_flags flags;
         scenery_draw_info* first_draw_info;
         scenery_draw_info* current_draw_info;
@@ -35,7 +36,7 @@ namespace hyper
     class grand_scenery_cull_info
     {
     private:
-        void setup_scenery_cull_info(view* view, instance_flags flags);
+        void setup_scenery_cull_info(view::instance& view, instance_flags flags);
 
         void do_culling();
         
@@ -55,12 +56,14 @@ namespace hyper
 
         static auto get_pixel_size(const scenery_cull_info& cull_info, const vector3& position, float radius, float& distance) -> std::uint32_t;
 
-        static void create_wind_matrix(const view* view, std::uint32_t degrees, matrix4x4& matrix);
+        static void create_wind_matrix(const view::instance* view, std::uint32_t degrees, matrix4x4& matrix);
 
-        static void commit_flares(const scenery::instance& instance, const solid& solid, const scenery_cull_info& cull_info);
+        static void commit_flares(const scenery::instance& instance, const geometry::solid& solid, const scenery_cull_info& cull_info);
 
     public:
         void setup_world_culling();
+
+        auto get_cull_info_flags(const view::instance* view) const -> instance_flags;
 
     private:
         scenery_cull_info scenery_cull_infos[12];

@@ -28,6 +28,36 @@ namespace hyper
             return Size;
         }
 
+        inline void clear()
+        {
+            if constexpr ((sizeof(this->bits_) / sizeof(std::uint32_t)) == 1u)
+            {
+                this->bits_[0] = 0u;
+            }
+            else if constexpr ((sizeof(this->bits_) / sizeof(std::uint32_t)) == 2u)
+            {
+                this->bits_[0] = 0u;
+                this->bits_[1] = 0u;
+            }
+            else if constexpr ((sizeof(this->bits_) / sizeof(std::uint32_t)) == 3u)
+            {
+                this->bits_[0] = 0u;
+                this->bits_[1] = 0u;
+                this->bits_[2] = 0u;
+            }
+            else if constexpr ((sizeof(this->bits_) / sizeof(std::uint32_t)) == 4u)
+            {
+                this->bits_[0] = 0u;
+                this->bits_[1] = 0u;
+                this->bits_[2] = 0u;
+                this->bits_[3] = 0u;
+            }
+            else
+            {
+                ::memset(this->bits_, 0, sizeof(this->bits_));
+            }
+        }
+
         template <typename Index> inline bool get(Index index) const
         {
             return (this->bits_[static_cast<size_t>(index) >> 5] & (1u << (static_cast<size_t>(index) & 0x1Fu))) != 0;

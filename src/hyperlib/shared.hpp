@@ -1,7 +1,8 @@
 #pragma once
 
-#pragma warning (disable : 26495)
 #pragma warning (disable : 4324)
+#pragma warning (disable : 26451)
+#pragma warning (disable : 26495)
 
 #include <cstdint>
 #include <cassert>
@@ -21,14 +22,19 @@
 #undef near
 #endif
 
+#define call_function reinterpret_cast
+
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
 #include <hyperlib/time.hpp>
 #include <hyperlib/array.hpp>
 #include <hyperlib/chunk.hpp>
 #include <hyperlib/bitset.hpp>
+#include <hyperlib/random.hpp>
 #include <hyperlib/hashing.hpp>
 #include <hyperlib/linked_list.hpp>
+
+#define hyper_interface struct __declspec(novtable)
 
 #define ASSERT_SIZE(T, N) static_assert(sizeof(T) == N, "sizeof("#T") != "#N)
 

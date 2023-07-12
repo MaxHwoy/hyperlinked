@@ -3,96 +3,12 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/assets/flares.hpp>
+#include <hyperlib/world/collision.hpp>
+#include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/view.hpp>
 
 namespace hyper
 {
-    enum class model_lod : std::uint32_t
-    {
-        a,
-        b,
-        c,
-        d,
-        count,
-    };
-
-    enum class visible_state : std::uint8_t
-    {
-        outside = 0x0,
-        partial = 0x1,
-        inside = 0x2,
-    };
-
-    enum class poly_flags : std::uint8_t
-    {
-        apply_aspect           = 1u << 0,
-        apply_z_sort           = 1u << 1,
-        multi_text_mas         = 1u << 2,
-        no_tex_fix             = 1u << 3,
-        use_native_screen_size = 1u << 4,
-    };
-
-    enum class view_mode : std::uint32_t
-    {
-        none,
-        one,
-        one_rvm,
-        two_h,
-        two_v,
-        quad,
-    };
-
-    enum class render_target_id : std::uint32_t
-    {
-        visual_treatment,
-        player,
-        reflection,
-        flailer,
-        rvm,
-        shadowmap,
-        pip,
-        motion_blur,
-        env_x_pos,
-        env_x_neg,
-        env_y_pos,
-        env_y_neg,
-        env_z_pos,
-        env_z_neg,
-        count,
-    };
-
-    enum class view_id : std::uint32_t
-    {
-        flailer,
-        player1,
-        player2,
-        player1_rvm,
-        player1_reflection,
-        player2_reflection,
-        player1_glow,
-        player2_glow,
-        player1_pip,
-        player1_headlight,
-        player2_headlight,
-        quadrant_top_left,
-        quadrant_top_right,
-        quadrant_bottom_left,
-        quadrant_bottom_right,
-        hdr_scene,
-        player1_shadowmap,
-        player2_shadowmap,
-        player1_shadowproj,
-        player2_shadowproj,
-        lightstreaks,
-        shadowmatte,
-        env_z_pos,
-        env_x_pos,
-        env_z_neg,
-        env_x_neg,
-        env_y_pos,
-        env_y_neg,
-        count,
-    };
-
     enum class camera_mover_types : std::uint32_t
     {
         none,
@@ -116,6 +32,14 @@ namespace hyper
         showcase,
         pip,
         count,
+    };
+
+    enum class anchor_car_class : std::uint32_t
+    {
+        regular,
+        exotic,
+        muscle,
+        tuner,
     };
 
     enum class screen_effect_control : std::uint32_t
@@ -227,6 +151,47 @@ namespace hyper
         std::uint16_t horizontal_fov;
     };
 
+    struct camera_anchor
+    {
+        std::uint32_t world_id;
+        anchor_car_class car_class;
+        __declspec(align(0x10)) vector3 dimension;
+        __declspec(align(0x10)) vector3 position;
+        __declspec(align(0x10)) matrix4x4 rotation;
+        __declspec(align(0x10)) vector3 acceleration;
+        __declspec(align(0x10)) vector3 velocity;
+        __declspec(align(0x10)) float velocity_magnitude;
+        float top_speed;
+        float rpm;
+        std::uint32_t wheel_count;
+        bool is_touching_ground;
+        char sim_surface[0x10];
+        float forward_slip;
+        float slip_angle;
+        float drift_state;
+        float drift;
+        float steer;
+        float world_collision;
+        float ground_collision;
+        float object_collision;
+        float nos_percentage_left;
+        float vertigo_camera_direction;
+        float time_doing_vertigo_effect;
+        bool is_nos_engaged;
+        bool is_brake_engaged;
+        bool is_hand_brake_engaged;
+        bool is_drag_race;
+        bool is_drift_race;
+        bool is_canyon_drift_race;
+        bool is_over_rev;
+        bool is_vehicle_destroyed;
+        bool is_gear_changing;
+        bool is_close_to_roadblock;
+        bool can_do_vertigo_again;
+        bool is_doing_vertigo_effect;
+        bool is_camera_frozen;
+    };
+
     struct __declspec(align(0x10)) camera
     {
         camera_params current_key;
@@ -238,6 +203,38 @@ namespace hyper
         float last_disparate_time;
         bool render_dash;
         float noise_intensity;
+    };
+
+    hyper_interface camera_mover : public linked_node<camera_mover>
+    {
+        virtual void on_w_collider() = 0;
+        virtual ~camera_mover() = default;
+        virtual void update() = 0;
+        virtual void render() = 0;
+        virtual auto get_anchor() -> camera_anchor* = 0;
+        virtual void set_anchor() = 0;
+        virtual void set_look_back() = 0;
+        virtual void set_look_back_speed() = 0;
+        virtual void set_disable_lag() = 0;
+        virtual void set_pov_type() = 0;
+        virtual void get_pov_type() = 0;
+        virtual bool is_hood_camera() = 0;
+        virtual void outside_pov() = 0;
+
+        camera_mover_types type;
+        view_id id;
+        bool enabled;
+        struct view_base* view;
+        camera* camera;
+        bool render_dash;
+        collision::collider* collider;
+        collision::world_pos world_pos;
+        float accumulated_clearance;
+        float accumulated_adjust;
+        float saved_adjust;
+        vector3pad saved_forward;
+        float zoom;
+        vector2 camera_rotation;
     };
 
     struct __declspec(align(0x04)) screen_effect_inf
@@ -297,7 +294,7 @@ namespace hyper
         vector3pad local_cam_velocity;
         curtain_status rain_curtain;
         std::uint32_t render_count;
-        struct view* view;
+        view::instance* view;
         float rain_intensity;
         float cloud_intensity;
         std::uint32_t desired_active;
@@ -309,7 +306,7 @@ namespace hyper
         std::uint32_t desired_num_of_type[2];
         float percentages[2];
         float precip_wind_effect[2][2];
-        texture_info* textures[2];
+        texture::info* textures[2];
         char padding_0x340C[4];
         vector3pad old_car_direction;
         vector3pad precip_radius[2];
@@ -362,7 +359,17 @@ namespace hyper
 
         static void remove_current_light_flare_in_pool();
 
+        static void init_light_flare_pool();
+
+        static void reset_light_flare_pool();
+
+        static void render_light_flare_pool(const view::instance* view);
+
+        static void render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
+
     public:
+        static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
+
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);
 
         static inline std::uint32_t& world_detail = *reinterpret_cast<std::uint32_t*>(0x00A65370);
@@ -375,12 +382,31 @@ namespace hyper
 
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
 
+        static inline bool& flare_pool_off = *reinterpret_cast<bool*>(0x00B42F1C);
+
+        static inline bool& draw_light_flares = *reinterpret_cast<bool*>(0x00A6C088);
+
     private:
+        static bool flare_pool_inited_;
+
+        static std::uint32_t active_flare_count_;
+
+        static bool active_flare_types_[4]; // red, amber, green, generic
+
+        static float active_flare_times_[4]; // red, amber, green, generic
+
+        static float active_flare_blink_[4]; // red, amber, green, generic
+
+        static std::uint32_t flare_texture_keys_[5];
+
+        static texture::e_texture flare_texture_infos_[5];
+
         static bitset<static_cast<size_t>(view_id::count)> flare_mask_;
 
         static bitset<static_cast<size_t>(view_id::count)> view_to_flare_;
 
-    public:
+        static array<flare::params*, static_cast<size_t>(flare::type::count) * 2u> flare_params_;
+
         static inline flare::instance flare_pool_[1000]{};
 
         static inline std::uint32_t flare_bits_[1000]{};
@@ -395,7 +421,9 @@ namespace hyper
     ASSERT_SIZE(render_view, 0x1E0);
     ASSERT_SIZE(poly, 0xA0);
     ASSERT_SIZE(camera_params, 0xF0);
+    ASSERT_SIZE(camera_anchor, 0xF0);
     ASSERT_SIZE(camera, 0x2F0);
+    ASSERT_SIZE(camera_mover, 0x8C);
     ASSERT_SIZE(screen_effect_inf, 0x0C);
     ASSERT_SIZE(screen_effect_def, 0x50);
     ASSERT_SIZE(screen_effect_db, 0x1E8);

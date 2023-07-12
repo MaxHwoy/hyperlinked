@@ -41,14 +41,14 @@ namespace hyper
             this->ptr_ = other.ptr_;
         }
 
-        template <typename Index> auto operator[](Index index) -> T*
+        template <typename Index> auto operator[](Index index) -> T&
         {
-            return this->ptr_ + static_cast<size_t>(index);
+            return this->ptr_[static_cast<size_t>(index)];
         }
 
-        template <typename Index> auto operator[](Index index) const -> const T*
+        template <typename Index> auto operator[](Index index) const -> const T&
         {
-            return this->ptr_ + static_cast<size_t>(index);
+            return this->ptr_[static_cast<size_t>(index)];
         }
 
         inline auto length() const -> size_t

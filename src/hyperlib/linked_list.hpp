@@ -63,7 +63,7 @@ namespace hyper
 
         inline auto head() const -> const T*
         {
-            return reinterpret_cast<T*>(&this->head_);
+            return reinterpret_cast<const T*>(&this->head_);
         }
 
         inline auto begin() -> T*
@@ -73,7 +73,7 @@ namespace hyper
 
         inline auto begin() const -> const T*
         {
-            return reinterpret_cast<T*>(this->head_.next());
+            return reinterpret_cast<const T*>(this->head_.next());
         }
 
         inline auto tail() -> T*
@@ -93,7 +93,7 @@ namespace hyper
 
         inline auto end() const -> const T*
         {
-            return reinterpret_cast<T*>(&this->head_);
+            return reinterpret_cast<const T*>(&this->head_);
         }
 
         inline void add(T* val)

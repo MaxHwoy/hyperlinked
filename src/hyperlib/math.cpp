@@ -11,6 +11,14 @@
 
 namespace hyper
 {
+    color32 color32::clear_(0u, 0u, 0u, 0u);
+
+    color32 color32::black_(0u, 0u, 0u, std::numeric_limits<std::uint8_t>::max());
+
+    color32 color32::white_(std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max());
+
+    matrix4x4 matrix4x4::identity_(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
     auto vector2::normalized() const -> vector2
     {
         float magnitude = this->magnitude();
@@ -37,6 +45,20 @@ namespace hyper
         magnitude = 1.0f / magnitude;
 
         return { this->x * magnitude, this->y * magnitude, this->z * magnitude };
+    }
+
+    auto vector4::normalized() const -> vector4
+    {
+        float magnitude = this->magnitude();
+
+        if (math::approximately(magnitude, 0.0f))
+        {
+            return { 0.0f, 0.0f, 0.0f, 0.0f };
+        }
+
+        magnitude = 1.0f / magnitude;
+
+        return { this->x * magnitude, this->y * magnitude, this->z * magnitude, this->w * magnitude };
     }
 
     auto math::sin(std::uint16_t angle) -> float
@@ -192,6 +214,26 @@ namespace hyper
 
     void math::transform_point(const matrix4x4& trs, vector3& point)
     {
+#if defined(USE_D3DX9_MATH_FUNCTIONS)
+        ::D3DXVec3Transform(reinterpret_cast<D3DXVECTOR4*>(&point), reinterpret_cast<const D3DXVECTOR3*>(&point), reinterpret_cast<const D3DXMATRIX*>(&trs));
+#elif defined(USE_SIMD_VECTORIZATIONS)
+        __m128 row1 = _mm_loadu_ps(&trs[0x00u]);
+        __m128 row2 = _mm_loadu_ps(&trs[0x04u]);
+        __m128 row3 = _mm_loadu_ps(&trs[0x08u]);
+        __m128 row4 = _mm_loadu_ps(&trs[0x0Cu]);
+
+        __m128 x = _mm_set1_ps(point.x);
+        __m128 y = _mm_set1_ps(point.y);
+        __m128 z = _mm_set1_ps(point.z);
+
+        __m128 row = _mm_add_ps(_mm_add_ps(_mm_mul_ps(x, row1), _mm_mul_ps(y, row2)), _mm_add_ps(_mm_mul_ps(z, row3), row4));
+
+        float local[4]; // compiler will (hopefully) optimize this into int64 + int32 move
+
+        _mm_storeu_ps(local, row);
+
+        point = *reinterpret_cast<vector3*>(local);
+#else
         float x = point.x * trs.m11 + point.y * trs.m21 + point.z * trs.m31 + trs.m41;
         float y = point.x * trs.m12 + point.y * trs.m22 + point.z * trs.m32 + trs.m42;
         float z = point.x * trs.m13 + point.y * trs.m23 + point.z * trs.m33 + trs.m43;
@@ -199,6 +241,38 @@ namespace hyper
         point.x = x;
         point.y = y;
         point.z = z;
+#endif
+    }
+
+    void math::transform_point(const matrix4x4& trs, vector4& point)
+    {
+#if defined(USE_D3DX9_MATH_FUNCTIONS)
+        ::D3DXVec4Transform(reinterpret_cast<D3DXVECTOR4*>(&point), reinterpret_cast<const D3DXVECTOR4*>(&point), reinterpret_cast<const D3DXMATRIX*>(&trs));
+#elif defined(USE_SIMD_VECTORIZATIONS)
+        __m128 row1 = _mm_loadu_ps(&trs[0x00u]);
+        __m128 row2 = _mm_loadu_ps(&trs[0x04u]);
+        __m128 row3 = _mm_loadu_ps(&trs[0x08u]);
+        __m128 row4 = _mm_loadu_ps(&trs[0x0Cu]);
+
+        __m128 x = _mm_set1_ps(point.x);
+        __m128 y = _mm_set1_ps(point.y);
+        __m128 z = _mm_set1_ps(point.z);
+        __m128 w = _mm_set1_ps(point.w);
+
+        __m128 row = _mm_add_ps(_mm_add_ps(_mm_mul_ps(x, row1), _mm_mul_ps(y, row2)), _mm_add_ps(_mm_mul_ps(z, row3), _mm_mul_ps(w, row4)));
+
+        _mm_storeu_ps(reinterpret_cast<float*>(&point), row);
+#else
+        float x = point.x * trs.m11 + point.y * trs.m21 + point.z * trs.m31 + point.w * trs.m41;
+        float y = point.x * trs.m12 + point.y * trs.m22 + point.z * trs.m32 + point.w * trs.m42;
+        float z = point.x * trs.m13 + point.y * trs.m23 + point.z * trs.m33 + point.w * trs.m43;
+        float w = point.x * trs.m14 + point.y * trs.m24 + point.z * trs.m34 + point.w * trs.m44;
+
+        point.x = x;
+        point.y = y;
+        point.z = z;
+        point.w = w;
+#endif
     }
 
     void math::transform_bound(const matrix4x4& trs, vector3& min, vector3& max)

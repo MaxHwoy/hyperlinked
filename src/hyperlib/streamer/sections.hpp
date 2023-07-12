@@ -239,7 +239,7 @@ namespace hyper
             bit_table* bit_tables;
             std::uint32_t enabled_groups[0x100];
 
-            static inline manager* instance = reinterpret_cast<manager*>(0x00B69CD0);
+            static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
 
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
         };

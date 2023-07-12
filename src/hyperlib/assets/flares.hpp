@@ -2,6 +2,8 @@
 
 #include <hyperlib/shared.hpp>
 
+#pragma warning (disable : 26451)
+
 namespace hyper
 {
     class flare final
@@ -51,6 +53,22 @@ namespace hyper
             uni_directional = 0x4,
         };
 
+        enum class reflection : std::uint32_t
+        {
+            none,
+            topo,
+            fast,
+        };
+
+        enum class render : std::uint32_t
+        {
+            norm,
+            env,
+            refl,
+            cat_p1,
+            cat_p2,
+        };
+
         struct instance : linked_node<instance>
         {
             std::uint32_t key;
@@ -75,10 +93,24 @@ namespace hyper
             __declspec(align(0x04)) std::uint16_t section_number;
             __declspec(align(0x04)) linked_list<instance> flare_list;
         };
+
+        struct params
+        {
+            float min_size;
+            float max_size;
+            color max_colour;
+            float power;
+            float z_bias;
+            float min_scale;
+            float max_scale;
+            std::uint32_t texture_id;
+        };
     };
 
     CREATE_ENUM_EXPR_OPERATORS(flare::type);
+    CREATE_ENUM_FLAG_OPERATORS(flare::flags);
 
     ASSERT_SIZE(flare::instance, 0x30);
     ASSERT_SIZE(flare::pack, 0x60);
+    ASSERT_SIZE(flare::params, 0x2C);
 }

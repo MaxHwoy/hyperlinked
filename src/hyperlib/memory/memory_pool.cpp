@@ -16,6 +16,8 @@ bool IsBadReadPtr(void* ptr, std::uint32_t size)
 }
 #endif
 
+#pragma warning (disable : 4100)
+
 namespace hyper
 {
     memory_pool::override_info::override_info(const char* name, void* pool, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
@@ -742,6 +744,7 @@ namespace hyper
 
         for (const alloc_block* i = this->alloc_block_list_.begin(); i != this->alloc_block_list_.end(); i = i->next())
         {
+#if defined(TRACE_HEAP_ALLOCATIONS)
             if (i->debug_line < 0)
             {
                 ::printf("    %5d          0x%08X       0x%08X       %10d       %10d     Caller: 0x%08X\n", index++, reinterpret_cast<uintptr_t>(i) - i->prepad, 
@@ -752,6 +755,10 @@ namespace hyper
                 ::printf("    %5d          0x%08X       0x%08X       %10d       %10d     %s (%d)\n", index++, reinterpret_cast<uintptr_t>(i) - i->prepad, 
                     reinterpret_cast<uintptr_t>(i + 1), i->size, i->requested_size, i->debug_text, i->debug_line);
             }
+#else
+            ::printf("    %5d          0x%08X       0x%08X       %10d       %10d     [none]\n", index++, reinterpret_cast<uintptr_t>(i) - i->prepad,
+                reinterpret_cast<uintptr_t>(i + 1), i->size, i->requested_size);
+#endif
         }
     }
 }

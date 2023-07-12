@@ -2,10 +2,12 @@
 #include <cstdio>
 #include <iostream>
 
+#include <hyperlib/hook.hpp>
 #include <hyperlinked/patches.hpp>
 
 #pragma warning (disable : 6031)
 
+#define CONSOLEON
 #define RUN_TESTS
 
 #if defined(RUN_TESTS)
@@ -25,6 +27,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
 
         if (entry == MAIN_ENTRY_POINT)
         {
+#if defined(RUN_TESTS) && defined(CONSOLEON)
             ::AllocConsole();
 
             ::freopen("CONIN$", "r", stdin);
@@ -34,6 +37,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
             int temp;
 
             std::cin >> temp;
+#endif
 
             hyper::patches::init();
 
