@@ -307,15 +307,6 @@ namespace hyper
     {
         scenery::instance& instance = pack.instances[instance_index];
 
-        // const scenery::info& temp = pack.infos[instance.scenery_info_number];
-        // 
-        // if (temp.models[0] != nullptr && temp.models[0]->solid != nullptr &&
-        //     (temp.models[0]->solid->key == hashing::bin("TN_TNPARK_PLANTER_02_CHOP_C118_R0") ||
-        //      temp.models[0]->solid->key == hashing::bin("TN_TNPARK_PLANTER_02_CHOP_C106_R0")))
-        // {
-        //     int breakage = 0;
-        // }
-
         std::int32_t preculler = cull_info.preculler_section_number;
 
         if (preculler < 0 || ((1u << (preculler & 7)) & pack.preculler_infos[instance.preculler_info_index].visibility_bits[(preculler >> 3)]) == 0)
@@ -452,7 +443,11 @@ namespace hyper
 
         if (grand_scenery_cull_info::info_has_markers(info, lod))
         {
-            grand_scenery_cull_info::commit_flares(instance, *rendered->solid, cull_info);
+            // see comment at the end of 'grand_scenery_cull_info::info_has_markers'
+
+            grand_scenery_cull_info::commit_flares(instance, *info.models[static_cast<std::uint32_t>(model_lod::c)]->solid, cull_info);
+
+            // grand_scenery_cull_info::commit_flares(instance, *rendered->solid, cull_info);
         }
 
         instance_flags include = instance.flags;
@@ -521,7 +516,11 @@ namespace hyper
             flags |= 1u;
         }
 
-        return (flags & (2u << static_cast<std::uint32_t>(lod))) != 0;
+        // #TODO cringe blackbox, apparently some lod As have 0 markers while lod Cs have them, no wonder they render specifically lod C markers ONLY
+
+        return (flags & (2u << static_cast<std::uint32_t>(model_lod::c))) != 0;
+
+        // return (flags & (2u << static_cast<std::uint32_t>(lod))) != 0;
     }
 
     void grand_scenery_cull_info::create_transform(const scenery::instance& instance, matrix4x4* matrix)

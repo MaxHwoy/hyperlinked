@@ -28,6 +28,12 @@ namespace hyper
         public:
             void initialize();
 
+            void destroy();
+
+            void lock();
+
+            void unlock();
+
             void commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle);
 
         public:

@@ -187,7 +187,6 @@ namespace hyper
     {
         __asm
         {
-            or esp, 0;
             pushad;
 
             call streak::manager::initialize;
@@ -198,10 +197,52 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void test_destroy_streak_manager()
+    {
+        __asm
+        {
+            pushad;
+
+            call streak::manager::destroy;
+
+            popad;
+
+            retn;
+        }
+    }
+
+    __declspec(naked) void test_lock_streak_manager()
+    {
+        __asm
+        {
+            pushad;
+
+            call streak::manager::lock;
+
+            popad;
+
+            retn 4;
+        }
+    }
+
+    __declspec(naked) void test_unlock_streak_manager()
+    {
+        __asm
+        {
+            pushad;
+
+            call streak::manager::unlock;
+
+            popad;
+
+            retn 4;
+        }
+    }
+
     void tests::init()
     {
         // always raining
-        // hook::set<std::uint32_t>(0x00B74D20, 1u);
+        hook::set<std::uint32_t>(0x00B74D20, 1u);
 
         hook::jump(0x00725C95, &test_render_state);
 
@@ -215,6 +256,16 @@ namespace hyper
 
         hook::jump(0x0073A3BA, &test_reset_light_flare_pool);
 
+        // InitStreakFlares
         hook::jump(0x00749C10, &test_init_streak_manager);
+
+        // DestroyStreakFlares
+        hook::jump(0x00749C80, &test_destroy_streak_manager);
+
+        // LockStreakFlares
+        hook::jump(0x00749CB0, &test_lock_streak_manager);
+
+        // UnlockStreakFlares
+        hook::jump(0x00749E50, &test_unlock_streak_manager);
     }
 }

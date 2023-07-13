@@ -8,7 +8,7 @@ namespace hyper
 {
     void streak::manager::initialize()
     {
-        const std::uint32_t streaks = 0x100;
+        const std::uint32_t streaks = 0x80;
 
         this->max_streaks = streaks;
         this->streak_count = 0u;
@@ -40,6 +40,44 @@ namespace hyper
         this->flare_texture_page = texture::get_texture_info(hashing::bin("FLARE_TEXTURE_PAGE"), true, false);
         this->streak_flares_texture = texture::get_texture_info(hashing::bin("STREAKFLARES_I"), true, false);
         this->flare_texture_page->pinfo->state.colour_write_alpha = false;
+    }
+
+    void streak::manager::destroy()
+    {
+        if (this->vertex_buffer != nullptr)
+        {
+            this->vertex_buffer->Release();
+            this->vertex_buffer = nullptr;
+        }
+
+        if (this->index_buffer != nullptr)
+        {
+            this->index_buffer->Release();
+            this->index_buffer = nullptr;
+        }
+    }
+
+    void streak::manager::lock()
+    {
+        HRESULT result = this->vertex_buffer->Lock(0u, 0u, reinterpret_cast<void**>(&this->polies), D3DLOCK_DISCARD);
+
+        assert(SUCCEEDED(result));
+
+        this->streak_count = 0u;
+        this->_0x18 = true;
+        this->locked = true;
+    }
+
+    void streak::manager::unlock()
+    {
+        if (this->_0x18 && this->vertex_buffer != nullptr)
+        {
+            this->_0x18 = false; // whyyyyy do we even neeeeed this thing???
+        }
+
+        this->vertex_buffer->Unlock();
+        this->polies = nullptr;
+        this->locked = false;
     }
 
     void streak::manager::commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
