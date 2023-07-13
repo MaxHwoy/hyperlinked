@@ -231,16 +231,16 @@ namespace hyper
                     case view_id::env_x_neg:
                     case view_id::env_y_pos:
                     case view_id::env_y_neg:
-                        renderer::render_light_flare(view, flare, &matrix4x4::identity(), intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        renderer::render_light_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     case view_id::player1_reflection:
                     case view_id::player2_reflection:
-                        renderer::render_light_flare(view, flare, &matrix4x4::identity(), intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        renderer::render_light_flare(view, flare, nullptr, intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     default:
-                        renderer::render_light_flare(view, flare, &matrix4x4::identity(), 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        renderer::render_light_flare(view, flare, nullptr, 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
                 }
             }
@@ -553,7 +553,10 @@ namespace hyper
                                 }
                                 else
                                 {
-                                    flare_color = color_override;
+                                    flare_color.r = color_override.r;
+                                    flare_color.g = color_override.g;
+                                    flare_color.b = color_override.b;
+                                    flare_color.a = params->max_colour.a * intensity * alpha_factor;
                                 }
 
                                 float degree_angle = 0.0f;
