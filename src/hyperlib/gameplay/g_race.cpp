@@ -5,12 +5,12 @@ namespace hyper
 {
     bool g_race::status::is_drift()
     {
-        return reinterpret_cast<bool(__cdecl*)()>(0x0047AA00)();
+        return call_function<bool(__cdecl*)()>(0x0047AA00)();
     }
 
     bool g_race::status::is_checkpoint()
     {
-        return reinterpret_cast<bool(__cdecl*)()>(0x0061AAF0)();
+        return call_function<bool(__cdecl*)()>(0x0061AAF0)();
     }
 
     bool g_race::status::is_racing()

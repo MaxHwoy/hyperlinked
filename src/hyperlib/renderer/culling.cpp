@@ -14,7 +14,7 @@ namespace hyper
 
         scenery_cull_info& cull_info = this->scenery_cull_infos[this->cull_info_count++];
 
-        flags |= instance_flags::exclude_disable_rendering;
+        flags |= instance_flags::exclude_disable_rendering | instance_flags::exclude_group_disable;
 
         switch (view.id)
         {

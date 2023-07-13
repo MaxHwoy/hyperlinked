@@ -9,9 +9,9 @@ namespace hyper
         exclude_split_screen        = 1u << 0,  // 0x00000001
         exclude_main_view           = 1u << 1,  // 0x00000002
         exclude_racing              = 1u << 2,  // 0x00000004
-        exclude_freeroam            = 1u << 3,  // 0x00000008
-        exclude_disable_rendering   = 1u << 4,  // 0x00000010
-        driveable                   = 1u << 5,  // 0x00000020
+        exclude_disable_rendering   = 1u << 3,  // 0x00000008
+        exclude_group_disable       = 1u << 4,  // 0x00000010
+        exclude_freeroam            = 1u << 5,  // 0x00000020
         include_rear_view           = 1u << 6,  // 0x00000040
         include_reflection          = 1u << 7,  // 0x00000080
         envmap_shadow               = 1u << 8,  // 0x00000100
