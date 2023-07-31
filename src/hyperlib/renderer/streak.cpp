@@ -8,7 +8,7 @@ namespace hyper
 {
     void streak::manager::initialize()
     {
-        const std::uint32_t streaks = 0x80;
+        const std::uint32_t streaks = 0x200;
 
         this->max_streaks = streaks;
         this->streak_count = 0u;

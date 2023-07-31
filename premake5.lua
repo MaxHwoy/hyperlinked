@@ -132,7 +132,6 @@ workspace "hyperlinked"
 	project "hyperlinked"
 		language "c++"
 		kind "sharedlib"
-		targetextension ".asi"
 
 		-- pchheader "stdafx.hpp"
 		-- pchsource "src/hyperlinked/stdafx.cpp"
@@ -153,3 +152,9 @@ workspace "hyperlinked"
 			"d3d9",
 			"d3dx9"
 		}
+
+		filter "configurations:debug"
+			targetname "%{prj.name}-debug"
+
+		filter "configurations:release"
+			targetname "%{prj.name}-release"

@@ -7,7 +7,7 @@
 
 #pragma warning (disable : 6031)
 
-#define CONSOLEON
+#undef CONSOLEON
 #define RUN_TESTS
 
 #if defined(RUN_TESTS)

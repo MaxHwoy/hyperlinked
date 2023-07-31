@@ -561,6 +561,7 @@ namespace hyper
 
                                 float degree_angle = 0.0f;
 
+#if 0
                                 if (render_type == flare::render::norm)
                                 {
                                     vector3 screen_pos;
@@ -569,6 +570,7 @@ namespace hyper
 
                                     degree_angle = screen_pos.x / static_cast<float>(directx::resolution_x) * 240.0f;
                                 }
+#endif
 
                                 float horizontal_scale = flare_size;
                                 float vertical_scale = flare_size;

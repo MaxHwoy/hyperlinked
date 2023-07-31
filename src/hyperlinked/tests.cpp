@@ -241,8 +241,10 @@ namespace hyper
 
     void tests::init()
     {
+#if 0
         // always raining
         hook::set<std::uint32_t>(0x00B74D20, 1u);
+#endif
 
         hook::jump(0x00725C95, &test_render_state);
 
