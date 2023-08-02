@@ -23,6 +23,7 @@
 #endif
 
 #define call_function reinterpret_cast
+#define nameof(X) #X
 
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
@@ -31,6 +32,7 @@
 #include <hyperlib/chunk.hpp>
 #include <hyperlib/bitset.hpp>
 #include <hyperlib/random.hpp>
+#include <hyperlib/string.hpp>
 #include <hyperlib/hashing.hpp>
 #include <hyperlib/linked_list.hpp>
 

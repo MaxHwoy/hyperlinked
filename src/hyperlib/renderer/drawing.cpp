@@ -12,6 +12,8 @@
 
 namespace hyper
 {
+    array<rendering_model, 4096u> renderer::rendering_models(0x00AB2780);
+
     bool renderer::flare_pool_inited_ = false;
 
     std::uint32_t renderer::active_flare_count_ = 0u;
@@ -556,7 +558,7 @@ namespace hyper
                                     flare_color.r = color_override.r;
                                     flare_color.g = color_override.g;
                                     flare_color.b = color_override.b;
-                                    flare_color.a = params->max_colour.a * intensity * alpha_factor;
+                                    flare_color.a = static_cast<std::uint8_t>(math::min(params->max_colour.a * intensity * alpha_factor * 2.0f, 255.0f));
                                 }
 
                                 float degree_angle = 0.0f;

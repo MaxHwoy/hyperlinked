@@ -80,6 +80,11 @@ namespace hyper
         this->locked = false;
     }
 
+    void streak::manager::render(render_view* view, void* flush_fac)
+    {
+        // #TODO
+    }
+
     void streak::manager::commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
     {
         if (this->locked && this->streak_count < this->max_streaks)

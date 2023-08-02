@@ -34,6 +34,13 @@ namespace hyper
         renderer::render_light_flare(view, *flare, local_world, intensity_scale, refl_type, render_type, horizontal_flare_scale, reflection_override, *reinterpret_cast<color32*>(&color_override), size_scale);
     }
 
+    void print_number_of_rendering_models()
+    {
+        std::uint32_t count = renderer::rendering_model_count;
+
+        int f = 0;
+    }
+
     __declspec(naked) void test_render_state()
     {
         __asm
@@ -239,10 +246,37 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void test_render_streak_manager()
+    {
+        __asm
+        {
+            // #TODO
+        }
+    }
+
+	__declspec(naked) void test_render_world_ingame()
+	{
+		__asm
+		{
+			pushad;
+
+			call print_number_of_rendering_models;
+
+			popad;
+
+			push ebp;
+			xor ebp, ebp;
+			cmp eax, ebp;
+
+			push 0x0072723D;
+			retn;
+		}
+	}
+
     void tests::init()
     {
         // always raining
-        hook::set<std::uint32_t>(0x00B74D20, 1u);
+        // hook::set<std::uint32_t>(0x00B74D20, 1u);
 
         hook::jump(0x00725C95, &test_render_state);
 
@@ -267,5 +301,12 @@ namespace hyper
 
         // UnlockStreakFlares
         hook::jump(0x00749E50, &test_unlock_streak_manager);
+
+        // RenderStreakFlares
+        // hook::jump(0x00749E80, &test_render_streak_manager);
+
+        // hook::jump(0x00727238, &test_render_world_ingame);
+
+        int breaker = 0;
     }
 }

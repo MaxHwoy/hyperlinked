@@ -11,6 +11,22 @@
 
 namespace hyper
 {
+    vector3 vector3::zero_(0.0f, 0.0f, 0.0f);
+
+    vector3 vector3::one_(1.0f, 1.0f, 1.0f);
+
+    vector3 vector3::left_(-1.0f, 0.0f, 0.0f);
+
+    vector3 vector3::right_(+1.0f, 0.0f, 0.0f);
+
+    vector3 vector3::down_(0.0f, 0.0f, -1.0f);
+
+    vector3 vector3::up_(0.0f, 0.0f, +1.0f);
+
+    vector3 vector3::backward_(0.0f, -1.0f, 0.0f);
+
+    vector3 vector3::forward_(0.0f, +1.0f, 0.0f);
+
     color32 color32::clear_(0u, 0u, 0u, 0u);
 
     color32 color32::black_(0u, 0u, 0u, std::numeric_limits<std::uint8_t>::max());
@@ -18,6 +34,32 @@ namespace hyper
     color32 color32::white_(std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max());
 
     matrix4x4 matrix4x4::identity_(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    uint16_t math::a_tan_table_[258] =
+    {
+        0, 41, 81, 122, 163, 204, 244, 285, 326, 367, 407, 448, 489, 529, 570,
+        610, 651, 692, 732, 773, 813, 854, 894, 935, 975, 1015, 1056, 1096,
+        1136, 1177, 1217, 1257, 1297, 1337, 1377, 1417, 1457, 1497, 1537, 1577,
+        1617, 1656, 1696, 1736, 1775, 1815, 1854, 1894, 1933, 1973, 2012, 2051,
+        2090, 2129, 2168, 2207, 2246, 2285, 2324, 2363, 2401, 2440, 2478, 2517,
+        2555, 2594, 2632, 2670, 2708, 2746, 2784, 2822, 2860, 2897, 2935, 2973,
+        3010, 3047, 3085, 3122, 3159, 3196, 3233, 3270, 3307, 3344, 3380, 3417,
+        3453, 3490, 3526, 3562, 3599, 3635, 3670, 3706, 3742, 3778, 3813, 3849,
+        3884, 3920, 3955, 3990, 4025, 4060, 4095, 4129, 4164, 4199, 4233, 4267,
+        4302, 4336, 4370, 4404, 4438, 4471, 4505, 4539, 4572, 4605, 4639, 4672,
+        4705, 4738, 4771, 4803, 4836, 4869, 4901, 4933, 4966, 4998, 5030, 5062,
+        5094, 5125, 5157, 5188, 5220, 5251, 5282, 5313, 5344, 5375, 5406, 5437,
+        5467, 5498, 5528, 5559, 5589, 5619, 5649, 5679, 5708, 5738, 5768, 5797,
+        5826, 5856, 5885, 5914, 5943, 5972, 6000, 6029, 6058, 6086, 6114, 6142,
+        6171, 6199, 6227, 6254, 6282, 6310, 6337, 6365, 6392, 6419, 6446, 6473,
+        6500, 6527, 6554, 6580, 6607, 6633, 6660, 6686, 6712, 6738, 6764, 6790,
+        6815, 6841, 6867, 6892, 6917, 6943, 6968, 6993, 7018, 7043, 7068, 7092,
+        7117, 7141, 7166, 7190, 7214, 7238, 7262, 7286, 7310, 7334, 7358, 7381,
+        7405, 7428, 7451, 7475, 7498, 7521, 7544, 7566, 7589, 7612, 7635, 7657,
+        7679, 7702, 7724, 7746, 7768, 7790, 7812, 7834, 7856, 7877, 7899, 7920,
+        7942, 7963, 7984, 8005, 8026, 8047, 8068, 8089, 8110, 8131, 8151, 8172,
+        8192, 8192
+    };
 
     auto vector2::normalized() const -> vector2
     {
@@ -118,6 +160,73 @@ namespace hyper
         return math::sin(angle) / math::cos(angle);
     }
 
+    auto math::arc_sin(float value) -> std::uint16_t
+    {
+        return 0u; // #TODO
+    }
+
+    auto math::arc_tan(float x, float y) -> std::uint16_t
+    {
+        std::uint32_t quad = 0;
+
+        if (x < 0.0f)
+        {
+            quad = 1;
+            x = -x;
+        }
+
+        if (y < 0.0f)
+        {
+            quad ^= 3;
+            y = -y;
+        }
+
+        std::uint16_t a;
+
+        if (x > y)
+        {
+            std::int32_t i = static_cast<std::int32_t>((y / x) * 65536.0f);
+            
+            const std::uint16_t* table = &math::a_tan_table_[i >> 8];
+
+            a = (table[0] + (((table[1] - table[0]) * (i & 0xFF)) >> 8));
+        }
+        else
+        {
+            if (y > x)
+            {
+                std::int32_t i = static_cast<std::int32_t>((x / y) * 65536.0f);
+                
+                const std::uint16_t* table = &math::a_tan_table_[i >> 8];
+
+                a = 0x4000u - (((table[1] - table[0]) * (i & 0xFF)) >> 8) - table[0];
+            }
+            else if (y == 0.0f)
+            {
+                a = 0u;
+            }
+            else
+            {
+                a = 0x2000u;
+            }
+        }
+
+        switch (quad)
+        {
+            case 0u:
+                return static_cast<std::uint16_t>(a);
+
+            case 1u:
+                return static_cast<std::uint16_t>(0x8000 - a);
+
+            case 3u:
+                return static_cast<std::uint16_t>(-a);
+
+            default:
+                return static_cast<std::uint16_t>(0x8000 + a);
+        }
+    }
+
     void math::sincos(std::uint16_t angle, float& sin, float& cos)
     {
         float a1 = static_cast<float>(angle) * 0.000095873802f;
@@ -210,6 +319,40 @@ namespace hyper
 
         result = stack;
 #endif
+    }
+
+    void math::transpose_matrix(const matrix4x4& src, matrix4x4& dst)
+    {
+        float temp;
+
+        temp = src.m12;
+        dst.m12 = src.m21;
+        dst.m21 = temp;
+
+        temp = src.m13;
+        dst.m13 = src.m31;
+        dst.m31 = temp;
+
+        temp = src.m14;
+        dst.m14 = src.m41;
+        dst.m41 = temp;
+
+        temp = src.m23;
+        dst.m23 = src.m32;
+        dst.m32 = temp;
+
+        temp = src.m24;
+        dst.m24 = src.m42;
+        dst.m42 = temp;
+
+        temp = src.m34;
+        dst.m34 = src.m43;
+        dst.m43 = temp;
+
+        dst.m11 = src.m11;
+        dst.m22 = src.m22;
+        dst.m33 = src.m33;
+        dst.m44 = src.m44;
     }
 
     void math::transform_point(const matrix4x4& trs, vector3& point)
@@ -690,5 +833,18 @@ namespace hyper
         math::create_rotation_z(angle, stack);
 
         math::multiply_matrix(rotation, stack, result);
+    }
+
+    void math::invert_rotation(const matrix4x4& src, matrix4x4& dst)
+    {
+        math::transpose_matrix(src, dst);
+
+        dst.m14 = 0.0f;
+        dst.m24 = 0.0f;
+        dst.m34 = 0.0f;
+        dst.m41 = 0.0f;
+        dst.m42 = 0.0f;
+        dst.m43 = 0.0f;
+        dst.m44 = 0.0f;
     }
 }
