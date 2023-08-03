@@ -4,6 +4,7 @@
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/culling.hpp>
 #include <hyperlib/renderer/streak.hpp>
+#include <hyperlib/renderer/drawing.hpp>
 
 #include <hyperlinked/tests.hpp>
 
@@ -273,16 +274,26 @@ namespace hyper
 		}
 	}
 
+    __declspec(naked) void sub_007474D0()
+    {
+        __asm
+        {
+            mov dword ptr [esp + 0x18], 0x356F692A;
+
+            pushad;
+
+            call renderer::sub_007474D0;
+
+            popad;
+
+            push 0x00747504;
+            retn;
+        }
+    }
+
     void tests::init()
     {
-#if 0
-        // always raining
-<<<<<<< HEAD
-        hook::set<std::uint32_t>(0x00B74D20, 1u);
-#endif
-=======
-        // hook::set<std::uint32_t>(0x00B74D20, 1u);
->>>>>>> main
+        //hook::jump(0x007474FC, &sub_007474D0);
 
         hook::jump(0x00725C95, &test_render_state);
 
@@ -307,12 +318,5 @@ namespace hyper
 
         // UnlockStreakFlares
         hook::jump(0x00749E50, &test_unlock_streak_manager);
-
-        // RenderStreakFlares
-        // hook::jump(0x00749E80, &test_render_streak_manager);
-
-        // hook::jump(0x00727238, &test_render_world_ingame);
-
-        int breaker = 0;
     }
 }

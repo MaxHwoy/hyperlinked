@@ -85,7 +85,7 @@ namespace hyper
         // #TODO
     }
 
-    void streak::manager::commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
+    void streak::manager::commit_flare(const vector3& position, std::uint32_t key, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
     {
         if (this->locked && this->streak_count < this->max_streaks)
         {
@@ -95,7 +95,7 @@ namespace hyper
 
             float brightness = (type == flare::type::lamppost || type >= flare::type::blinking_amber) ? 1.0f : 0.0f;
 
-            const texture::page_range* range = texture::get_texture_page_range(texture->key, -1);
+            const texture::page_range* range = texture::get_texture_page_range(key, -1);
 
             rect.vertices[0].position = position;
             rect.vertices[1].position = position;

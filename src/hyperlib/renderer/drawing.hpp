@@ -399,6 +399,8 @@ namespace hyper
 
         static void render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
 
+        static void sub_007474D0();
+
     public:
         static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
 
@@ -446,6 +448,10 @@ namespace hyper
         static inline flare::instance flare_pool_[1000]{};
 
         static inline std::uint32_t flare_bits_[1000]{};
+
+        static std::uint32_t vlt_keys_[32];
+
+        static bitset<32> fixed_flares_;
     };
 
     CREATE_ENUM_EXPR_OPERATORS(model_lod);

@@ -53,6 +53,44 @@ namespace hyper
         static_cast<size_t>(view_id::env_y_neg),
     });
 
+    std::uint32_t renderer::vlt_keys_[32]
+    {
+        0x356F692A,
+        0xA95AB5AD,
+        0xB60DAC69,
+        0xD364E8AC,
+        0x30EA58B4,
+        0x35CE359C,
+        0xF51BF17F,
+        0xDDE4B816,
+        0x44C51B58,
+        0x93007A08,
+        0x0299E454,
+        0x47CB2AD7,
+        0xB740451C,
+        0x4FF2B81C,
+        0x85D7B2BA,
+        0x1A58D63A,
+        0x91E89CE5,
+        0x950BBF97,
+        0xE61B9443,
+        0x98E7607C,
+        0xBF79F943,
+        0x55EAA808,
+        0x8D397462,
+        0x21B44AAE,
+        0x0215CA40,
+        0x2A9BE304,
+        0x4B810536,
+        0x4118B9E2,
+        0x238FB6BF,
+        0x550B245A,
+        0x1F6E6550,
+        0x908A4AD4,
+    };
+
+    bitset<static_cast<std::uint32_t>(flare::type::count)> renderer::fixed_flares_;
+
     auto renderer::create_flare_view_mask(view_id id) -> std::uint32_t
     {
         return (1u << static_cast<std::uint32_t>(id)) | ((id == view_id::player1) * 0x50u) | ((id == view_id::player2) * 0x80u);
@@ -485,120 +523,125 @@ namespace hyper
                             tex_id = 2u; // HEADLIGHTGLOW forced (for now)
                         }
 
-                        const texture::info* texture = renderer::flare_texture_infos_[tex_id].texture;
+                        float intensity = intensity_scale;
 
-                        if (texture != nullptr)
+                        if ((flag & (flare::flags::uni_directional | flare::flags::bi_directional)) != 0)
                         {
-                            float intensity = intensity_scale;
+                            intensity *= ::pow(dot_product, params->power);
 
-                            if ((flag & (flare::flags::uni_directional | flare::flags::bi_directional)) != 0)
+                            intensity = math::min(intensity, 1.0f);
+                        }
+
+                        float flare_size = math::lerp(params->min_size, params->max_size, intensity);
+
+                        if (flare_size > 0.0f)
+                        {
+                            vector3 true_flare_pos = position + to_camera_dir * params->z_bias;
+
+                            flare_size *= math::clamp(flare_pixels, params->min_scale, params->max_scale) * size_scale;
+
+                            color32 flare_color;
+
+                            if (color_override == color32::clear())
                             {
-                                intensity *= ::pow(dot_product, params->power);
+                                color float_color;
 
-                                intensity = math::min(intensity, 1.0f);
-                            }
-
-                            float flare_size = math::lerp(params->min_size, params->max_size, intensity);
-
-                            if (flare_size > 0.0f)
-                            {
-                                const void* nis_instance = *reinterpret_cast<const void**>(0x00B4D964);
-
-                                vector3 true_flare_pos;
-
-                                if (nis_instance == nullptr)
+                                if ((type == flare::type::lamppost || type == flare::type::generic_10) && parameter_map::accessor::flare_override_accessor.layer != nullptr)
                                 {
-                                    true_flare_pos = position + to_camera_dir * params->z_bias;
-                                }
-                                else
-                                {
-                                    true_flare_pos = position + to_camera_dir * (params->z_bias * 0.5f); // for NIS half z offset
-                                }
+                                    parameter_map::accessor::flare_override_accessor.capture_data(true_flare_pos.x, true_flare_pos.y);
 
-                                flare_size *= math::clamp(flare_pixels, params->min_scale, params->max_scale) * size_scale;
+                                    float_color.b = parameter_map::accessor::flare_override_accessor.get_float(0u) * intensity;
+                                    float_color.g = parameter_map::accessor::flare_override_accessor.get_float(1u) * intensity;
+                                    float_color.r = parameter_map::accessor::flare_override_accessor.get_float(2u) * intensity;
+                                    float_color.a = parameter_map::accessor::flare_override_accessor.get_float(3u) * intensity * alpha_factor;
 
-                                color32 flare_color;
-
-                                if (color_override == color32::clear())
-                                {
-                                    color float_color;
-
-                                    if ((type == flare::type::lamppost || type == flare::type::generic_10) && parameter_map::accessor::flare_override_accessor.layer != nullptr)
-                                    {
-                                        parameter_map::accessor::flare_override_accessor.capture_data(true_flare_pos.x, true_flare_pos.y);
-
-                                        float_color.b = parameter_map::accessor::flare_override_accessor.get_float(0u) * intensity;
-                                        float_color.g = parameter_map::accessor::flare_override_accessor.get_float(1u) * intensity;
-                                        float_color.r = parameter_map::accessor::flare_override_accessor.get_float(2u) * intensity;
-                                        float_color.a = parameter_map::accessor::flare_override_accessor.get_float(3u) * intensity * alpha_factor;
-
-                                        if (float_color.b < 0.0f)
-                                        {
-                                            float_color.b = params->max_colour.r * intensity;
-                                            float_color.g = params->max_colour.g * intensity;
-                                            float_color.r = params->max_colour.b * intensity;
-                                            float_color.a = params->max_colour.a * intensity * alpha_factor;
-                                        }
-                                    }
-                                    else
+                                    if (float_color.b < 0.0f)
                                     {
                                         float_color.b = params->max_colour.r * intensity;
                                         float_color.g = params->max_colour.g * intensity;
                                         float_color.r = params->max_colour.b * intensity;
                                         float_color.a = params->max_colour.a * intensity * alpha_factor;
                                     }
-
-                                    flare_color.r = static_cast<std::uint8_t>(math::min(float_color.r + float_color.r, 255.0f));
-                                    flare_color.g = static_cast<std::uint8_t>(math::min(float_color.g + float_color.g, 255.0f));
-                                    flare_color.b = static_cast<std::uint8_t>(math::min(float_color.b + float_color.b, 255.0f));
-                                    flare_color.a = static_cast<std::uint8_t>(math::min(float_color.a + float_color.a, 255.0f));
                                 }
                                 else
                                 {
-                                    flare_color.r = color_override.r;
-                                    flare_color.g = color_override.g;
-                                    flare_color.b = color_override.b;
-                                    flare_color.a = static_cast<std::uint8_t>(math::min(params->max_colour.a * intensity * alpha_factor * 2.0f, 255.0f));
+                                    float_color.b = params->max_colour.r * intensity;
+                                    float_color.g = params->max_colour.g * intensity;
+                                    float_color.r = params->max_colour.b * intensity;
+                                    float_color.a = params->max_colour.a * intensity * alpha_factor;
                                 }
 
-                                float degree_angle = 0.0f;
-
-#if 0
-                                if (render_type == flare::render::norm)
-                                {
-                                    vector3 screen_pos;
-
-                                    view->get_screen_position(true_flare_pos, screen_pos);
-
-                                    degree_angle = screen_pos.x / static_cast<float>(directx::resolution_x) * 240.0f;
-                                }
-#endif
-
-                                float horizontal_scale = flare_size;
-                                float vertical_scale = flare_size;
-
-                                if (render_type == flare::render::refl)
-                                {
-                                    if (flare.position.z - flare.reflect_pos_z >= 4.0f)
-                                    {
-                                        vertical_scale *= extend_factor;
-                                    }
-                                    else
-                                    {
-                                        vertical_scale *= extend_factor * 0.5f;
-                                    }
-                                }
-
-                                if (horizontal_flare_scale > 0.0f)
-                                {
-                                    // horizontal_scale += horizontal_scale * horizontal_flare_scale;
-                                }
-
-                                streak::manager::instance.commit_flare(true_flare_pos, texture, type, flare_color, horizontal_scale, vertical_scale, degree_angle);
+                                flare_color.r = static_cast<std::uint8_t>(math::min(float_color.r + float_color.r, 255.0f));
+                                flare_color.g = static_cast<std::uint8_t>(math::min(float_color.g + float_color.g, 255.0f));
+                                flare_color.b = static_cast<std::uint8_t>(math::min(float_color.b + float_color.b, 255.0f));
+                                flare_color.a = static_cast<std::uint8_t>(math::min(float_color.a + float_color.a, 255.0f));
                             }
+                            else
+                            {
+                                flare_color.r = color_override.r;
+                                flare_color.g = color_override.g;
+                                flare_color.b = color_override.b;
+                                flare_color.a = static_cast<std::uint8_t>(math::min(params->max_colour.a * intensity * alpha_factor * 2.0f, 255.0f));
+                            }
+
+                            float degree_angle = 0.0f;
+
+                            if (render_type == flare::render::norm)
+                            {
+                                vector3 screen_pos;
+
+                                view->get_screen_position(true_flare_pos, screen_pos);
+
+                                degree_angle = screen_pos.x / static_cast<float>(directx::resolution_x) * 240.0f;
+                            }
+
+                            float horizontal_scale = flare_size;
+                            float vertical_scale = flare_size;
+
+                            if (render_type == flare::render::refl)
+                            {
+                                if (flare.position.z - flare.reflect_pos_z >= 4.0f)
+                                {
+                                    vertical_scale *= extend_factor;
+                                }
+                                else
+                                {
+                                    vertical_scale *= extend_factor * 0.5f;
+                                }
+                            }
+
+                            if (horizontal_flare_scale > 0.0f)
+                            {
+                                // horizontal_scale += horizontal_scale * horizontal_flare_scale;
+                            }
+
+                            const auto texture = renderer::flare_texture_keys_[tex_id];
+
+                            streak::manager::instance.commit_flare(true_flare_pos, texture, type, flare_color, horizontal_scale, vertical_scale, degree_angle);
                         }
                     }
                 }
+            }
+        }
+    }
+
+    void renderer::sub_007474D0()
+    {
+        for (auto i = flare::type::car_headlight; i < flare::type::count; ++i)
+        {
+            const auto key = renderer::vlt_keys_[static_cast<std::uint32_t>(i)];
+            const auto instance = attrib::instance(hashing::vlt("light_flares_cg"), key);
+
+            if (instance.collection)
+            {
+                const auto value = instance.attribute<bool>(hashing::vlt("Fixed"));
+
+                if (value)
+                {
+                    auto i = 0;
+                }
+
+                renderer::fixed_flares_.set(i, value);
             }
         }
     }
