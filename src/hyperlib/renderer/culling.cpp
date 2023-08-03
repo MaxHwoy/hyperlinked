@@ -569,7 +569,7 @@ namespace hyper
     {
         matrix4x4 stack(matrix);
 
-        float sin = math::sin(static_cast<std::uint16_t>(static_cast<std::int32_t>((degrees + renderer::wind_angle) * 65536.0f) / 360));
+        float sin = math::sin(math::to_uint16_degrees(degrees + renderer::wind_angle));
 
         vector3 direction(1.0f, 0.0f, 0.0f);
 
@@ -583,7 +583,7 @@ namespace hyper
 
         math::transform_vector(stack, direction);
 
-        std::uint16_t angle = static_cast<std::uint16_t>(static_cast<std::int32_t>(sin * 1.5f * 65536.0f) / 360);
+        std::uint16_t angle = math::to_uint16_degrees(sin * 1.5f);
 
         math::create_axis_rotation_matrix(direction, angle, stack);
 

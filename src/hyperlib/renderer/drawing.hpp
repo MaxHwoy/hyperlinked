@@ -2,10 +2,12 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
+#include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/assets/flares.hpp>
 #include <hyperlib/world/collision.hpp>
 #include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/view.hpp>
+#include <hyperlib/renderer/lighting.hpp>
 
 namespace hyper
 {
@@ -346,6 +348,36 @@ namespace hyper
         char data_0x3828[6488];
     };
 
+    struct rendering_model
+    {
+        texture::render_state render_bits;
+        texture::info* base_texture_info;
+        IDirect3DTexture9* d3d9_diffuse_texture;
+        IDirect3DTexture9* d3d9_normal_texture;
+        IDirect3DTexture9* d3d9_height_texture;
+        IDirect3DTexture9* d3d9_specular_texture;
+        IDirect3DTexture9* d3d9_opacity_texture;
+        geometry::mesh_entry* mesh_entry;
+        bool is_tri_stripped;
+        geometry::solid* solid;
+        std::uint32_t flags;
+        struct effect* effect;
+        lighting::dynamic_context* light_context;
+        light_material::instance* light_material;
+        matrix4x4* local_to_world;
+        matrix4x4* blending_matrices;
+        texture::info* diffuse_texture_info;
+        texture::info* normal_texture_info;
+        texture::info* height_texture_info;
+        texture::info* specular_texture_info;
+        texture::info* opacity_texture_info;
+        std::uint32_t z_sort_flags;
+        void* null;
+        float negative_one;
+        struct pca_blend_data* pca_blend_data;
+        std::uint32_t technique_flags;
+    };
+
     class renderer final
     {
     public:
@@ -385,6 +417,10 @@ namespace hyper
         static inline bool& flare_pool_off = *reinterpret_cast<bool*>(0x00B42F1C);
 
         static inline bool& draw_light_flares = *reinterpret_cast<bool*>(0x00A6C088);
+
+        static inline std::uint32_t& rendering_model_count = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
+
+        static array<rendering_model, 4096u> rendering_models;
 
     private:
         static bool flare_pool_inited_;
@@ -430,4 +466,5 @@ namespace hyper
     ASSERT_SIZE(on_screen_rain_entry, 0x1C);
     ASSERT_SIZE(on_screen_rain, 0x234);
     ASSERT_SIZE(rain, 0x5180);
+    ASSERT_SIZE(rendering_model, 0x68);
 }

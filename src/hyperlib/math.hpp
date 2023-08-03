@@ -34,6 +34,11 @@ namespace hyper
             return this->x * this->x + this->y * this->y;
         }
 
+        inline auto operator-() -> vector2
+        {
+            return { -this->x, -this->y };
+        }
+
         inline auto operator+=(const vector2& other) -> vector2&
         {
             this->x += other.x;
@@ -139,6 +144,11 @@ namespace hyper
             return *reinterpret_cast<const vector2*>(this);
         }
 
+        inline auto operator-() -> vector3
+        {
+            return { -this->x, -this->y, -this->z };
+        }
+
         inline auto operator+=(const vector3& other) -> vector3&
         {
             this->x += other.x;
@@ -197,6 +207,46 @@ namespace hyper
 
         auto normalized() const -> vector3;
 
+        inline static auto zero() -> const vector3&
+        {
+            return vector3::zero_;
+        }
+
+        inline static auto one() -> const vector3&
+        {
+            return vector3::one_;
+        }
+
+        inline static auto left() -> const vector3&
+        {
+            return vector3::left_;
+        }
+
+        inline static auto right() -> const vector3&
+        {
+            return vector3::right_;
+        }
+
+        inline static auto down() -> const vector3&
+        {
+            return vector3::down_;
+        }
+
+        inline static auto up() -> const vector3&
+        {
+            return vector3::up_;
+        }
+
+        inline static auto backward() -> const vector3&
+        {
+            return vector3::backward_;
+        }
+
+        inline static auto forward() -> const vector3&
+        {
+            return vector3::forward_;
+        }
+
         inline static auto dot(const vector3& lhs, const vector3& rhs) -> float
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
@@ -206,6 +256,16 @@ namespace hyper
         {
             return { lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x };
         }
+
+    private:
+        static vector3 zero_;
+        static vector3 one_;
+        static vector3 left_;
+        static vector3 right_;
+        static vector3 down_;
+        static vector3 up_;
+        static vector3 backward_;
+        static vector3 forward_;
     };
 
     struct vector4
@@ -251,6 +311,11 @@ namespace hyper
         inline auto as_vector3() const -> const vector3&
         {
             return *reinterpret_cast<const vector3*>(this);
+        }
+
+        inline auto operator-() -> vector4
+        {
+            return { -this->x, -this->y, -this->z, -this->w };
         }
 
         inline auto operator+=(const vector4& other) -> vector4&
@@ -762,6 +827,11 @@ namespace hyper
             *reinterpret_cast<std::uint32_t*>(&value) ^= 0x80000000;
         }
 
+        inline static auto to_uint16_degrees(float degrees) -> std::uint16_t
+        {
+            return static_cast<std::uint16_t>(static_cast<std::int32_t>(degrees * 65536.0f) / 360);
+        }
+
         static auto sin(std::uint16_t angle) -> float;
 
         static auto sin(float angle) -> float;
@@ -774,11 +844,17 @@ namespace hyper
 
         static auto tan(float angle) -> float;
 
+        static auto arc_sin(float value) -> std::uint16_t;
+
+        static auto arc_tan(float x, float y) -> std::uint16_t;
+
         static void sincos(std::uint16_t angle, float& sin, float& cos);
 
         static bool approximately(float a, float b);
 
         static void multiply_matrix(const matrix4x4& a, const matrix4x4& b, matrix4x4& result);
+
+        static void transpose_matrix(const matrix4x4& src, matrix4x4& dst);
 
         static void transform_point(const matrix4x4& trs, vector3& point);
 
@@ -817,5 +893,10 @@ namespace hyper
         static void rotate_matrix_y(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
 
         static void rotate_matrix_z(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
+
+        static void invert_rotation(const matrix4x4& src, matrix4x4& dst);
+
+    private:
+        static std::uint16_t a_tan_table_[258];
     };
 }
