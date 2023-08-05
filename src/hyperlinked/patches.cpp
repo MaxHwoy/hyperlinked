@@ -1004,6 +1004,12 @@ namespace hyper
         // bFreeMeshAssets
         hook::nop(0x00725B55, 2);
 
+        // VisibleSectionManager::Loader (unsigned char for max sections)
+        hook::set<std::uint8_t>(0x007A895D, 0xB6);
+
+        // eInitTextures (increase texture pack slot pool count)
+        hook::set<std::uint32_t>(0x0055A018, 0x100);
+
         // bMemoryInit
         hook::jump(0x004769E0, &detour_b_memory_init);
 
