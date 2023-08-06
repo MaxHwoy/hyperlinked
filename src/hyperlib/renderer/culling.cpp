@@ -240,7 +240,7 @@ namespace hyper
 
         if (drivable != nullptr)
         {
-            section_count = math::min(section_count, static_cast<std::uint32_t>(drivable->visible_section_count));
+            section_count = math::min(section_count - 1, static_cast<std::uint32_t>(drivable->visible_section_count));
 
             ::memcpy(sections + 1u, drivable->visible_sections, section_count * sizeof(std::uint16_t));
 
