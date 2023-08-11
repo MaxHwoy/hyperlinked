@@ -7,17 +7,19 @@
 
 namespace hyper
 {
-    class memory_pool;
+    class slot_pool;
+
+    class slot_pool_manager;
 
     class memory final
     {
     public:
-        enum pool_type
+        enum class pool_type : std::int32_t
         {
-            memory_pool_type_main = 0x00,
-            memory_pool_type_streamer = 0x07,
-            memory_pool_type_online = 0x08,
-            memory_pool_type_count = 0x10,
+            main = 0x00,
+            streamer = 0x07,
+            online = 0x08,
+            count = 0x10,
         };
 
 #if defined(TARGET_64BIT)
@@ -121,6 +123,27 @@ namespace hyper
         // bFree
         static void free(void* ptr);
 
+        // bNewSlotPool
+        static auto new_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*;
+
+        // SlotPool_Delete
+        static auto delete_slot_pool(slot_pool* pool);
+
+        // bIsSlotPoolFull
+        static auto is_slot_pool_full(const slot_pool* pool) -> alloc_size_t;
+
+        // bCountTotalSlots
+        static auto count_total_slots(const slot_pool* pool) -> alloc_size_t;
+
+        // bCountFreeSlots
+        static auto count_free_slots(const slot_pool* pool) -> alloc_size_t;
+
+        // bOMalloc
+        static auto malloc_slot(slot_pool* pool) -> void*;
+
+        // bFree
+        static void free_slot(slot_pool* pool, void* ptr);
+
         static inline bool initialized()
         {
             return memory::initialized_;
@@ -203,9 +226,11 @@ namespace hyper
         }
 
     private:
-        static memory_pool_info pool_infos_[memory_pool_type_count];
+        static memory_pool_info pool_infos_[static_cast<std::uint32_t>(pool_type::count)];
 
-        static memory_pool pools_[memory_pool_type_count];
+        static memory_pool pools_[static_cast<std::uint32_t>(pool_type::count)];
+
+        static slot_pool_manager slot_manager_;
 
         static bool initialized_;
 

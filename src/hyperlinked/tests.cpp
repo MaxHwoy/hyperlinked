@@ -19,21 +19,6 @@ namespace hyper
         grand->setup_world_culling();
     }
 
-    void test_render_car_flares(
-        view::instance* view,
-        flare::instance* flare,
-        const matrix4x4* local_world,
-        float intensity_scale,
-        flare::reflection refl_type,
-        flare::render render_type,
-        float horizontal_flare_scale,
-        float reflection_override,
-        std::uint32_t color_override,
-        float size_scale)
-    {
-        renderer::render_light_flare(view, *flare, local_world, intensity_scale, refl_type, render_type, horizontal_flare_scale, reflection_override, *reinterpret_cast<color32*>(&color_override), size_scale);
-    }
-
     void print_number_of_rendering_models()
     {
         std::uint32_t count = renderer::rendering_model_count;
@@ -144,7 +129,7 @@ namespace hyper
             push [esp + 0x3C]; // flare
             push [esp + 0x3C]; // view
 
-            call test_render_car_flares;
+            call renderer::render_light_flare;
 
             add esp, 0x28;
 

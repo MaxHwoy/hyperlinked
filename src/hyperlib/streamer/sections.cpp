@@ -2,36 +2,78 @@
 
 namespace hyper
 {
-    auto visible_section::manager::find_closest_boundary(const vector2& position, float& distance) -> const boundary*
+    visible_section::manager::manager() :
+        drivable_boundary_list(),
+        non_drivable_boundary_list(),
+        drivable_section_list(),
+        texture_section_list(),
+        loading_section_list(),
+        super_section_list(),
+        override_object_list(),
+        geometry_used_in_section_info_list(),
+        texture_used_in_section_info_list(),
+        overlay_list(),
+        boundary_chunks(nullptr),
+        pack(nullptr),
+        has_island_sections(false),
+        elev_poly_count(0u),
+        elev_polies(nullptr),
+        active_overlay(nullptr),
+        undo_overlay(nullptr),
+        user_infos{},
+        allocated_user_info_count(0u),
+        user_info_storage_table{},
+        unallocated_user_info_list(),
+        bit_tables(nullptr),
+        enabled_groups{}
     {
-        boundary* closest = nullptr;
-
-        distance = std::numeric_limits<float>::infinity();
-
-        for (boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); i = i->next())
+        for (std::uint32_t i = 0u; i < std::size(this->user_info_storage_table); ++i)
         {
-            float outside = this->get_distance_outside(i, position, distance);
+            this->unallocated_user_info_list.add(reinterpret_cast<unallocated_user_info*>(this->user_info_storage_table + i));
+        }
+    }
 
-            if (outside == 0.0f)
+    auto visible_section::manager::get_drivable_section(std::uint16_t section_number) -> const drivable*
+    {
+        for (drivable* i = this->drivable_section_list.begin(); i != this->drivable_section_list.end(); i = i->next())
+        {
+            if (i->section_number == section_number)
             {
-                this->drivable_boundary_list.remove(i);
+                this->drivable_section_list.remove(i);
 
-                this->drivable_boundary_list.add_before(i, this->drivable_boundary_list.begin());
-
-                distance = 0.0f;
+                this->drivable_section_list.add_before(i, this->drivable_section_list.begin());
 
                 return i;
             }
+        }
 
-            if (outside < distance)
+        return nullptr;
+    }
+
+    auto visible_section::manager::find_boundary(std::uint16_t section_number) -> const boundary*
+    {
+        if (game_provider::is_scenery_section_drivable(section_number, this->pack->lod_offset))
+        {
+            for (const boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); ++i)
             {
-                distance = outside;
-
-                closest = i;
+                if (i->section_number == section_number)
+                {
+                    return i;
+                }
             }
         }
-        
-        return closest;
+        else
+        {
+            for (const boundary* i = this->non_drivable_boundary_list.begin(); i != this->non_drivable_boundary_list.end(); ++i)
+            {
+                if (i->section_number == section_number)
+                {
+                    return i;
+                }
+            }
+        }
+
+        return nullptr;
     }
 
     auto visible_section::manager::find_drivable_section(const vector3& position) -> const drivable*
@@ -68,6 +110,198 @@ namespace hyper
         return this->get_drivable_section(closest->section_number);
     }
 
+    auto visible_section::manager::find_closest_boundary(const vector2& position, float& distance) -> const boundary*
+    {
+        boundary* closest = nullptr;
+
+        distance = std::numeric_limits<float>::infinity();
+
+        for (boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); i = i->next())
+        {
+            float outside = this->get_distance_outside(i, position, distance);
+
+            if (outside == 0.0f)
+            {
+                this->drivable_boundary_list.remove(i);
+
+                this->drivable_boundary_list.add_before(i, this->drivable_boundary_list.begin());
+
+                distance = 0.0f;
+
+                return i;
+            }
+
+            if (outside < distance)
+            {
+                distance = outside;
+
+                closest = i;
+            }
+        }
+
+        return closest;
+    }
+
+    auto visible_section::manager::allocate_user_info(std::uint16_t section_number) -> user_info&
+    {
+        user_info*& info = this->user_infos[section_number];
+
+        if (info == nullptr)
+        {
+            info = reinterpret_cast<user_info*>(this->unallocated_user_info_list.remove_first());
+
+            ::memset(info, 0, sizeof(user_info));
+
+            ++this->allocated_user_info_count;
+        }
+
+        ++info->reference_count;
+
+        return *info;
+    }
+
+    void visible_section::manager::unallocate_user_info(std::uint16_t section_number)
+    {
+        user_info*& info = this->user_infos[section_number];
+
+        if (info != nullptr && --info->reference_count == 0u)
+        {
+            info = nullptr;
+
+            this->allocated_user_info_count--;
+
+            this->unallocated_user_info_list.add(reinterpret_cast<unallocated_user_info*>(info));
+        }
+    }
+
+    void visible_section::manager::enable_group(std::uint32_t key)
+    {
+        for (std::uint32_t i = 0u; i < std::size(this->enabled_groups); ++i)
+        {
+            if (!this->enabled_groups[i])
+            {
+                this->enabled_groups[i] = key;
+
+                return;
+            }
+        }
+    }
+
+    bool visible_section::manager::loader(chunk* block)
+    {
+        if (block->id() == block_id::visible_section_manager)
+        {
+            this->boundary_chunks = block;
+
+            for (chunk* i = reinterpret_cast<chunk*>(block->data()); i < block->end(); i = i->end())
+            {
+                switch (i->id())
+                {
+                    case block_id::visible_section_pack_header:
+                        this->loader_pack_header(i);
+                        break;
+
+                    case block_id::visible_section_boundaries:
+                        this->loader_boundaries(i);
+                        break;
+
+                    case block_id::visible_section_drivables:
+                        this->loader_drivables(i);
+                        break;
+
+                    case block_id::visible_section_specifics:
+                        this->loader_specifics(i);
+                        break;
+
+                    case block_id::visible_section_loadings:
+                        this->loader_loadings(i);
+                        break;
+
+                    case block_id::visible_section_elev_polies:
+                        this->loader_elev_polies(i);
+                        break;
+                }
+            }
+
+            return true;
+        }
+
+        if (block->id() == block_id::visible_section_overlay)
+        {
+            this->overlay_list.add(reinterpret_cast<overlay*>(block->data()));
+
+            return true;
+        }
+
+        return false;
+    }
+
+    void visible_section::manager::loader_pack_header(chunk* block)
+    {
+        this->pack = reinterpret_cast<visible_section::pack*>(block->data());
+        
+        visible_section::manager::lod_offset = this->pack->lod_offset;
+    }
+
+    void visible_section::manager::loader_boundaries(chunk* block)
+    {
+        uintptr_t current = reinterpret_cast<uintptr_t>(block->data());
+        uintptr_t endaddr = reinterpret_cast<uintptr_t>(block->end());
+
+        while (current < endaddr)
+        {
+            boundary* bound = reinterpret_cast<boundary*>(current);
+
+            if (game_provider::is_scenery_section_drivable(bound->section_number, this->pack->lod_offset))
+            {
+                this->drivable_boundary_list.add(bound);
+            }
+            else
+            {
+                this->non_drivable_boundary_list.add(bound);
+            }
+
+            current += (sizeof(boundary) - sizeof(boundary::points)) + sizeof(vector2) * bound->point_count;
+        }
+    }
+
+    void visible_section::manager::loader_drivables(chunk* block)
+    {
+        uintptr_t current = reinterpret_cast<uintptr_t>(block->data());
+        uintptr_t endaddr = reinterpret_cast<uintptr_t>(block->end());
+
+        while (current < endaddr)
+        {
+            drivable* section = reinterpret_cast<drivable*>(current);
+
+            this->drivable_section_list.add(section);
+
+            current += sizeof(drivable) + sizeof(std::uint16_t) * section->max_visible_sections;
+        }
+    }
+
+    void visible_section::manager::loader_specifics(chunk* block)
+    {
+    }
+
+    void visible_section::manager::loader_loadings(chunk* block)
+    {
+        std::uint32_t count = block->size() / sizeof(loading_section);
+
+        for (std::uint32_t i = 0u; i < count; ++i)
+        {
+            this->loading_section_list.add(reinterpret_cast<loading_section*>(block->data()) + i);
+        }
+    }
+
+    void visible_section::manager::loader_elev_polies(chunk* block)
+    {
+        const size_t alignment = 0x10;
+
+        this->elev_polies = reinterpret_cast<elev_poly*>(block->aligned_data(alignment));
+        this->elev_poly_count = block->aligned_size(alignment);
+    }
+
     auto visible_section::manager::get_distance_outside(const boundary* bound, const vector2& position, float extra_width) const -> float
     {
         if (math::is_in_bounding_box(position, bound->bbox_min, bound->bbox_max, extra_width))
@@ -92,23 +326,6 @@ namespace hyper
         }
 
         return extra_width;
-    }
-
-    auto visible_section::manager::get_drivable_section(std::uint16_t section_number) -> const drivable*
-    {
-        for (drivable* i = this->drivable_section_list.begin(); i != this->drivable_section_list.end(); i = i->next())
-        {
-            if (i->section_number == section_number)
-            {
-                this->drivable_section_list.remove(i);
-
-                this->drivable_section_list.add_before(i, this->drivable_section_list.begin());
-
-                return i;
-            }
-        }
-
-        return nullptr;
     }
 
     auto visible_section::manager::get_depth_name(const vector3& position) const -> std::uint32_t

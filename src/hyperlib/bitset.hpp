@@ -13,7 +13,7 @@ namespace hyper
         {
         }
 
-        inline bitset(std::initializer_list<size_t> list) : bits_{}
+        inline bitset(const std::initializer_list<size_t>& list) : bits_{}
         {
             assert(list.size() <= Size);
 
@@ -23,7 +23,7 @@ namespace hyper
             }
         }
 
-        inline auto size() const -> size_t
+        constexpr inline auto size() const -> size_t
         {
             return Size;
         }

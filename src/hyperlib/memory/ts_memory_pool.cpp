@@ -165,7 +165,7 @@ namespace hyper
 
         if (best_header == nullptr)
         {
-            std::uint32_t buffer_params = memory::create_allocation_params(memory::memory_pool_type_main, true, true, 0x80u, 0x00u);
+            std::uint32_t buffer_params = memory::create_allocation_params(memory::pool_type::main, true, true, 0x80u, 0x00u);
 
 #if defined(_DEBUG)
             ::printf("Warning!!! TSMemoryPool ran out of basic memory. Allocating additional heap buffer...\n");

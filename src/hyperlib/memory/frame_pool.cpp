@@ -43,7 +43,7 @@ namespace hyper
 
         length = math::align_pow_2(length, frame_pool::alignment);
 
-        std::uint32_t params = memory::create_allocation_params(memory::memory_pool_type_main, true, false, frame_pool::alignment, 0u);
+        std::uint32_t params = memory::create_allocation_params(memory::pool_type::main, true, false, frame_pool::alignment, 0u);
 
 #if defined(_DEBUG)
         frame_buffer* buffer = reinterpret_cast<frame_buffer*>(memory::malloc_debug(length + sizeof(frame_buffer), params, __FILE__, __LINE__));
@@ -108,7 +108,7 @@ namespace hyper
         }
         else
         {
-            std::uint32_t params = memory::create_allocation_params(memory::memory_pool_type_main, true, false, frame_pool::alignment, 0u);
+            std::uint32_t params = memory::create_allocation_params(memory::pool_type::main, true, false, frame_pool::alignment, 0u);
 
             alloc_size_t length = math::max(size, frame_pool::frame_size);
 
