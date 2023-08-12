@@ -33,7 +33,7 @@ namespace hyper
         slot_size_(slot_size),
         slot_total_(slot_count)
     {
-        this->initialize();
+        this->flush();
     }
 
     slot_pool::~slot_pool()
@@ -41,7 +41,7 @@ namespace hyper
         // #TODO
     }
 
-    void slot_pool::initialize()
+    void slot_pool::flush()
     {
         for (slot_pool* pool = this; pool != nullptr; pool = pool->next_)
         {
@@ -54,7 +54,7 @@ namespace hyper
 
                 for (std::uint32_t i = 1u; i < count; ++i)
                 {
-                    current = current->next = this->slots_ + i;
+                    current = current->next = reinterpret_cast<entry*>(reinterpret_cast<uintptr_t>(this->slots_) + this->slot_size_ * i);
                 }
 
                 current->next = nullptr;
@@ -102,16 +102,113 @@ namespace hyper
         return result;
     }
 
+    auto slot_pool::malloc_array(alloc_size_t count, entry** last_slot) -> entry*
+    {
+        if (count == 0u)
+        {
+            return nullptr;
+        }
+
+        if (this->free_slots() < count)
+        {
+            if ((this->flags_ & flags::warn_if_overflow) != 0)
+            {
+                ::printf("Warning: trying to allocate a slot at pool \"%s\" which is out of free entries!", this->name_);
+            }
+
+            if ((this->flags_ & flags::overflow_if_full) != 0)
+            {
+                this->expand(math::max(count, (this->slot_count_ >> 2) + 1));
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+
+        entry* result = this->free_;
+
+        if (result == nullptr)
+        {
+            return nullptr;
+        }
+
+        entry* last = result;
+
+        for (alloc_size_t i = count - 1; i > 0; --i)
+        {
+            last = last->next;
+
+            if (last == nullptr)
+            {
+                return nullptr;
+            }
+        }
+
+        this->free_ = last->next;
+
+        last->next = nullptr;
+
+        if (last_slot != nullptr)
+        {
+            *last_slot = last;
+        }
+
+        this->alloc_count_ += count;
+
+        this->most_alloc_count_ = math::max(this->most_alloc_count_, this->alloc_count_);
+
+        if ((this->flags_ & flags::zero_allocated_memory) != 0)
+        {
+            size_t size = static_cast<size_t>(this->slot_size_) - sizeof(entry);
+
+            if (size > 0)
+            {
+                for (entry* i = result; i != nullptr; i = i->next)
+                {
+                    ::memset(i + 1, 0, size);
+                }
+            }
+        }
+
+        return result;
+    }
+
     void slot_pool::free(void* ptr)
     {
-#if defined(_DEBUG)
         assert(this->get_slot_number(ptr) < this->slot_total_);
-#endif
+
         this->alloc_count_--;
 
         reinterpret_cast<entry*>(ptr)->next = this->free_;
 
         this->free_ = reinterpret_cast<entry*>(ptr);
+    }
+
+    void slot_pool::free_array(entry* first_slot, entry** last_slot)
+    {
+        if (first_slot != nullptr)
+        {
+            if (last_slot != nullptr)
+            {
+                *last_slot = nullptr;
+            }
+
+            entry* last = first_slot;
+
+            while (last->next != nullptr)
+            {
+                last = last->next;
+
+                this->alloc_count_--;
+            }
+
+            this->alloc_count_--;
+
+            last->next = this->free_;
+
+            this->free_ = first_slot;
+        }
     }
 
     void slot_pool::expand(alloc_size_t extra_slot_count)
@@ -145,6 +242,24 @@ namespace hyper
         pool->free_ = nullptr;
 
         this->slot_total_ += extra_slot_count;
+    }
+
+    auto slot_pool::get_slot(alloc_size_t index) -> void*
+    {
+        if (index < this->slot_total_)
+        {
+            for (slot_pool* i = this; i != nullptr; i = i->next_)
+            {
+                if (index < i->slot_count_)
+                {
+                    return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(i->slots_) + i->slot_size_ * index);
+                }
+
+                index -= i->slot_count_;
+            }
+        }
+
+        return nullptr;
     }
 
     auto slot_pool::get_slot_number(const void* ptr) const -> alloc_size_t
@@ -208,7 +323,7 @@ namespace hyper
         return nullptr;
     }
 
-    void slot_pool::cleanup_expanded_slot_pools()
+    void slot_pool::trim()
     {
         if (this->next_ != nullptr)
         {
@@ -250,7 +365,7 @@ namespace hyper
 
                         alloc_size_t index = static_cast<alloc_size_t>(difference / curr->slot_size_);
 
-                        if (index < curr->slot_size_)
+                        if (index < curr->slot_count_)
                         {
                             *dst = free->next;
                         }

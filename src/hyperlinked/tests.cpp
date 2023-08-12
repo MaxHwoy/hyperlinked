@@ -292,6 +292,8 @@ namespace hyper
 
         // hook::jump(0x00727238, &test_render_world_ingame);
 
+        hook::set<std::uint8_t>(0x00730C2A, 0x10);
+
         int breaker = 0;
     }
 }

@@ -126,7 +126,7 @@ namespace hyper
         // bNewSlotPool
         static auto new_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*;
 
-        // SlotPool_Delete
+        // bDeleteSlotPool
         static auto delete_slot_pool(slot_pool* pool);
 
         // bIsSlotPoolFull

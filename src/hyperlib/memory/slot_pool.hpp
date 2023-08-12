@@ -7,13 +7,12 @@ namespace hyper
 {
     class slot_pool : public linked_node<slot_pool>
     {
-    private:
+    public:
         struct entry
         {
             entry* next;
         };
 
-    public:
         enum class flags : std::uint32_t
         {
             overflow_if_full        = 1u << 0,
@@ -29,19 +28,25 @@ namespace hyper
 
         ~slot_pool();
 
-        void initialize();
+        void flush();
 
         auto malloc() -> void*;
 
+        auto malloc_array(alloc_size_t count, entry** last_slot) -> entry*;
+
         void free(void* ptr);
+
+        void free_array(entry* first_slot, entry** last_slot);
 
         void expand(alloc_size_t extra_slot_count);
         
+        auto get_slot(alloc_size_t index) -> void*;
+
         auto get_slot_number(const void* ptr) const -> alloc_size_t;
 
         auto get_allocated_slot(alloc_size_t index) -> void*;
 
-        void cleanup_expanded_slot_pools();
+        void trim();
 
         inline auto next() -> slot_pool*
         {
@@ -56,6 +61,11 @@ namespace hyper
         inline bool is_full() const
         {
             return this->slot_total_ == this->alloc_count_;
+        }
+
+        inline bool is_empty() const
+        {
+            return this->alloc_count_ == 0;
         }
 
         inline auto total_slots() const -> alloc_size_t
@@ -80,7 +90,22 @@ namespace hyper
 
         inline void set_flags(flags value)
         {
-            this->flags_ = value;
+            this->flags_ = static_cast<flags>(static_cast<std::uint32_t>(this->flags_) | static_cast<std::uint32_t>(value));
+        }
+
+        inline void clear_flags(flags value)
+        {
+            this->flags_ = static_cast<flags>(static_cast<std::uint32_t>(this->flags_) & ~static_cast<std::uint32_t>(value));
+        }
+
+        inline bool overflowed() const
+        {
+            return this->slot_total_ > this->slot_count_;
+        }
+
+        inline bool is_in_pool(const void* ptr) const
+        {
+            return this->get_slot_number(ptr) != std::numeric_limits<alloc_size_t>::max();
         }
 
         constexpr static auto header_size() -> alloc_size_t;
@@ -151,7 +176,7 @@ namespace hyper
             {
                 for (slot_pool* i = this->pools_.begin(); i != this->pools_.end(); i = i->next())
                 {
-                    i->cleanup_expanded_slot_pools();
+                    i->trim();
                 }
             }
         }
