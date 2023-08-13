@@ -1082,6 +1082,146 @@ namespace hyper
         }
     }
 
+    // #TODO test
+    __declspec(naked) void detour_slot_pool_malloc_array()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'count'
+            // [esp + 0x08] is 'last_slot'
+            // ecx contains pointer to slot pool
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'last_slot' is now at [esp + 0x0C]
+            push ecx; // 'last_slot' is now at [esp + 0x10]
+            push edx; // 'last_slot' is now at [esp + 0x14]
+            push esi; // 'last_slot' is now at [esp + 0x18]
+            push edi; // 'last_slot' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'last_slot'
+            push [esp + 0x1C]; // repush 'count'
+
+            call slot_pool::malloc_array; // call custom malloc_array
+
+            // no need to restore esp since 'malloc_array' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn 8; // return immediately to caller function, not back to SlotPool::Malloc; note that this is a __thiscall
+        }
+    }
+
+    // #TODO test
+    __declspec(naked) void detour_slot_pool_malloc()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // ecx contains pointer to slot pool
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'return address' is now at [esp + 0x04]
+            push ecx; // 'return address' is now at [esp + 0x08]
+            push edx; // 'return address' is now at [esp + 0x0C]
+            push esi; // 'return address' is now at [esp + 0x10]
+            push edi; // 'return address' is now at [esp + 0x14]
+
+            call slot_pool::malloc; // call custom malloc
+
+            // no need to restore esp since 'malloc' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to SlotPool::Malloc; note that this is a __thiscall
+        }
+    }
+
+    // #TODO test
+    __declspec(naked) void detour_b_malloc_slot()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'slot_pool' is now at [esp + 0x08]
+            push ecx; // 'slot_pool' is now at [esp + 0x0C]
+            push edx; // 'slot_pool' is now at [esp + 0x10]
+            push esi; // 'slot_pool' is now at [esp + 0x14]
+            push edi; // 'slot_pool' is now at [esp + 0x18]
+
+            mov ecx, [esp + 0x18]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::malloc; // call custom malloc
+
+            // no need to restore esp since 'malloc' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bMalloc
+        }
+    }
+
+    // #TODO test
+    __declspec(naked) void detour_b_free_slot()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+            // [esp + 0x08] is 'ptr'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'ptr' is now at [esp + 0x0C]
+            push ebx; // 'ptr' is now at [esp + 0x10]
+            push ecx; // 'ptr' is now at [esp + 0x14]
+            push edx; // 'ptr' is now at [esp + 0x18]
+            push esi; // 'ptr' is now at [esp + 0x1C]
+            push edi; // 'ptr' is now at [esp + 0x20]
+
+            push [esp + 0x20]; // repush 'ptr'
+
+            mov ecx, [esp + 0x20]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::free; // call custom free
+
+            // no need to restore esp since 'free' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to bFree
+        }
+    }
 
 
     __declspec(naked) void detour_init_hyper_streamer_pool()
@@ -1254,6 +1394,18 @@ namespace hyper
 
         // SlotPool::GetSlotNumber
         hook::jump(0x0046F4C0, &detour_slot_pool_get_slot_number);
+
+        // SlotPool::Malloc
+        hook::jump(0x004777A0, &detour_slot_pool_malloc_array);
+
+        // SlotPool::Malloc
+        hook::jump(0x00477740, &detour_slot_pool_malloc);
+
+        // bMalloc
+        hook::jump(0x0046F400, &detour_b_malloc_slot);
+
+        // bFree
+        hook::jump(0x0046F400, &detour_b_free_slot);
 
 
 
