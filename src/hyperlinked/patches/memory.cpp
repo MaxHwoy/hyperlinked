@@ -1082,7 +1082,6 @@ namespace hyper
         }
     }
 
-    // #TODO test
     __declspec(naked) void detour_slot_pool_malloc_array()
     {
         __asm
@@ -1119,7 +1118,6 @@ namespace hyper
         }
     }
 
-    // #TODO test
     __declspec(naked) void detour_slot_pool_malloc()
     {
         __asm
@@ -1137,6 +1135,8 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x10]
             push edi; // 'return address' is now at [esp + 0x14]
 
+            xor esp, 0;
+
             call slot_pool::malloc; // call custom malloc
 
             // no need to restore esp since 'malloc' is a __thiscall
@@ -1151,7 +1151,6 @@ namespace hyper
         }
     }
 
-    // #TODO test
     __declspec(naked) void detour_b_malloc_slot()
     {
         __asm
@@ -1185,7 +1184,39 @@ namespace hyper
         }
     }
 
-    // #TODO test
+    __declspec(naked) void detour_b_o_malloc_slot()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'slot_pool' is now at [esp + 0x08]
+            push ecx; // 'slot_pool' is now at [esp + 0x0C]
+            push edx; // 'slot_pool' is now at [esp + 0x10]
+            push esi; // 'slot_pool' is now at [esp + 0x14]
+            push edi; // 'slot_pool' is now at [esp + 0x18]
+
+            mov ecx, [esp + 0x18]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::malloc; // call custom malloc
+
+            // no need to restore esp since 'malloc' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bMalloc
+        }
+    }
+
     __declspec(naked) void detour_b_free_slot()
     {
         __asm
@@ -1222,6 +1253,31 @@ namespace hyper
             retn; // return immediately to caller function, not back to bFree
         }
     }
+
+    __declspec(naked) void detour_b_is_slot_pool_full()
+    {
+        __asm
+        {
+            // #TODO
+        }
+    }
+
+    __declspec(naked) void detour_b_count_free_slots()
+    {
+        __asm
+        {
+            // #TODO
+        }
+    }
+
+    __declspec(naked) void detour_b_count_total_slots()
+    {
+        __asm
+        {
+            // #TODO
+        }
+    }
+
 
 
     __declspec(naked) void detour_init_hyper_streamer_pool()
@@ -1404,8 +1460,20 @@ namespace hyper
         // bMalloc
         hook::jump(0x0046F400, &detour_b_malloc_slot);
 
+        // bOMalloc
+        hook::jump(0x00477BE0, &detour_b_o_malloc_slot);
+
         // bFree
-        hook::jump(0x0046F400, &detour_b_free_slot);
+        hook::jump(0x0046F420, &detour_b_free_slot);
+
+        // bIsSlotPoolFull
+        // hook::jump(0x0046F440, &detour_b_is_slot_pool_full);
+
+        // bCountFreeSlots
+        // hook::jump(0x0046F450, &detour_b_count_free_slots);
+
+        // bCountTotalSlots
+        // hook::jump(0x0046F460, &detour_b_count_total_slots);
 
 
 
