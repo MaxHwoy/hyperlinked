@@ -145,6 +145,11 @@ namespace hyper
     class slot_pool_manager final
     {
     public:
+        static auto new_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*;
+
+        static void delete_slot_pool(slot_pool* pool);
+
+    public:
         inline slot_pool_manager() : initialized_(false), pools_()
         {
         }
@@ -154,19 +159,28 @@ namespace hyper
             return this->initialized_;
         }
         
-        inline void add_slot_pool(slot_pool* pool)
+        inline auto create_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*
         {
-            if (pool != nullptr)
+            slot_pool* pool = slot_pool_manager::new_slot_pool(slot_size, slot_count, name, type);
+
+            if (pool != nullptr && this->initialized_)
             {
                 this->pools_.add(pool);
             }
+
+            return pool;
         }
 
         inline void remove_slot_pool(slot_pool* pool)
         {
             if (pool != nullptr)
             {
-                this->pools_.remove(pool);
+                if (this->initialized_)
+                {
+                    this->pools_.remove(pool);
+                }
+
+                slot_pool_manager::delete_slot_pool(pool);
             }
         }
 
@@ -181,10 +195,6 @@ namespace hyper
             }
         }
 
-        static auto new_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*;
-
-        static void delete_slot_pool(slot_pool* pool);
-
         template <typename T> static auto new_slot_pool(alloc_size_t slot_count, const char* name, memory::pool_type type) -> instance_pool<T>*
         {
             return reinterpret_cast<instance_pool<T>*>(slot_pool_manager::new_slot_pool(static_cast<alloc_size_t>(sizeof(T)), slot_count, name, type));
@@ -198,7 +208,13 @@ namespace hyper
     private:
         bool initialized_;
         linked_list<slot_pool> pools_;
+
+    public:
+        static inline slot_pool_manager& instance = *reinterpret_cast<slot_pool_manager*>(0x00A87C68);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(slot_pool::flags);
+
+    ASSERT_SIZE(slot_pool, 0x30 + sizeof(slot_pool::entry));
+    ASSERT_SIZE(slot_pool_manager, 0x0C);
 }

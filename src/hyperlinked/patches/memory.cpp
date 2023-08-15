@@ -917,8 +917,6 @@ namespace hyper
         }
     }
 
-
-
     __declspec(naked) void detour_slot_pool_cleanup_expanded_slot_pools()
     {
         __asm
@@ -1135,8 +1133,6 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x10]
             push edi; // 'return address' is now at [esp + 0x14]
 
-            xor esp, 0;
-
             call slot_pool::malloc; // call custom malloc
 
             // no need to restore esp since 'malloc' is a __thiscall
@@ -1148,6 +1144,120 @@ namespace hyper
             pop ebx; // restore saved register
 
             retn; // return immediately to caller function, not back to SlotPool::Malloc; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_slot_pool_manager_new_slot_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_size'
+            // [esp + 0x08] is 'slot_count'
+            // [esp + 0x0C] is 'name'
+            // [esp + 0x10] is 'type'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'type' is now at [esp + 0x14]
+            push ecx; // 'type' is now at [esp + 0x18]
+            push edx; // 'type' is now at [esp + 0x1C]
+            push esi; // 'type' is now at [esp + 0x20]
+            push edi; // 'type' is now at [esp + 0x24]
+
+            push [esp + 0x24]; // repush 'type'
+            push [esp + 0x24]; // repush 'name'
+            push [esp + 0x24]; // repush 'slot_count'
+            push [esp + 0x24]; // repush 'slot_size'
+
+            call slot_pool_manager::new_slot_pool; // call custom new_slot_pool
+
+            add esp, 0x10; // since we repushed all arguments
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to SlotPoolManager::NewSlotPool
+        }
+    }
+
+    __declspec(naked) void detour_slot_pool_manager_create_slot_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_size'
+            // [esp + 0x08] is 'slot_count'
+            // [esp + 0x0C] is 'name'
+            // [esp + 0x10] is 'type'
+            // ecx contains pointer to slot pool
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'type' is now at [esp + 0x14]
+            push ecx; // 'type' is now at [esp + 0x18]
+            push edx; // 'type' is now at [esp + 0x1C]
+            push esi; // 'type' is now at [esp + 0x20]
+            push edi; // 'type' is now at [esp + 0x24]
+
+            push [esp + 0x24]; // repush 'type'
+            push [esp + 0x24]; // repush 'name'
+            push [esp + 0x24]; // repush 'slot_count'
+            push [esp + 0x24]; // repush 'slot_size'
+
+            call slot_pool_manager::create_slot_pool; // call custom create_slot_pool
+
+            // no need to restore esp since 'create_slot_pool' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn 16; // return immediately to caller function, not back to SlotPoolManager::CreateSlotPool; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_slot_pool_manager_remove_slot_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'pool'
+            // ecx contains pointer to slot pool
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'pool' is now at [esp + 0x08]
+            push ebx; // 'pool' is now at [esp + 0x0C]
+            push ecx; // 'pool' is now at [esp + 0x10]
+            push edx; // 'pool' is now at [esp + 0x14]
+            push esi; // 'pool' is now at [esp + 0x18]
+            push edi; // 'pool' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'pool'
+
+            call slot_pool_manager::remove_slot_pool; // call custom remove_slot_pool
+
+            // no need to restore esp since 'remove_slot_pool' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to SlotPoolManager::RemoveSlotPool; note that this is a __thiscall
         }
     }
 
@@ -1258,7 +1368,34 @@ namespace hyper
     {
         __asm
         {
-            // #TODO
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'slot_pool' is now at [esp + 0x08]
+            push ecx; // 'slot_pool' is now at [esp + 0x0C]
+            push edx; // 'slot_pool' is now at [esp + 0x10]
+            push esi; // 'slot_pool' is now at [esp + 0x14]
+            push edi; // 'slot_pool' is now at [esp + 0x18]
+
+            mov ecx, [esp + 0x18]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::is_full; // call custom is_full
+
+            // no need to restore esp since 'is_full' is a __thiscall
+
+            and eax, 0x000000FF; // hack !!!
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bIsSlotPoolFull
         }
     }
 
@@ -1266,7 +1403,32 @@ namespace hyper
     {
         __asm
         {
-            // #TODO
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'slot_pool' is now at [esp + 0x08]
+            push ecx; // 'slot_pool' is now at [esp + 0x0C]
+            push edx; // 'slot_pool' is now at [esp + 0x10]
+            push esi; // 'slot_pool' is now at [esp + 0x14]
+            push edi; // 'slot_pool' is now at [esp + 0x18]
+
+            mov ecx, [esp + 0x18]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::free_slots; // call custom free_slots
+
+            // no need to restore esp since 'free_slots' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bCountFreeSlots
         }
     }
 
@@ -1274,11 +1436,110 @@ namespace hyper
     {
         __asm
         {
-            // #TODO
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'slot_pool' is now at [esp + 0x08]
+            push ecx; // 'slot_pool' is now at [esp + 0x0C]
+            push edx; // 'slot_pool' is now at [esp + 0x10]
+            push esi; // 'slot_pool' is now at [esp + 0x14]
+            push edi; // 'slot_pool' is now at [esp + 0x18]
+
+            mov ecx, [esp + 0x18]; // make 'slot_pool' as 'this' pointer
+
+            call slot_pool::total_slots; // call custom total_slots
+
+            // no need to restore esp since 'total_slots' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bCountTotalSlots
         }
     }
 
+    __declspec(naked) void detour_b_new_slot_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'slot_size'
+            // [esp + 0x08] is 'slot_count'
+            // [esp + 0x0C] is 'name'
+            // [esp + 0x10] is 'type'
 
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'type' is now at [esp + 0x14]
+            push ecx; // 'type' is now at [esp + 0x18]
+            push edx; // 'type' is now at [esp + 0x1C]
+            push esi; // 'type' is now at [esp + 0x20]
+            push edi; // 'type' is now at [esp + 0x24]
+
+            push [esp + 0x24]; // repush 'type'
+            push [esp + 0x24]; // repush 'name'
+            push [esp + 0x24]; // repush 'slot_count'
+            push [esp + 0x24]; // repush 'slot_size'
+
+            mov ecx, slot_pool_manager::instance; // make it a __thiscall
+
+            call slot_pool_manager::create_slot_pool; // call custom create_slot_pool
+
+            // no need to restore esp since 'create_slot_pool' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bNewSlotPool
+        }
+    }
+
+    __declspec(naked) void detour_b_delete_slot_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'pool'
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'pool' is now at [esp + 0x08]
+            push ecx; // 'pool' is now at [esp + 0x0C]
+            push edx; // 'pool' is now at [esp + 0x10]
+            push esi; // 'pool' is now at [esp + 0x14]
+            push edi; // 'pool' is now at [esp + 0x18]
+
+            push [esp + 0x18]; // repush 'pool'
+
+            mov ecx, slot_pool_manager::instance; // make it a __thiscall
+
+            call slot_pool_manager::remove_slot_pool; // call custom remove_slot_pool
+
+            // no need to restore esp since 'remove_slot_pool' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn; // return immediately to caller function, not back to bDeleteSlotPool
+        }
+    }
 
     __declspec(naked) void detour_init_hyper_streamer_pool()
     {
@@ -1434,8 +1695,6 @@ namespace hyper
         // bFree
         hook::jump(0x00476D70, &detour_b_free);
 
-
-
         // SlotPool::CleanupExpandedSlotPools
         hook::jump(0x004770C0, &detour_slot_pool_cleanup_expanded_slot_pools);
 
@@ -1457,6 +1716,15 @@ namespace hyper
         // SlotPool::Malloc
         hook::jump(0x00477740, &detour_slot_pool_malloc);
 
+        // SlotPoolManager::NewSlotPool
+        hook::jump(0x00477540, &detour_slot_pool_manager_new_slot_pool);
+
+        // SlotPoolManager::CreateSlotPool
+        hook::jump(0x00477860, &detour_slot_pool_manager_create_slot_pool);
+
+        // SlotPoolManager::RemoveSlotPool
+        hook::jump(0x004778B0, &detour_slot_pool_manager_remove_slot_pool);
+
         // bMalloc
         hook::jump(0x0046F400, &detour_b_malloc_slot);
 
@@ -1467,15 +1735,19 @@ namespace hyper
         hook::jump(0x0046F420, &detour_b_free_slot);
 
         // bIsSlotPoolFull
-        // hook::jump(0x0046F440, &detour_b_is_slot_pool_full);
+        hook::jump(0x0046F440, &detour_b_is_slot_pool_full);
 
         // bCountFreeSlots
-        // hook::jump(0x0046F450, &detour_b_count_free_slots);
+        hook::jump(0x0046F450, &detour_b_count_free_slots);
 
         // bCountTotalSlots
-        // hook::jump(0x0046F460, &detour_b_count_total_slots);
+        hook::jump(0x0046F460, &detour_b_count_total_slots);
 
+        // bNewSlotPool
+        hook::jump(0x00477B80, &detour_b_new_slot_pool);
 
+        // bDeleteSlotPool
+        hook::jump(0x00477BD0, &detour_b_delete_slot_pool);
 
         // TrackStreamer::InitMemoryPool
         hook::jump(0x006B6F2D, &detour_init_hyper_streamer_pool);

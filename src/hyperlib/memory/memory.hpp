@@ -123,27 +123,6 @@ namespace hyper
         // bFree
         static void free(void* ptr);
 
-        // bNewSlotPool
-        static auto new_slot_pool(alloc_size_t slot_size, alloc_size_t slot_count, const char* name, memory::pool_type type) -> slot_pool*;
-
-        // bDeleteSlotPool
-        static auto delete_slot_pool(slot_pool* pool);
-
-        // bIsSlotPoolFull
-        static auto is_slot_pool_full(const slot_pool* pool) -> alloc_size_t;
-
-        // bCountTotalSlots
-        static auto count_total_slots(const slot_pool* pool) -> alloc_size_t;
-
-        // bCountFreeSlots
-        static auto count_free_slots(const slot_pool* pool) -> alloc_size_t;
-
-        // bOMalloc
-        static auto malloc_slot(slot_pool* pool) -> void*;
-
-        // bFree
-        static void free_slot(slot_pool* pool, void* ptr);
-
         static inline bool initialized()
         {
             return memory::initialized_;
