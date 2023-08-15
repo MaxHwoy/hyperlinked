@@ -116,6 +116,16 @@ namespace hyper
             reinterpret_cast<linked_node<T>*>(next)->prev() = reinterpret_cast<T*>(prev);
         }
 
+        inline auto remove_first() -> T*
+        {
+            linked_node<T>* curr = reinterpret_cast<linked_node<T>*>(this->head_.next());
+
+            reinterpret_cast<linked_node<T>*>(curr->prev())->next() = curr->next();
+            reinterpret_cast<linked_node<T>*>(curr->next())->prev() = curr->prev();
+            
+            return reinterpret_cast<T*>(curr);
+        }
+
         inline void add_after(T* val, T* node)
         {
             reinterpret_cast<linked_node<T>*>(val)->prev() = node;

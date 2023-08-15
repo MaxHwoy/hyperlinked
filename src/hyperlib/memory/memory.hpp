@@ -7,17 +7,19 @@
 
 namespace hyper
 {
-    class memory_pool;
+    class slot_pool;
+
+    class slot_pool_manager;
 
     class memory final
     {
     public:
-        enum pool_type
+        enum class pool_type : std::int32_t
         {
-            memory_pool_type_main = 0x00,
-            memory_pool_type_streamer = 0x07,
-            memory_pool_type_online = 0x08,
-            memory_pool_type_count = 0x10,
+            main = 0x00,
+            streamer = 0x07,
+            online = 0x08,
+            count = 0x10,
         };
 
 #if defined(TARGET_64BIT)
@@ -203,9 +205,11 @@ namespace hyper
         }
 
     private:
-        static memory_pool_info pool_infos_[memory_pool_type_count];
+        static memory_pool_info pool_infos_[static_cast<std::uint32_t>(pool_type::count)];
 
-        static memory_pool pools_[memory_pool_type_count];
+        static memory_pool pools_[static_cast<std::uint32_t>(pool_type::count)];
+
+        static slot_pool_manager slot_manager_;
 
         static bool initialized_;
 

@@ -203,16 +203,40 @@ namespace hyper
         struct manager
         {
         private:
+            void loader_pack_header(chunk* block);
+
+            void loader_boundaries(chunk* block);
+
+            void loader_drivables(chunk* block);
+
+            void loader_specifics(chunk* block);
+
+            void loader_loadings(chunk* block);
+
+            void loader_elev_polies(chunk* block);
+
             auto get_distance_outside(const boundary* bound, const vector2& position, float extra_width) const -> float;
 
             auto get_depth_name(const vector3& position) const -> std::uint32_t;
 
         public:
+            manager();
+
             auto get_drivable_section(std::uint16_t section_number) -> const drivable*;
+
+            auto find_boundary(std::uint16_t section_number) -> const boundary*;
 
             auto find_drivable_section(const vector3& position) -> const drivable*;
 
             auto find_closest_boundary(const vector2& position, float& distance) -> const boundary*;
+
+            auto allocate_user_info(std::uint16_t section_number) -> user_info&;
+
+            void unallocate_user_info(std::uint16_t section_number);
+
+            void enable_group(std::uint32_t key);
+
+            bool loader(chunk* block);
 
         public:
             linked_list<boundary> drivable_boundary_list;
@@ -227,7 +251,7 @@ namespace hyper
             linked_list<overlay> overlay_list;
             chunk* boundary_chunks;
             pack* pack;
-            int HasIslandSections;
+            bool has_island_sections;
             std::uint32_t elev_poly_count;
             elev_poly* elev_polies;
             overlay* active_overlay;
@@ -240,6 +264,8 @@ namespace hyper
             std::uint32_t enabled_groups[0x100];
 
             static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
+
+            static inline std::uint32_t& lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
 
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
         };
