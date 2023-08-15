@@ -1,6 +1,8 @@
 #include <hyperlib/math.hpp>
 #include <d3dx9math.h>
 
+#include <limits>
+
 #if defined(hyper)
 #undef hyper
 #endif
