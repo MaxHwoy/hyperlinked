@@ -201,6 +201,12 @@ namespace hyper
         {
         };
 
+        struct __declspec(align(0x04)) group_info
+        {
+            char* selection_set_name;
+            bool used_for_topology;
+        };
+
         struct manager
         {
         private:
@@ -237,7 +243,11 @@ namespace hyper
 
             void enable_group(std::uint32_t key);
 
+            void disable_group(std::uint32_t key);
+
             bool loader(chunk* block);
+
+            bool unloader(chunk* block);
 
         public:
             linked_list<boundary> drivable_boundary_list;
@@ -289,5 +299,6 @@ namespace hyper
     ASSERT_SIZE(visible_section::bit_table, 0x15E);
     ASSERT_SIZE(visible_section::user_info, 0x1C);
     ASSERT_SIZE(visible_section::unallocated_user_info, 0x08);
+    ASSERT_SIZE(visible_section::group_info, 0x08);
     ASSERT_SIZE(visible_section::manager, 0x683C);
 }

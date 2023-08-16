@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cassert>
 #include <initializer_list>
+#include <hyperlib/array.hpp>
 #include <hyperlib/math.hpp>
 
 namespace hyper
@@ -87,7 +88,7 @@ namespace hyper
 
         inline bit_table& operator=(bit_table&& other) = default;
 
-        inline bit_table(std::uint8_t* table, size_t bit_count) : table_(table), size_(bit_count)
+        inline bit_table(std::uint8_t* table, size_t element_count) : table_(table), size_(element_count << 3u)
         {
         }
 

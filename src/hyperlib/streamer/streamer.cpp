@@ -2,6 +2,49 @@
 
 namespace hyper
 {
+    streamer::streamer() :
+        current_section_table(streamer::section_table_memory_.pointer(), streamer::section_table_memory_.length()),
+        sections(nullptr),
+        section_count(0u),
+        discs(nullptr),
+        last_disc(nullptr),
+        loaded_section_count(0u),
+        loading_section_count(0u),
+        activated_section_count(0u),
+        out_of_memory_section_count(0u),
+        moved_section_count(0u),
+        filenames{},
+        split_screen(false),
+        perm_file_loading(false),
+        perm_filename(nullptr),
+        perm_file_chunks(nullptr),
+        perm_file_size(0u),
+        perm_file_chunks_loaded(false),
+        perm_file_non_region_a(nullptr),
+        barrier_count(0u),
+        barriers(nullptr),
+        current_section_count(0u),
+        current_zone_needs_refreshing(false),
+        zone_switching_disabled(false),
+        zone_switching_disabled_reason(nullptr),
+        last_wait_until_rendering_done_frame_count(0u),
+        last_printed_frame_count(0u),
+        skip_next_handle_load(false),
+        memory_heap(),
+        user_memory_allocation_size(0u),
+        memory_pool(nullptr),
+        keep_section_table{},
+        callback(nullptr),
+        callback_param(nullptr),
+        make_space_in_pool_callback(nullptr),
+        make_space_in_pool_callback_param(nullptr),
+        make_space_in_pool_size(0u),
+        section_activate_callback_count(0u),
+        section_activate_callback{}
+    {
+        this->clear_current_zones();
+    }
+
     void streamer::activate_section(streamer::section* section)
     {
         call_function<void(__thiscall*)(streamer*, streamer::section*)>(0x0079E670)(this, section);
@@ -84,7 +127,10 @@ namespace hyper
     }
 
 
-
+    bool streamer::determine_current_zones(std::uint16_t* zones)
+    {
+        return call_function<bool(__thiscall*)(streamer*, std::uint16_t*)>(0x007A4850)(this, zones);
+    }
 
 
 
@@ -104,14 +150,14 @@ namespace hyper
 
     void streamer::remove_current_streaming_sections()
     {
-        for (std::uint32_t i = 0u; i < this->current_streaming_section_count; ++i)
+        for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
         {
-            this->current_streaming_sections[i]->currently_visible = false;
+            this->current_sections[i]->currently_visible = false;
         }
 
-        this->current_streaming_section_count = 0;
+        this->current_section_count = 0;
 
-
+        this->current_section_table.clear();
     }
 
 
@@ -131,10 +177,6 @@ namespace hyper
 
 
     /*
-    void streamer::ClearCurrentZones((void))
-    {
-        // 0079E530
-    }
     void streamer::ClearStreamingPositions((void))
     {
         // 0079A200

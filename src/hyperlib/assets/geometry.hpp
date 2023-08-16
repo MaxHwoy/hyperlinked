@@ -2,6 +2,7 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/memory/slot_pool.hpp>
+#include <hyperlib/assets/loader.hpp>
 #include <hyperlib/assets/textures.hpp>
 
 namespace hyper
@@ -260,11 +261,10 @@ namespace hyper
             solid* solid;
         };
 
-        struct list_header
+        struct list_header : public linked_node<list_header>
         {
             std::uint32_t version;
             std::uint32_t solid_count;
-            linked_node<list_header> node;
             std::uint8_t filename[0x38];
             std::uint8_t group_name[0x20];
             std::uint32_t perm_chunk_byte_offset;
@@ -332,7 +332,16 @@ namespace hyper
         };
 
     public:
+        static auto find_solid(std::uint32_t key) -> solid*;
+
         static auto find_solid(std::uint32_t key, list_header* header) -> solid*;
+
+    public:
+        static inline float& total_find_time = *reinterpret_cast<float*>(0x00A8FFA8);
+
+        static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A901A8);
+
+        static inline linked_list<list_header>& list_header_list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);

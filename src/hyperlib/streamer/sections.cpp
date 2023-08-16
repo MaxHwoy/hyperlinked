@@ -1,4 +1,5 @@
 #include <hyperlib/streamer/sections.hpp>
+#include <hyperlib/streamer/streamer.hpp>
 #include <hyperlib/world/world.hpp>
 
 namespace hyper
@@ -40,9 +41,7 @@ namespace hyper
         {
             if (i->section_number == section_number)
             {
-                this->drivable_section_list.remove(i);
-
-                this->drivable_section_list.add_before(i, this->drivable_section_list.begin());
+                this->drivable_section_list.move_front(i);
 
                 return i;
             }
@@ -123,9 +122,7 @@ namespace hyper
 
             if (outside == 0.0f)
             {
-                this->drivable_boundary_list.remove(i);
-
-                this->drivable_boundary_list.add_before(i, this->drivable_boundary_list.begin());
+                this->drivable_boundary_list.move_front(i);
 
                 distance = 0.0f;
 
@@ -167,11 +164,11 @@ namespace hyper
 
         if (info != nullptr && --info->reference_count == 0u)
         {
-            info = nullptr;
+            this->unallocated_user_info_list.add(reinterpret_cast<unallocated_user_info*>(info));
 
             this->allocated_user_info_count--;
 
-            this->unallocated_user_info_list.add(reinterpret_cast<unallocated_user_info*>(info));
+            info = nullptr;
         }
     }
 
@@ -184,6 +181,17 @@ namespace hyper
                 this->enabled_groups[i] = key;
 
                 return;
+            }
+        }
+    }
+
+    void visible_section::manager::disable_group(std::uint32_t key)
+    {
+        for (std::uint32_t i = 0u; i < std::size(this->enabled_groups); ++i)
+        {
+            if (this->enabled_groups[i] == key)
+            {
+                this->enabled_groups[i] = 0u;
             }
         }
     }
@@ -226,12 +234,40 @@ namespace hyper
 
             world::init_visible_zones(visible_section::manager::zone_boundary_model);
 
+            streamer::instance.refresh_loading();
+
             return true;
         }
 
         if (block->id() == block_id::visible_section_overlay)
         {
             this->overlay_list.add(reinterpret_cast<overlay*>(block->data()));
+
+            return true;
+        }
+
+        return false;
+    }
+
+    bool visible_section::manager::unloader(chunk* block)
+    {
+        if (block->id() == block_id::visible_section_manager)
+        {
+            this->drivable_boundary_list.clear();
+            this->non_drivable_boundary_list.clear();
+            this->loading_section_list.clear();
+            this->drivable_section_list.clear();
+            this->elev_polies = nullptr;
+            this->elev_poly_count = 0u;
+            this->pack = nullptr;
+            this->boundary_chunks = nullptr;
+
+            return true;
+        }
+
+        if (block->id() == block_id::visible_section_overlay)
+        {
+            this->overlay_list.remove(reinterpret_cast<overlay*>(block->data()));
 
             return true;
         }

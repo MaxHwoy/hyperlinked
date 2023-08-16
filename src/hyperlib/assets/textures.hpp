@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/loader.hpp>
 
 namespace hyper
 {
@@ -232,6 +233,11 @@ namespace hyper
         static auto get_texture_page_range(std::uint32_t key, std::int32_t bucket) -> page_range*;
 
         static void set_e_texture_key(e_texture& texture, std::uint32_t key);
+
+    public:
+        static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);
+
+        static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A921B0);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(texture::tileable_type);

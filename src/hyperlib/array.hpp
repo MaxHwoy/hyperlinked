@@ -97,6 +97,16 @@ namespace hyper
         {
         }
 
+        inline auto pointer() -> T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto pointer() const -> const T*
+        {
+            return this->ptr_;
+        }
+
         template <typename Index> auto operator[](Index index) -> T&
         {
             assert(static_cast<size_t>(index) < Length);

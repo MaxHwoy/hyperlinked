@@ -22,8 +22,5 @@ namespace hyper
 
         // eInitTextures (increase texture pack slot pool count)
         hook::set<std::uint32_t>(0x0055A018, 0x100);
-
-        // Silverton Barriers
-        hook::set<std::uint8_t>(0x0061817C, 0xEB);
     }
 }

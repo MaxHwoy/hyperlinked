@@ -126,6 +126,8 @@ namespace hyper
         };
 
     public:
+        streamer();
+
         void activate_section(section* section);
 
         void add_current_sections(std::uint16_t* sections_to_load, std::uint32_t section_count, position_type type);
@@ -198,12 +200,12 @@ namespace hyper
         std::uint32_t last_wait_until_rendering_done_frame_count;
         std::uint32_t last_printed_frame_count;
         bool skip_next_handle_load;
-        std::uint32_t current_streaming_section_count;
-        section* current_streaming_sections[256];
+        std::uint32_t current_section_count;
+        section* current_sections[256];
         span<byte> memory_heap;
         alloc_size_t user_memory_allocation_size;
         ts_memory_pool* memory_pool;
-        bit_table current_visible_section_table;
+        bit_table current_section_table;
         std::uint16_t keep_section_table[4];
         void(*callback)(void*);
         void* callback_param;
@@ -216,6 +218,9 @@ namespace hyper
 
     public:
         static inline streamer& instance = *reinterpret_cast<streamer*>(0x00B70650);
+
+    private:
+        static inline array<std::uint8_t, 350u> section_table_memory_ = array<std::uint8_t, 350u>(0x00B68F68);
     };
 
     CREATE_ENUM_EXPR_OPERATORS(streamer::position_type);
