@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/memory/slot_pool.hpp>
 #include <hyperlib/assets/textures.hpp>
 
 namespace hyper
@@ -71,6 +72,8 @@ namespace hyper
     class geometry final
     {
     public:
+        struct model;
+
         struct texture_entry
         {
             std::uint32_t key;
@@ -243,7 +246,7 @@ namespace hyper
             matrix4x4 pivot_matrix;
             position_marker* position_markers;
             normal_smoother* normal_smoother;
-            linked_list<struct model> model_list;
+            linked_list<model> model_list;
             morph_target* morph_target_list;
             selection_set* selection_set_list;
             float volume;
@@ -283,13 +286,24 @@ namespace hyper
             texture::info* texture;
         };
 
-        struct model : linked_node<model>
+        struct model : public linked_node<model>
         {
+        public:
+            void init(std::uint32_t key);
+
+            void connect(solid* solid);
+
+        public:
             std::uint32_t key;
             solid* solid;
-            replacement_texture_table* pReplacementTextureTable;
+            replacement_texture_table* replacement_textures;
             std::uint16_t replacement_texture_count;
-            std::uint16_t lod_level;
+            std::int16_t lod_level;
+
+        public:
+            static inline instance_pool<model>*& pool = *reinterpret_cast<instance_pool<model>**>(0x00A8FF68);
+
+            static inline linked_list<model>& unattached_list = *reinterpret_cast<linked_list<model>*>(0x00A901A0);
         };
 
         struct hierarchy
@@ -316,6 +330,9 @@ namespace hyper
             flags flag;
             __declspec(align(0x04)) node nodes[1];
         };
+
+    public:
+        static auto find_solid(std::uint32_t key, list_header* header) -> solid*;
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);

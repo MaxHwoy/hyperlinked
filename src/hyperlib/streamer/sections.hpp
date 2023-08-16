@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/flares.hpp>
@@ -263,11 +264,14 @@ namespace hyper
             bit_table* bit_tables;
             std::uint32_t enabled_groups[0x100];
 
+        public:
             static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
 
             static inline std::uint32_t& lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
 
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
+
+            static inline geometry::model*& zone_boundary_model = *reinterpret_cast<geometry::model**>(0x00B69BE8);
         };
     };
 

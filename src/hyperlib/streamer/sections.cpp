@@ -1,4 +1,5 @@
 #include <hyperlib/streamer/sections.hpp>
+#include <hyperlib/world/world.hpp>
 
 namespace hyper
 {
@@ -222,6 +223,8 @@ namespace hyper
                         break;
                 }
             }
+
+            world::init_visible_zones(visible_section::manager::zone_boundary_model);
 
             return true;
         }

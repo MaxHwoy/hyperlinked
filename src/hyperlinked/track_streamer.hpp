@@ -4,12 +4,6 @@
 
 namespace hyper
 {
-    struct bit_table
-    {
-        std::uint32_t num_bits;
-        std::uint8_t* bits;
-    };
-
     struct track_streamer
     {
         void* track_streaming_sections;

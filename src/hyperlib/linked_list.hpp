@@ -42,6 +42,19 @@ namespace hyper
             return reinterpret_cast<linked_node*>(this->next_);
         }
 
+        inline void disconnect()
+        {
+            if (this->prev_ != nullptr)
+            {
+                reinterpret_cast<linked_node<T>*>(this->prev_)->next_ = this->next_;
+            }
+
+            if (this->next_ != nullptr)
+            {
+                reinterpret_cast<linked_node<T>*>(this->next_)->prev_ = this->prev_;
+            }
+        }
+
     private:
         T* prev_;
         T* next_;

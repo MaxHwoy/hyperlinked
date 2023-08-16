@@ -31,6 +31,7 @@ namespace hyper
         static auto override_largest_free(void* pool) -> alloc_size_t;
 
         ts_memory_pool(const ts_memory_pool& other) = delete;
+
         ts_memory_pool& operator=(const ts_memory_pool& other) = delete;
 
     public:

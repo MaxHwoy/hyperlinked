@@ -774,24 +774,45 @@ namespace hyper
         constexpr inline static float epsilon = 1.17549435e-38f;
 
     public:
-        template <typename T> constexpr inline static auto align_pow_2(T value, T align) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto align_pow_2(T value, T align) -> T
         {
             return (value + align - 1) & ~(align - 1);
         }
 
-        template <typename T> constexpr inline static auto round_pow_2(T value, T round) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto round_pow_2(T value, T round) -> T
         {
             return value & ~(round - 1);
         }
 
-        template <typename T> constexpr inline static bool is_pow_2(T value)
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static bool is_pow_2(T value)
         {
             return (value & (value - 1)) == 0 && value > 0;
         }
 
-        template <typename T> constexpr inline static auto set_flag(T value, T flag) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto log_2(T value) -> size_t
+        {
+#if defined(__GNUC__)
+            return __builtin_ffs(static_cast<size_t>(value)) - 1u;
+#elif defined(_MSC_VER)
+            return CHAR_BIT * sizeof(T) - ::__lzcnt(static_cast<size_t>(value)) - 1u;
+#else
+            size_t result = 0u;
+            size_t valuex = static_cast<size_t>(value);
+
+            for (/* empty */; valuex > 1u; valuex >>= 1u, ++result);
+
+            return result;
+#endif
+        }
+
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto set_flag(T value, T flag) -> T
         {
             return value; // #TODO
+        }
+
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr static inline auto ceil(T value, T divisor) -> T
+        {
+            return (value + (divisor - 1)) / divisor;
         }
 
         template <typename T> constexpr inline static auto min(T a, T b) -> T
