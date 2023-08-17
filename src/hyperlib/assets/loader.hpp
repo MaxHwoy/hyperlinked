@@ -49,6 +49,13 @@ namespace hyper
             std::uint32_t loaded_count_;
             std::uint8_t counts_[0x2000];
         };
+
+    public:
+        static void service_resource_loading();
+
+        static void load_chunks(void* memory, size_t size);
+
+        static void unload_chunks(void* memory, size_t size);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(loader::streaming_entry::flags);

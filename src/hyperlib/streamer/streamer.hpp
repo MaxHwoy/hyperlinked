@@ -76,7 +76,7 @@ namespace hyper
             std::uint8_t name[8];
             std::uint16_t number;
             bool was_rendered;
-            bool currently_visible;
+            std::uint8_t currently_visible;
             status_type status;
             file_type type;
             std::uint32_t file_offset;
@@ -144,20 +144,74 @@ namespace hyper
 
         void clear_current_zones();
 
+        void clear_streaming_positions();
+
+        void close_region();
+
 
 
         bool determine_current_zones(std::uint16_t* zones);
 
+        void disable_zone_switching(const char* reason);
 
+
+
+        void enable_zone_switching();
+
+
+        auto find_section(std::uint16_t section_number) -> section*;
+
+        void free_section_memory();
+
+        void free_user_memory(void* ptr);
+
+        void handle_loading();
+
+
+        void init_memory_pool(alloc_size_t pool_size);
+
+
+        auto jettison_least_important_section() -> section*;
+
+        void jettison_section(section& section);
+
+
+        void load_section(section& section);
+
+
+        bool make_space_in_pool(alloc_size_t size, bool force_unloading);
+
+        void notify_section_activation(std::uint32_t section_number, bool activated);
+
+
+
+        void ready_to_make_space_in_pool_bridge();
 
         void refresh_loading();
 
         void remove_current_streaming_sections();
 
+        void remove_section_activate_callback(void(*callback)(std::int32_t, bool));
+
+
+
+
+        void section_loaded_callback(section* section);
 
         void switch_zones(const std::uint16_t* zones);
 
+
+
+        void unactivate_section(section& section);
+
+        void unload_everything();
+
+        void unload_section(section& section);
+
         void wait_for_current_loading_to_complete();
+
+    public:
+        static void section_loaded_callback(void* param, bool failed);
 
     private:
         section* sections;
@@ -202,7 +256,7 @@ namespace hyper
         bool skip_next_handle_load;
         std::uint32_t current_section_count;
         section* current_sections[256];
-        span<byte> memory_heap;
+        span<std::uint8_t> memory_heap;
         alloc_size_t user_memory_allocation_size;
         ts_memory_pool* memory_pool;
         bit_table current_section_table;

@@ -57,6 +57,9 @@ namespace hyper
         // bMemoryGetAllocationNumber
         static auto get_allocation_count() -> size_t;
 
+        // bIsMemoryPoolUnlimited
+        static bool is_memory_pool_unlimited(pool_type type);
+
         // bSetMemoryPoolOverrideInfo
         static void set_pool_override_info(pool_type type, const memory_pool::override_info* override_info);
 

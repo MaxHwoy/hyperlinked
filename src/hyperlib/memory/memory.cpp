@@ -78,6 +78,16 @@ namespace hyper
         return memory::total_allocations_;
     }
 
+    bool memory::is_memory_pool_unlimited(memory::pool_type type)
+    {
+        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
+
+        if (pool.initialized())
+        {
+            return pool.is_unlimited();
+        }
+    }
+
     void memory::set_pool_override_info(memory::pool_type type, const memory_pool::override_info* override_info)
     {
         memory_pool_info& pool_info = memory::pool_infos_[static_cast<std::uint32_t>(type)];

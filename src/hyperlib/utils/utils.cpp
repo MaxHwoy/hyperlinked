@@ -1,3 +1,4 @@
+#include <thread>
 #include <hyperlib/utils/utils.hpp>
 
 namespace hyper
@@ -15,6 +16,11 @@ namespace hyper
     auto utils::get_ticker_difference(std::uint32_t start_ticks, std::uint32_t end_ticks) -> float
     {
         return call_function<float(__cdecl*)(std::uint32_t, std::uint32_t)>(0x0046CEF0)(start_ticks, end_ticks);
+    }
+
+    void utils::thread_yield(std::uint32_t ms)
+    {
+        call_function<void(__cdecl*)(std::uint32_t)>(0x0046D0E0)(ms);
     }
 
     auto utils::scan_hash_table_key32(std::uint32_t key, void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*

@@ -2,26 +2,32 @@
 
 #include <hyperlib/shared.hpp>
 
+void remove_no_order(std::int32_t* ptr, std::int32_t& count, std::int32_t value)
+{
+    for (size_t i = 0u; i < count; ++i)
+    {
+        if (value == ptr[i])
+        {
+            ptr[i--] = ptr[--count];
+
+            ptr[count] = 0;
+        }
+    }
+}
+
 int main()
 {
-    std::uint32_t table[0x04];
+    std::int32_t arr[4];
 
-    hyper::bit_table bits = hyper::bit_table::create<std::uint32_t>(table);
+    arr[0] = 3;
+    arr[1] = 3;
+    arr[2] = 3;
+    arr[3] = 0;
 
-    for (size_t i = 0u; i < bits.size(); ++i)
-    {
-        bits.set(i, hyper::math::is_pow_2(i));
-    }
+    std::int32_t count = 3;
 
-    for (size_t i = 0u; i < bits.size(); ++i)
-    {
-        ::printf("%d -> %d\n", i, static_cast<std::uint32_t>(bits.get(i)));
-    }
+    ::remove_no_order(arr, count, 3);
 
-    hyper::span<std::uint32_t> sp(table);
-
-    sp[0] = 777;
-    sp[5] = 666;
 
     return 0;
 }
