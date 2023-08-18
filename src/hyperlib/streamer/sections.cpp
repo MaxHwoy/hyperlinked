@@ -35,19 +35,86 @@ namespace hyper
         }
     }
 
-    auto visible_section::manager::get_drivable_section(std::uint16_t section_number) -> const drivable*
+    auto visible_section::manager::get_drivable_section(const vector3& position) -> const drivable*
     {
-        for (drivable* i = this->drivable_section_list.begin(); i != this->drivable_section_list.end(); i = i->next())
-        {
-            if (i->section_number == section_number)
-            {
-                this->drivable_section_list.move_front(i);
+        float distance;
 
-                return i;
+        const boundary* closest = this->find_closest_boundary(position.as_vector2(), distance);
+
+        if (distance > 0.1f)
+        {
+            return nullptr;
+        }
+
+        if (closest->depth_sections[0] == 0u)
+        {
+            return this->find_drivable_section(closest->section_number);
+        }
+
+        std::uint32_t depth_name = this->get_depth_name(position);
+
+        if (depth_name != 0u)
+        {
+            if (depth_name == closest->depth_names[0])
+            {
+                return this->find_drivable_section(closest->depth_sections[0]);
+            }
+
+            if (depth_name == closest->depth_names[1])
+            {
+                return this->find_drivable_section(closest->depth_sections[1]);
             }
         }
 
-        return nullptr;
+        return this->find_drivable_section(closest->section_number);
+    }
+
+    auto visible_section::manager::get_sections_to_load(const visible_section::loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t
+    {
+        std::uint32_t sections_to_load_count = 0u;
+
+        if (loading != nullptr && sections_to_load != nullptr && max_sections > 0u)
+        {
+            for (std::uint32_t i = 0u; i < loading->drivable_section_count; ++i)
+            {
+                const visible_section::drivable* drivable = this->find_drivable_section(loading->drivable_sections[i]);
+
+                if (drivable != nullptr)
+                {
+                    for (std::uint32_t k = 0u; k < drivable->visible_section_count; ++k)
+                    {
+                        std::uint16_t section_number = drivable->visible_sections[k];
+
+                        if (std::find(sections_to_load, sections_to_load + sections_to_load_count, section_number) == (sections_to_load + sections_to_load_count))
+                        {
+                            sections_to_load[sections_to_load_count++] = section_number;
+                        }
+                    }
+                }
+            }
+
+            for (std::uint32_t i = 0u; i < loading->extra_section_count; ++i)
+            {
+                std::uint16_t section_number = loading->extra_sections[i];
+
+                if (std::find(sections_to_load, sections_to_load + sections_to_load_count, section_number) == (sections_to_load + sections_to_load_count))
+                {
+                    sections_to_load[sections_to_load_count++] = section_number;
+
+                    if (game_provider::is_scenery_section_drivable(section_number, this->pack->lod_offset))
+                    {
+                        section_number = game_provider::get_lod_from_drivable_number(section_number, this->pack->lod_offset);
+
+                        if (std::find(sections_to_load, sections_to_load + sections_to_load_count, section_number) == (sections_to_load + sections_to_load_count))
+                        {
+                            sections_to_load[sections_to_load_count++] = section_number;
+                        }
+                    }
+                }
+            }
+        }
+
+        return sections_to_load_count;
     }
 
     auto visible_section::manager::find_boundary(std::uint16_t section_number) -> const boundary*
@@ -76,38 +143,37 @@ namespace hyper
         return nullptr;
     }
 
-    auto visible_section::manager::find_drivable_section(const vector3& position) -> const drivable*
+    auto visible_section::manager::find_drivable_section(std::uint16_t section_number) -> const drivable*
     {
-        float distance;
-
-        const boundary* closest = this->find_closest_boundary(position.as_vector2(), distance);
-
-        if (distance > 0.1f)
+        for (drivable* i = this->drivable_section_list.begin(); i != this->drivable_section_list.end(); i = i->next())
         {
-            return nullptr;
-        }
-
-        if (closest->depth_sections[0] == 0u)
-        {
-            return this->get_drivable_section(closest->section_number);
-        }
-
-        std::uint32_t depth_name = this->get_depth_name(position);
-
-        if (depth_name != 0u)
-        {
-            if (depth_name == closest->depth_names[0])
+            if (i->section_number == section_number)
             {
-                return this->get_drivable_section(closest->depth_sections[0]);
-            }
+                this->drivable_section_list.move_front(i);
 
-            if (depth_name == closest->depth_names[1])
-            {
-                return this->get_drivable_section(closest->depth_sections[1]);
+                return i;
             }
         }
 
-        return this->get_drivable_section(closest->section_number);
+        return nullptr;
+    }
+
+    auto visible_section::manager::find_loading_section(std::uint16_t section_number) -> const loading*
+    {
+        for (loading* i = this->loading_section_list.begin(); i != this->loading_section_list.end(); i = i->next())
+        {
+            for (std::uint32_t k = 0u; k < i->drivable_section_count; ++k)
+            {
+                if (section_number == i->drivable_sections[k])
+                {
+                    this->loading_section_list.move_front(i);
+
+                    return i;
+                }
+            }
+        }
+
+        return nullptr;
     }
 
     auto visible_section::manager::find_closest_boundary(const vector2& position, float& distance) -> const boundary*
@@ -206,29 +272,29 @@ namespace hyper
             {
                 switch (i->id())
                 {
-                    case block_id::visible_section_pack_header:
-                        this->loader_pack_header(i);
-                        break;
+                case block_id::visible_section_pack_header:
+                    this->loader_pack_header(i);
+                    break;
 
-                    case block_id::visible_section_boundaries:
-                        this->loader_boundaries(i);
-                        break;
+                case block_id::visible_section_boundaries:
+                    this->loader_boundaries(i);
+                    break;
 
-                    case block_id::visible_section_drivables:
-                        this->loader_drivables(i);
-                        break;
+                case block_id::visible_section_drivables:
+                    this->loader_drivables(i);
+                    break;
 
-                    case block_id::visible_section_specifics:
-                        this->loader_specifics(i);
-                        break;
+                case block_id::visible_section_specifics:
+                    this->loader_specifics(i);
+                    break;
 
-                    case block_id::visible_section_loadings:
-                        this->loader_loadings(i);
-                        break;
+                case block_id::visible_section_loadings:
+                    this->loader_loadings(i);
+                    break;
 
-                    case block_id::visible_section_elev_polies:
-                        this->loader_elev_polies(i);
-                        break;
+                case block_id::visible_section_elev_polies:
+                    this->loader_elev_polies(i);
+                    break;
                 }
             }
 
@@ -278,7 +344,7 @@ namespace hyper
     void visible_section::manager::loader_pack_header(chunk* block)
     {
         this->pack = reinterpret_cast<visible_section::pack*>(block->data());
-        
+
         visible_section::manager::lod_offset = this->pack->lod_offset;
     }
 
@@ -325,11 +391,11 @@ namespace hyper
 
     void visible_section::manager::loader_loadings(chunk* block)
     {
-        std::uint32_t count = block->size() / sizeof(loading_section);
+        std::uint32_t count = block->size() / sizeof(loading);
 
         for (std::uint32_t i = 0u; i < count; ++i)
         {
-            this->loading_section_list.add(reinterpret_cast<loading_section*>(block->data()) + i);
+            this->loading_section_list.add(reinterpret_cast<loading*>(block->data()) + i);
         }
     }
 

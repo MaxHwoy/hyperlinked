@@ -12,6 +12,10 @@
 
 namespace hyper
 {
+    vector2 vector2::zero_(0.0f, 0.0f);
+
+    vector2 vector2::one_(1.0f, 1.0f);
+
     vector3 vector3::zero_(0.0f, 0.0f, 0.0f);
 
     vector3 vector3::one_(1.0f, 1.0f, 1.0f);
@@ -36,7 +40,7 @@ namespace hyper
 
     matrix4x4 matrix4x4::identity_(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    uint16_t math::a_tan_table_[258] =
+    std::uint16_t math::a_tan_table_[258] =
     {
         0, 41, 81, 122, 163, 204, 244, 285, 326, 367, 407, 448, 489, 529, 570,
         610, 651, 692, 732, 773, 813, 854, 894, 935, 975, 1015, 1056, 1096,
@@ -60,6 +64,63 @@ namespace hyper
         7679, 7702, 7724, 7746, 7768, 7790, 7812, 7834, 7856, 7877, 7899, 7920,
         7942, 7963, 7984, 8005, 8026, 8047, 8068, 8089, 8110, 8131, 8151, 8172,
         8192, 8192
+    };
+
+    math::a_sin_table_entry math::a_sin_table_[209] =
+    {
+        { 0x0000, 0.1592f },  { 0x0146, 0.1593f },  { 0x028C, 0.1596f },  { 0x03D3, 0.1601f },
+        { 0x051B, 0.1608f },  { 0x0664, 0.1616f },  { 0x07AF, 0.1625f },  { 0x08FC, 0.1637f },
+        { 0x0A4B, 0.1651f },  { 0x0B9D, 0.1667f },  { 0x0CF3, 0.1685f },  { 0x0E4C, 0.1705f },
+        { 0x0FA9, 0.1729f },  { 0x110B, 0.1756f },  { 0x1273, 0.1785f },  { 0x13E0, 0.1819f },
+        { 0x1555, 0.1848f },  { 0x1612, 0.1868f },  { 0x16D1, 0.189f  },  { 0x1793, 0.1913f },
+        { 0x1857, 0.1938f },  { 0x191D, 0.1964f },  { 0x19E6, 0.1992f },  { 0x1AB2, 0.2023f },
+        { 0x1B81, 0.2056f },  { 0x1C54, 0.2091f },  { 0x1D2A, 0.2129f },  { 0x1E04, 0.217f  },
+        { 0x1EE2, 0.2215f },  { 0x1FC5, 0.2263f },  { 0x20AD, 0.2316f },  { 0x219A, 0.2375f },
+        { 0x228D, 0.2422f },  { 0x2309, 0.2457f },  { 0x2387, 0.2492f },  { 0x2407, 0.253f  },
+        { 0x2488, 0.257f  },  { 0x250C, 0.2612f },  { 0x2591, 0.2657f },  { 0x2619, 0.2705f },
+        { 0x26A4, 0.2756f },  { 0x2731, 0.2811f },  { 0x27C1, 0.2869f },  { 0x2854, 0.2932f },
+        { 0x28EA, 0.3f    },  { 0x2984, 0.3074f },  { 0x2A21, 0.3154f },  { 0x2AC2, 0.3241f },
+        { 0x2B68, 0.3312f },  { 0x2BBD, 0.3362f },  { 0x2C13, 0.3415f },  { 0x2C6B, 0.3471f },
+        { 0x2CC4, 0.353f  },  { 0x2D1E, 0.3592f },  { 0x2D7A, 0.3658f },  { 0x2DD8, 0.3728f },
+        { 0x2E37, 0.3803f },  { 0x2E98, 0.3882f },  { 0x2EFC, 0.3968f },  { 0x2F61, 0.4059f },
+        { 0x2FC9, 0.4158f },  { 0x3034, 0.4264f },  { 0x30A1, 0.438f  },  { 0x3111, 0.4507f },
+        { 0x3184, 0.4609f },  { 0x31BF, 0.4681f },  { 0x31FB, 0.4758f },  { 0x3238, 0.4838f },
+        { 0x3276, 0.4923f },  { 0x32B5, 0.5012f },  { 0x32F5, 0.5107f },  { 0x3337, 0.5208f },
+        { 0x3379, 0.5314f },  { 0x33BD, 0.5429f },  { 0x3403, 0.5551f },  { 0x344A, 0.5682f },
+        { 0x3493, 0.5823f },  { 0x34DD, 0.5975f },  { 0x352A, 0.614f  },  { 0x3578, 0.6321f },
+        { 0x35C9, 0.6467f },  { 0x35F2, 0.657f  },  { 0x361D, 0.6679f },  { 0x3647, 0.6793f },
+        { 0x3673, 0.6914f },  { 0x369F, 0.7042f },  { 0x36CC, 0.7177f },  { 0x36FA, 0.732f  },
+        { 0x3729, 0.7472f },  { 0x3759, 0.7635f },  { 0x378A, 0.7808f },  { 0x37BB, 0.7995f },
+        { 0x37EF, 0.8195f },  { 0x3823, 0.8412f },  { 0x3859, 0.8647f },  { 0x3890, 0.8903f },
+        { 0x38C9, 0.911f  },  { 0x38E6, 0.9257f },  { 0x3904, 0.9411f },  { 0x3922, 0.9574f },
+        { 0x3941, 0.9745f },  { 0x3960, 0.9926f },  { 0x3980, 1.0117f },  { 0x39A0, 1.0321f },
+        { 0x39C1, 1.0537f },  { 0x39E3, 1.0767f },  { 0x3A05, 1.1013f },  { 0x3A29, 1.1277f },
+        { 0x3A4D, 1.1562f },  { 0x3A72, 1.1869f },  { 0x3A98, 1.2202f },  { 0x3ABF, 1.2565f },
+        { 0x3AE7, 1.2858f },  { 0x3AFB, 1.3066f },  { 0x3B10, 1.3285f },  { 0x3B26, 1.3515f },
+        { 0x3B3B, 1.3758f },  { 0x3B51, 1.4015f },  { 0x3B68, 1.4286f },  { 0x3B7F, 1.4574f },
+        { 0x3B96, 1.488f  },  { 0x3BAE, 1.5206f },  { 0x3BC6, 1.5555f },  { 0x3BDF, 1.5929f },
+        { 0x3BF8, 1.6331f },  { 0x3C12, 1.6766f },  { 0x3C2D, 1.7237f },  { 0x3C49, 1.7751f },
+        { 0x3C65, 1.8167f },  { 0x3C74, 1.8461f },  { 0x3C83, 1.8771f },  { 0x3C92, 1.9097f },
+        { 0x3CA1, 1.9441f },  { 0x3CB0, 1.9804f },  { 0x3CC0, 2.0188f },  { 0x3CD0, 2.0595f },
+        { 0x3CE1, 2.1028f },  { 0x3CF2, 2.149f  },  { 0x3D03, 2.1983f },  { 0x3D14, 2.2513f },
+        { 0x3D27, 2.3082f },  { 0x3D39, 2.3697f },  { 0x3D4C, 2.4364f },  { 0x3D5F, 2.5091f },
+        { 0x3D73, 2.5679f },  { 0x3D7E, 2.6096f },  { 0x3D88, 2.6535f },  { 0x3D93, 2.6996f },
+        { 0x3D9E, 2.7482f },  { 0x3DA9, 2.7995f },  { 0x3DB4, 2.8539f },  { 0x3DBF, 2.9115f },
+        { 0x3DCB, 2.9728f },  { 0x3DD7, 3.0381f },  { 0x3DE3, 3.1079f },  { 0x3DEF, 3.1828f },
+        { 0x3DFC, 3.2633f },  { 0x3E09, 3.3504f },  { 0x3E17, 3.4447f },  { 0x3E24, 3.5476f },
+        { 0x3E33, 3.6307f },  { 0x3E3A, 3.6897f },  { 0x3E41, 3.7517f },  { 0x3E49, 3.817f  },
+        { 0x3E50, 3.8857f },  { 0x3E58, 3.9583f },  { 0x3E60, 4.0352f },  { 0x3E68, 4.1167f },
+        { 0x3E70, 4.2034f },  { 0x3E79, 4.2958f },  { 0x3E81, 4.3945f },  { 0x3E8A, 4.5004f },
+        { 0x3E93, 4.6144f },  { 0x3E9C, 4.7374f },  { 0x3EA6, 4.8709f },  { 0x3EB0, 5.0164f },
+        { 0x3EBA, 5.134f  },  { 0x3EBF, 5.2175f },  { 0x3EC4, 5.3052f },  { 0x3EC9, 5.3974f },
+        { 0x3ECF, 5.4947f },  { 0x3ED4, 5.5974f },  { 0x3EDA, 5.7061f },  { 0x3EDF, 5.8214f },
+        { 0x3EE5, 5.9439f },  { 0x3EEB, 6.0746f },  { 0x3EF1, 6.2143f },  { 0x3EF7, 6.3641f },
+        { 0x3EFE, 6.5252f },  { 0x3F04, 6.6993f },  { 0x3F0B, 6.8881f },  { 0x3F12, 7.0938f },
+        { 0x3F19, 7.3192f },  { 0x3F20, 7.5674f },  { 0x3F28, 7.8429f },  { 0x3F30, 8.1507f },
+        { 0x3F38, 8.498f  },  { 0x3F40, 8.8939f },  { 0x3F49, 9.3508f },  { 0x3F53, 9.8864f },
+        { 0x3F5D, 10.5261f },  { 0x3F67, 11.3089f },  { 0x3F72, 12.2977f },  { 0x3F7F, 13.6025f },
+        { 0x3F8C, 15.4395f },  { 0x3F9C, 18.314f  },  { 0x3FAE, 23.8672f },  { 0x3FC6, 57.6203f },
+        { 0x3FFF, -0.0003f }
     };
 
     auto vector2::normalized() const -> vector2
@@ -163,7 +224,58 @@ namespace hyper
 
     auto math::arc_sin(float value) -> std::uint16_t
     {
-        return 0u; // #TODO
+        bool negative = false;
+
+        if (value < 0.0f)
+        {
+            value = -value;
+            negative = true;
+        }
+
+        if (value >= 1.0f)
+        {
+            if (negative)
+            {
+                return 0xC000u;
+            }
+            else
+            {
+                return 0x4000u;
+            }
+        }
+
+        std::int32_t fix_x = static_cast<std::int32_t>(value * 0x10000);
+        std::int32_t table_number = 0;
+        std::int32_t table_size = 0x8000;
+        std::int32_t table_top = table_size;
+
+        while (fix_x >= table_top && table_number < 11)
+        {
+            table_size >>= 1;
+            table_top += table_size;
+            table_number++;
+        }
+
+        std::int32_t table_bottom = table_top - table_size;
+        std::int32_t table_index = (fix_x - table_bottom) >> (11 - table_number);
+
+        std::int32_t table_spacing = table_size >> 4;
+        float table_x = static_cast<float>(table_bottom + table_index * table_spacing) * (1.0f / 65536.0f);
+
+        float remainder_x = value - table_x;
+
+        std::uint16_t table_a = math::a_sin_table_[(table_number << 4) + table_index].angle;
+        float slope = math::a_sin_table_[(table_number << 4) + table_index].slope;
+        std::uint16_t a = table_a + static_cast<std::uint16_t>(remainder_x * slope * 65536.0f);
+
+        if (negative)
+        {
+            return static_cast<std::uint16_t>(0x10000u - static_cast<std::uint32_t>(a));
+        }
+        else
+        {
+            return a;
+        }
     }
 
     auto math::arc_tan(float x, float y) -> std::uint16_t

@@ -15,7 +15,7 @@ namespace hyper
 
             if (boundary_model != nullptr)
             {
-                boundary_model->init(hashing::bin("MARKER_BOUNDARY"));
+                boundary_model->init(hashing::bin_const("MARKER_BOUNDARY"));
             }
         }
     }

@@ -80,17 +80,17 @@ namespace hyper
             // [esp + 0x04] is 'key'
             // ecx contains pointer to visible_section::manager
 
-            // eax gets overwritten regardless
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
 
-            push ebx; // 'key' is now at [esp + 0x08]
-            push ecx; // 'key' is now at [esp + 0x0C]
-            push edx; // 'key' is now at [esp + 0x10]
-            push esi; // 'key' is now at [esp + 0x14]
-            push edi; // 'key' is now at [esp + 0x18]
+            push eax; // 'key' is now at [esp + 0x08]
+            push ebx; // 'key' is now at [esp + 0x0C]
+            push ecx; // 'key' is now at [esp + 0x10]
+            push edx; // 'key' is now at [esp + 0x14]
+            push esi; // 'key' is now at [esp + 0x18]
+            push edi; // 'key' is now at [esp + 0x1C]
 
-            push [esp + 0x18]; // repush 'key'
+            push [esp + 0x1C]; // repush 'key'
 
             call visible_section::manager::enable_group; // call custom enable_group
 
@@ -101,6 +101,7 @@ namespace hyper
             pop edx; // restore saved register
             pop ecx; // restore saved register
             pop ebx; // restore saved register
+            pop eax; // restore saved register
 
             retn 4; // return immediately to caller function, not back to VisibleSectionManager::EnableGroup; note that this is a __thiscall
         }
@@ -114,17 +115,17 @@ namespace hyper
             // [esp + 0x04] is 'key'
             // ecx contains pointer to visible_section::manager
 
-            // eax gets overwritten regardless
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
 
-            push ebx; // 'key' is now at [esp + 0x08]
-            push ecx; // 'key' is now at [esp + 0x0C]
-            push edx; // 'key' is now at [esp + 0x10]
-            push esi; // 'key' is now at [esp + 0x14]
-            push edi; // 'key' is now at [esp + 0x18]
+            push eax; // 'key' is now at [esp + 0x08]
+            push ebx; // 'key' is now at [esp + 0x0C]
+            push ecx; // 'key' is now at [esp + 0x10]
+            push edx; // 'key' is now at [esp + 0x14]
+            push esi; // 'key' is now at [esp + 0x18]
+            push edi; // 'key' is now at [esp + 0x1C]
 
-            push [esp + 0x18]; // repush 'key'
+            push [esp + 0x1C]; // repush 'key'
 
             call visible_section::manager::disable_group; // call custom disable_group
 
@@ -135,6 +136,7 @@ namespace hyper
             pop edx; // restore saved register
             pop ecx; // restore saved register
             pop ebx; // restore saved register
+            pop eax; // restore saved register
 
             retn 4; // return immediately to caller function, not back to VisibleSectionManager::DisableGroup; note that this is a __thiscall
         }

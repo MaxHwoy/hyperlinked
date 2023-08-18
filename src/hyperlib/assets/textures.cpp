@@ -12,7 +12,7 @@ namespace hyper
 
         std::uint32_t class_key = texture->class_key;
 
-        if (class_key != 0xC509D75Cu && class_key != 0x754F4DE0u)
+        if (class_key != 0xC509D75Cu && class_key != 0x754F4DE0u) // idk what those are
         {
             this->sub_sort_key = true;
         }
@@ -91,13 +91,13 @@ namespace hyper
         this->bias_level = texture->bias_level & 3;
         this->alpha_test_ref = 11u; // #TODO
 
-        if (class_key == hashing::bin("Tree Leaves") || class_key == hashing::bin("Tree Cards") || class_key == hashing::bin("MultiPass Blend"))
+        if (class_key == hashing::bin_const("Tree Leaves") || class_key == hashing::bin_const("Tree Cards") || class_key == hashing::bin_const("MultiPass Blend"))
         {
             this->multi_pass_blend = true;
             texture->apply_alpha_sorting = 2;
         }
 
-        bool is_barrier = class_key == hashing::bin("Barrier Mask")
+        bool is_barrier = class_key == hashing::bin_const("Barrier Mask")
 #if defined(CHECK_BARRIER_STRINGS)
             || ::strncmp(reinterpret_cast<const char*>(texture->name), "SFX_TRACKBARRIER", 16u)
 #endif
@@ -109,7 +109,7 @@ namespace hyper
         }
         else
         {
-            if (class_key == hashing::bin("Bloom Alpha Mask"))
+            if (class_key == hashing::bin_const("Bloom Alpha Mask"))
             {
                 this->colour_write_alpha = true;
             }

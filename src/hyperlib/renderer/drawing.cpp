@@ -26,11 +26,11 @@ namespace hyper
 
     std::uint32_t renderer::flare_texture_keys_[5]
     {
-        hashing::bin("HEADLIGHTFLAREINNER"),
-        hashing::bin("HEADLIGHTFLAREOUTER"),
-        hashing::bin("HEADLIGHTGLOW"),
-        hashing::bin("HEADLIGHTCATSEYE"),
-        hashing::bin("LAMPPOSTFLARE"),
+        hashing::bin_const("HEADLIGHTFLAREINNER"),
+        hashing::bin_const("HEADLIGHTFLAREOUTER"),
+        hashing::bin_const("HEADLIGHTGLOW"),
+        hashing::bin_const("HEADLIGHTCATSEYE"),
+        hashing::bin_const("LAMPPOSTFLARE"),
     };
 
     texture::e_texture renderer::flare_texture_infos_[5]{};

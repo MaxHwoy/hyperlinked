@@ -42,7 +42,7 @@ namespace hyper
             return c >= 1u && c <= 20u && i >= lod && i < (lod << 1);
         }
 
-        constexpr inline static bool IsPanoramaSectionNumber(std::uint16_t section_number, std::uint32_t lod)
+        constexpr inline static bool is_panorama_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
             std::uint32_t c = section_number / 100u;
             std::uint32_t i = section_number - c * 100u;
@@ -50,7 +50,14 @@ namespace hyper
             return c >= 1u && c <= 20u && i > (lod << 1);
         }
 
-        constexpr inline static bool IsRawAssetSectionNumber(std::uint16_t section_number)
+        constexpr inline static bool is_regular_section_number(std::uint16_t section_number)
+        {
+            std::uint32_t c = section_number / 100u;
+
+            return c >= 1u && c <= 20u;
+        }
+
+        constexpr inline static bool is_raw_asset_section_number(std::uint16_t section_number)
         {
             std::uint32_t c = section_number / 100u;
             std::uint32_t i = section_number - c * 100u;
@@ -107,7 +114,7 @@ namespace hyper
             std::uint16_t visible_sections[1];
         };
 
-        struct loading_section : linked_node<loading_section>
+        struct loading : linked_node<loading>
         {
             std::uint8_t name[0x0F];
             std::uint8_t DefaultFlag;
@@ -229,11 +236,15 @@ namespace hyper
         public:
             manager();
 
-            auto get_drivable_section(std::uint16_t section_number) -> const drivable*;
+            auto get_drivable_section(const vector3& position) -> const drivable*;
+
+            auto get_sections_to_load(const loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t;
 
             auto find_boundary(std::uint16_t section_number) -> const boundary*;
 
-            auto find_drivable_section(const vector3& position) -> const drivable*;
+            auto find_drivable_section(std::uint16_t section_number) -> const drivable*;
+
+            auto find_loading_section(std::uint16_t section_number) -> const loading*;
 
             auto find_closest_boundary(const vector2& position, float& distance) -> const boundary*;
 
@@ -254,7 +265,7 @@ namespace hyper
             linked_list<boundary> non_drivable_boundary_list;
             linked_list<drivable> drivable_section_list;
             linked_list<textures> texture_section_list;
-            linked_list<loading_section> loading_section_list;
+            linked_list<loading> loading_section_list;
             linked_list<super> super_section_list;
             linked_list<override_object> override_object_list;
             linked_list<used_in_section_info> geometry_used_in_section_info_list;
@@ -288,7 +299,7 @@ namespace hyper
     ASSERT_SIZE(visible_section::pack, 0x0C);
     ASSERT_SIZE(visible_section::boundary, 0x38);
     ASSERT_SIZE(visible_section::drivable, 0x14);
-    ASSERT_SIZE(visible_section::loading_section, 0x4C);
+    ASSERT_SIZE(visible_section::loading, 0x4C);
     ASSERT_SIZE(visible_section::elev_poly, 0x40);
     ASSERT_SIZE(visible_section::textures, 0x450);
     ASSERT_SIZE(visible_section::super, 0x30);

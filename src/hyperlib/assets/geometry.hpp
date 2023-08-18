@@ -289,9 +289,9 @@ namespace hyper
         struct model : public linked_node<model>
         {
         public:
-            void init(std::uint32_t key);
+            void init(std::uint32_t hash_key);
 
-            void connect(solid* solid);
+            void connect(solid* solid_to_connect);
 
         public:
             std::uint32_t key;

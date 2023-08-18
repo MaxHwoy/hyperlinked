@@ -3,44 +3,44 @@
 
 namespace hyper
 {
-    void geometry::model::init(std::uint32_t key)
+    void geometry::model::init(std::uint32_t hash_key)
     {
-        this->key = key;
+        this->key = hash_key;
         this->replacement_textures = nullptr;
         this->replacement_texture_count = 0u;
         this->lod_level = -1;
 
-        if (key != 0u)
+        if (hash_key != 0u)
         {
-            geometry::solid* solid = geometry::find_solid(key);
+            geometry::solid* found = geometry::find_solid(hash_key);
 
-            if (solid == nullptr)
+            if (found == nullptr)
             {
                 model::unattached_list.add(this);
             }
             else
             {
-                this->connect(solid);
+                this->connect(found);
             }
         }
     }
 
-    void geometry::model::connect(geometry::solid* solid)
+    void geometry::model::connect(geometry::solid* solid_to_connect)
     {
-        if (this->key != 0u && solid != this->solid)
+        if (this->key != 0u && solid_to_connect != this->solid)
         {
             this->disconnect();
 
-            if (solid == nullptr)
+            if (solid_to_connect == nullptr)
             {
                 model::unattached_list.add(this);
             }
             else
             {
-                solid->model_list.add(this);
+                solid_to_connect->model_list.add(this);
             }
 
-            this->solid = solid;
+            this->solid = solid_to_connect;
         }
     }
 

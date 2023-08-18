@@ -105,6 +105,8 @@ namespace hyper
 
         auto allocate_memory_internal(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, alloc_size_t* new_size, std::uint16_t* prepad) -> void*;
 
+        void print_allocations_internal();
+
     public:
         memory_pool();
 

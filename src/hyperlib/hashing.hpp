@@ -24,6 +24,14 @@ namespace hyper
         constexpr static auto bin(const char* string, std::uint32_t prefix) -> std::uint32_t;
 
         constexpr static auto vlt(const char* string, std::uint32_t prefix) -> std::uint32_t;
+
+        consteval static auto bin_const(const char* string) -> std::uint32_t;
+
+        consteval static auto vlt_const(const char* string) -> std::uint32_t;
+
+        consteval static auto bin_const(const char* string, std::uint32_t prefix) -> std::uint32_t;
+
+        consteval static auto vlt_const(const char* string, std::uint32_t prefix) -> std::uint32_t;
     };
 }
 
@@ -205,5 +213,25 @@ namespace hyper
         }
 
         return hashing::vlt_internal(string, prefix);
+    }
+
+    consteval auto hashing::bin_const(const char* string) -> std::uint32_t
+    {
+        return hashing::bin(string);
+    }
+
+    consteval auto hashing::vlt_const(const char* string) -> std::uint32_t
+    {
+        return hashing::vlt(string);
+    }
+
+    consteval auto hashing::bin_const(const char* string, std::uint32_t prefix) -> std::uint32_t
+    {
+        return hashing::bin(string, prefix);
+    }
+
+    consteval auto hashing::vlt_const(const char* string, std::uint32_t prefix) -> std::uint32_t
+    {
+        return hashing::vlt(string, prefix);
     }
 }

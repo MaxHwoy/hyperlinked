@@ -5,6 +5,7 @@
 #include <hyperlinked/patches/sections.hpp>
 #include <hyperlinked/patches/culling.hpp>
 #include <hyperlinked/patches/drawing.hpp>
+#include <hyperlinked/patches/streamer.hpp>
 
 namespace hyper
 {
@@ -15,5 +16,6 @@ namespace hyper
         section_patches::init();
         culling_patches::init();
         drawing_patches::init();
+        streamer_patches::init();
     }
 }

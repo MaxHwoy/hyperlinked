@@ -94,10 +94,24 @@ namespace hyper
 
         auto normalized() const -> vector2;
 
+        inline static auto zero() -> const vector2&
+        {
+            return vector2::zero_;
+        }
+
+        inline static auto one() -> const vector2&
+        {
+            return vector2::one_;
+        }
+
         inline static auto dot(const vector2& lhs, const vector2& rhs) -> float
         {
             return lhs.x * rhs.x + lhs.y * rhs.y;
         }
+
+    private:
+        static vector2 zero_;
+        static vector2 one_;
     };
 
     struct vector3
@@ -770,6 +784,13 @@ namespace hyper
 
     class math final
     {
+    private:
+        struct a_sin_table_entry
+        {
+            std::uint16_t angle;
+            float slope;
+        };
+
     public:
         constexpr inline static float epsilon = 1.17549435e-38f;
 
@@ -919,5 +940,7 @@ namespace hyper
 
     private:
         static std::uint16_t a_tan_table_[258];
+
+        static a_sin_table_entry a_sin_table_[209];
     };
 }

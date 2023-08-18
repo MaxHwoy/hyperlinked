@@ -9,11 +9,11 @@ namespace hyper
     public:
         template <typename T, typename std::char_traits<T>* = nullptr> constexpr static auto length(const T* string) -> std::uint32_t
         {
-            const uintptr_t result = reinterpret_cast<uintptr_t>(string);
+            std::uint32_t length = 0u;
 
-            while (*string++);
+            for (/* empty */; *string != 0; ++string, ++length) {}
 
-            return static_cast<std::uint32_t>(reinterpret_cast<uintptr_t>(string) - result - 1u);
+            return length;
         }
 
         template <typename T, typename std::char_traits<T>* = nullptr> static auto to_uint(const T* string, std::uint32_t default_value) -> std::uint32_t;

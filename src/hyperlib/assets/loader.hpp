@@ -56,6 +56,8 @@ namespace hyper
         static void load_chunks(void* memory, size_t size);
 
         static void unload_chunks(void* memory, size_t size);
+
+        static void load_temp_perm_chunks(void** memory, size_t* size, std::uint32_t alloc_params, const char* debug_name);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(loader::streaming_entry::flags);

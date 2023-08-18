@@ -86,6 +86,15 @@ namespace hyper
         {
             return pool.is_unlimited();
         }
+
+        const memory_pool::override_info* override_info = memory::pool_infos_[static_cast<std::uint32_t>(type)].override_info;
+
+        if (override_info != nullptr)
+        {
+            return override_info->get_amount_free() == static_cast<alloc_size_t>(std::numeric_limits<std::int32_t>::max());
+        }
+
+        return false;
     }
 
     void memory::set_pool_override_info(memory::pool_type type, const memory_pool::override_info* override_info)
