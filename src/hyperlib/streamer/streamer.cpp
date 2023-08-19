@@ -133,6 +133,31 @@ namespace hyper
 #endif
     }
 
+    bool streamer::are_all_sections_activated()
+    {
+        return this->phase == loading_phase::idle && (this->activated_section_count + this->out_of_memory_section_count) >= this->current_section_count;
+    }
+
+    void streamer::assign_loading_priority()
+    {
+        for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
+        {
+            streamer::section* section = this->current_sections[i];
+
+            std::int32_t priority = 99;
+
+            for (std::uint32_t k = 0u; k < std::size(this->position_entries); ++k)
+            {
+                if (((1u << k) & section->currently_visible) != 0u)
+                {
+                    priority = math::min(priority, this->get_loading_priority(*section, this->position_entries[k], false));
+                }
+            }
+
+            section->loading_priority = section->section_priority + 100000 * priority;
+        }
+    }
+
     void streamer::block_until_loading_complete()
     {
         this->refresh_loading();
@@ -379,6 +404,11 @@ namespace hyper
 #endif
     }
 
+    void streamer::finished_loading()
+    {
+        call_function<void(__thiscall*)(streamer*)>(0x0079EF90)(this);
+    }
+
     void streamer::free_section_memory()
     {
         this->out_of_memory_section_count = 0u;
@@ -403,7 +433,10 @@ namespace hyper
         memory::free(ptr);
     }
 
-    //
+    auto streamer::get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t
+    {
+        return reinterpret_cast<std::int32_t(__thiscall*)(streamer*, const streamer::section&, const position_entry&, bool)>(0x0079ECE0)(this, section, entry, use_direction);
+    }
 
     auto streamer::get_predicted_zone(const vector3& position) -> std::uint16_t
     {
@@ -415,7 +448,10 @@ namespace hyper
         call_function<void(__thiscall*)(streamer*)>(0x007A7230)(this);
     }
 
-
+    bool streamer::handle_memory_allocation()
+    {
+        return call_function<bool(__thiscall*)(streamer*)>(0x007A7060)(this);
+    }
 
     void streamer::init_memory_pool(alloc_size_t pool_size)
     {
@@ -431,7 +467,59 @@ namespace hyper
         memory::set_pool_override_info(memory::pool_type::streamer, this->memory_pool->get_override_info());
     }
 
+    void streamer::init_region(const char* file, bool is_split_screen)
+    {
+        this->split_screen = is_split_screen;
 
+        ::strcpy(reinterpret_cast<char*>(this->filenames[1]), file);
+
+        this->clear_current_zones();
+        this->clear_streaming_positions();
+
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].predicted_zone = 0u;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].predicted_zone_valid_time = 0;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_reading = false;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_reading_time = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_reading_position.x = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_reading_position.y = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_blocking = false;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_blocking_time = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_blocking_position.x = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].audio_blocking_position.y = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].predicted_zone = 0u;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].predicted_zone_valid_time = 0;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_reading = false;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_reading_time = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_reading_position.x = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_reading_position.y = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_blocking = false;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_blocking_time = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_blocking_position.x = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].audio_blocking_position.y = 0.0f;
+
+        visible_section::manager& manager = visible_section::manager::instance;
+
+        std::uint32_t lod_offset = manager.pack->lod_offset;
+
+        for (std::uint32_t i = 0u; i < this->section_count; ++i)
+        {
+            streamer::section& section = this->sections[i];
+
+            std::uint16_t section_number = section.number;
+
+            if (game_provider::is_lod_scenery_section_number(section_number, lod_offset))
+            {
+                section_number = game_provider::get_drivable_from_lod_number(section_number, lod_offset);
+            }
+
+            section.boundary = manager.find_boundary(section_number);
+        }
+    }
+
+    bool streamer::is_loading_in_progress()
+    {
+        return !this->are_all_sections_activated();
+    }
 
     auto streamer::jettison_least_important_section() -> streamer::section*
     {
@@ -563,8 +651,6 @@ namespace hyper
         }
     }
 
-
-
     bool streamer::make_space_in_pool(alloc_size_t size, bool force_unloading)
     {
         this->wait_for_current_loading_to_complete();
@@ -614,6 +700,24 @@ namespace hyper
         return size <= memory::largest_malloc(memory::create_allocation_params(memory::pool_type::streamer, false, false, 0x00u, 0x00u));
     }
 
+    void streamer::make_space_in_pool(alloc_size_t size, void(*make_space_callback)(void*), void* param)
+    {
+        if (this->is_loading_in_progress())
+        {
+            this->make_space_in_pool_size = size;
+            this->make_space_in_pool_callback = make_space_callback;
+            this->make_space_in_pool_callback_param = param;
+            this->callback = streamer::ready_to_make_space_in_pool_bridge;
+            this->callback_param = this;
+        }
+        else
+        {
+            this->make_space_in_pool(size, true);
+
+            make_space_callback(param);
+        }
+    }
+
     void streamer::notify_section_activation(std::uint32_t section_number, bool activated)
     {
         for (std::uint32_t i = 0u; i < this->section_activate_callback_count; ++i)
@@ -621,8 +725,6 @@ namespace hyper
             this->section_activate_callback[i](section_number, activated);
         }
     }
-
-
 
     void streamer::predict_streaming_position(position_type type, const vector3& position, const vector3& velocity, const vector3& direction, bool is_following_car)
     {
@@ -638,22 +740,6 @@ namespace hyper
 
         entry.position_set = true;
         entry.following_car = is_following_car;
-    }
-
-
-
-    void streamer::ready_to_make_space_in_pool_bridge()
-    {
-        this->make_space_in_pool(this->make_space_in_pool_size, true);
-
-        void(*pool_callback)(void*) = this->make_space_in_pool_callback;
-        void* param = this->make_space_in_pool_callback_param;
-
-        this->make_space_in_pool_callback = nullptr;
-        this->make_space_in_pool_callback_param = nullptr;
-        this->make_space_in_pool_size = 0u;
-
-        pool_callback(param);
     }
 
     void streamer::refresh_loading()
@@ -697,8 +783,6 @@ namespace hyper
             }
         }
     }
-
-
 
     void streamer::section_loaded_callback(streamer::section* section)
     {
@@ -782,13 +866,64 @@ namespace hyper
         this->current_zone_needs_refreshing = true;
     }
 
+    void streamer::start_loading_sections()
+    {
+        while (this->loading_section_count < 2)
+        {
+            streamer::section* best_to_load = nullptr;
+
+            std::int32_t max_priority = std::numeric_limits<std::int32_t>::max();
+
+            for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
+            {
+                streamer::section* section = this->current_sections[i];
+
+                section::status_type status = section->status;
+
+                if (status == section::status_type::allocated)
+                {
+                    std::int32_t local_priority = section->loading_priority;
+
+                    if (section->disc != nullptr)
+                    {
+                        local_priority = -1;
+                    }
+
+                    if (local_priority < max_priority)
+                    {
+                        max_priority = local_priority;
+
+                        best_to_load = section;
+                    }
+                }
+                else if (status == section::status_type::loaded)
+                {
+                    this->activate_section(*section);
+                }
+            }
+
+            if (best_to_load == nullptr)
+            {
+                break;
+            }
+            else
+            {
+                if (best_to_load->disc == nullptr)
+                {
+                    this->load_section(*best_to_load);
+                }
+                else
+                {
+                    this->load_disc_bundle(*best_to_load->disc);
+                }
+            }
+        }
+    }
+
     void streamer::switch_zones(const std::uint16_t* zones)
     {
         call_function<void(__thiscall*)(streamer*, const std::uint16_t*)>(0x007A7F10)(this, zones);
     }
-
-
-
 
     void streamer::unactivate_section(streamer::section& section)
     {
@@ -803,6 +938,24 @@ namespace hyper
         this->unload_section(section);
 
         this->notify_section_activation(section.number, false);
+    }
+
+    void streamer::unjettison_sections()
+    {
+        for (std::uint32_t i = 0u; i < this->jettisoned_section_count; ++i)
+        {
+            streamer::section* section = this->jettisoned_sections[i];
+
+            section->currently_visible = 1u;
+
+            this->current_sections[this->current_section_count++] = section;
+        }
+
+        this->jettisoned_section_count = 0u;
+        this->amount_jettisoned = 0u;
+#if defined(_DEBUG)
+        ::memset(this->jettisoned_sections, 0, sizeof(this->jettisoned_sections));
+#endif
     }
 
     void streamer::unload_everything()
@@ -885,7 +1038,7 @@ namespace hyper
 
     void streamer::wait_for_current_loading_to_complete()
     {
-        while (this->phase != loading_phase::idle || (this->activated_section_count + this->out_of_memory_section_count) < this->current_section_count)
+        while (!this->are_all_sections_activated())
         {
             this->handle_loading();
 
@@ -894,8 +1047,6 @@ namespace hyper
             utils::thread_yield(8u);
         }
     }
-
-
 
     void streamer::disc_bundle_loaded_callback_static(void* param, bool failed)
     {
@@ -911,31 +1062,21 @@ namespace hyper
         streamer::instance.section_loaded_callback(reinterpret_cast<streamer::section*>(param));
     }
 
+    void streamer::ready_to_make_space_in_pool_bridge(void* param)
+    {
+        assert(param != nullptr);
 
-    /*
-    void streamer::GetLoadingPriority((TrackStreamingSection*, StreamingPositionEntry*, bool))
-    {
-        // 0079ECE0
+        streamer& stream = *reinterpret_cast<streamer*>(param);
+
+        stream.make_space_in_pool(stream.make_space_in_pool_size, true);
+
+        void(*pool_callback)(void*) = stream.make_space_in_pool_callback;
+        void* param = stream.make_space_in_pool_callback_param;
+
+        stream.make_space_in_pool_callback = nullptr;
+        stream.make_space_in_pool_callback_param = nullptr;
+        stream.make_space_in_pool_size = 0u;
+
+        pool_callback(param);
     }
-    void streamer::HandleMemoryAllocation(void)
-    {
-        // 007A7060
-    }
-    void streamer::InitRegion((char const*, bool))
-    {
-        // 007A27F0
-    }
-    void streamer::IsLoadingInProgress((void))
-    {
-        // 007A7E80
-    }
-    void streamer::MakeSpaceInPool((int, void (*)(void*), void*))
-    {
-        // 007A8570
-    }
-    void streamer::StartLoadingSections((void))
-    {
-        // 007A5590
-    }
-    */
 }

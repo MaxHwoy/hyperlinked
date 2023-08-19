@@ -95,7 +95,7 @@ namespace hyper
             void* memory;
             disc_bundle* disc;
             size_t loaded_size;
-            visible_section::boundary* boundary;
+            const visible_section::boundary* boundary;
         };
 
         struct position_entry
@@ -141,6 +141,10 @@ namespace hyper
 
         auto allocate_user_memory(std::uint32_t size, const char* debug_name, std::uint32_t offset) -> void*;
 
+        bool are_all_sections_activated();
+
+        void assign_loading_priority();
+
         void block_until_loading_complete();
 
         void calculate_loading_backlog();
@@ -165,17 +169,25 @@ namespace hyper
 
         auto find_section(std::uint16_t section_number) -> section*;
 
+        void finished_loading();
+
         void free_section_memory();
 
         void free_user_memory(void* ptr);
+
+        auto get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t;
 
         auto get_predicted_zone(const vector3& position) -> std::uint16_t;
 
         void handle_loading();
 
+        bool handle_memory_allocation();
 
         void init_memory_pool(alloc_size_t pool_size);
 
+        void init_region(const char* file, bool is_split_screen);
+
+        bool is_loading_in_progress();
 
         auto jettison_least_important_section() -> section*;
 
@@ -189,24 +201,17 @@ namespace hyper
 
         bool make_space_in_pool(alloc_size_t size, bool force_unloading);
 
+        void make_space_in_pool(alloc_size_t size, void(*make_space_callback)(void*), void* param);
+
         void notify_section_activation(std::uint32_t section_number, bool activated);
 
-
-
         void predict_streaming_position(position_type type, const vector3& position, const vector3& velocity, const vector3& direction, bool is_following_car);
-
-
-
-        void ready_to_make_space_in_pool_bridge();
 
         void refresh_loading();
 
         void remove_current_streaming_sections();
 
         void remove_section_activate_callback(void(*activate_callback)(std::int32_t, bool));
-
-
-
 
         void section_loaded_callback(section* section);
 
@@ -216,11 +221,13 @@ namespace hyper
 
         void set_streaming_position(position_type type, const vector3& position);
 
+        void start_loading_sections();
+
         void switch_zones(const std::uint16_t* zones);
 
-
-
         void unactivate_section(section& section);
+
+        void unjettison_sections();
 
         void unload_everything();
 
@@ -234,6 +241,8 @@ namespace hyper
         static void disc_bundle_loaded_callback_static(void* param, bool failed);
 
         static void section_loaded_callback_static(void* param, bool failed);
+
+        static void ready_to_make_space_in_pool_bridge(void* param);
 
     private:
         section* sections;
@@ -287,7 +296,7 @@ namespace hyper
         void* callback_param;
         void(*make_space_in_pool_callback)(void*);
         void* make_space_in_pool_callback_param;
-        std::uint32_t make_space_in_pool_size;
+        alloc_size_t make_space_in_pool_size;
         std::uint32_t section_activate_callback_count;
         void(*section_activate_callback[4])(std::int32_t, bool);
         bool make_space_in_pool_force_defrag;
