@@ -34,6 +34,7 @@
 #include <hyperlib/random.hpp>
 #include <hyperlib/string.hpp>
 #include <hyperlib/hashing.hpp>
+#include <hyperlib/function.hpp>
 #include <hyperlib/linked_list.hpp>
 
 #define hyper_interface struct __declspec(novtable)

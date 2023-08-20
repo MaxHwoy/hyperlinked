@@ -54,7 +54,7 @@ namespace hyper
 
                 for (std::uint32_t i = 1u; i < count; ++i)
                 {
-                    current = current->next = reinterpret_cast<entry*>(reinterpret_cast<uintptr_t>(this->slots_) + this->slot_size_ * i);
+                    current = current->next = reinterpret_cast<entry*>(reinterpret_cast<uintptr_t>(this->slots_) + size * i);
                 }
 
                 current->next = nullptr;

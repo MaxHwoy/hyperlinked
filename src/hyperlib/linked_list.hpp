@@ -42,6 +42,19 @@ namespace hyper
             return reinterpret_cast<linked_node*>(this->next_);
         }
 
+        inline void disconnect()
+        {
+            if (this->prev_ != nullptr)
+            {
+                reinterpret_cast<linked_node<T>*>(this->prev_)->next_ = this->next_;
+            }
+
+            if (this->next_ != nullptr)
+            {
+                reinterpret_cast<linked_node<T>*>(this->next_)->prev_ = this->prev_;
+            }
+        }
+
     private:
         T* prev_;
         T* next_;
@@ -126,6 +139,16 @@ namespace hyper
             return reinterpret_cast<T*>(curr);
         }
 
+        inline auto remove_last() -> T*
+        {
+            linked_node<T>* curr = reinterpret_cast<linked_node<T>*>(this->head_.prev());
+
+            reinterpret_cast<linked_node<T>*>(curr->prev())->next() = curr->next();
+            reinterpret_cast<linked_node<T>*>(curr->next())->prev() = curr->prev();
+
+            return reinterpret_cast<T*>(curr);
+        }
+
         inline void add_after(T* val, T* node)
         {
             reinterpret_cast<linked_node<T>*>(val)->prev() = node;
@@ -152,6 +175,18 @@ namespace hyper
         {
             this->head_.prev() = this->end();
             this->head_.next() = this->end();
+        }
+
+        inline void move_front(T* val)
+        {
+            this->remove(val);
+            this->add_before(val, this->begin());
+        }
+
+        inline void move_end(T* val)
+        {
+            this->remove(val);
+            this->add_after(val, this->tail());
         }
 
         template <typename F> inline void foreach(F action)

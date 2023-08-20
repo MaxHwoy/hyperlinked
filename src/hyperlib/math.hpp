@@ -94,10 +94,24 @@ namespace hyper
 
         auto normalized() const -> vector2;
 
+        inline static auto zero() -> const vector2&
+        {
+            return vector2::zero_;
+        }
+
+        inline static auto one() -> const vector2&
+        {
+            return vector2::one_;
+        }
+
         inline static auto dot(const vector2& lhs, const vector2& rhs) -> float
         {
             return lhs.x * rhs.x + lhs.y * rhs.y;
         }
+
+    private:
+        static vector2 zero_;
+        static vector2 one_;
     };
 
     struct vector3
@@ -770,28 +784,56 @@ namespace hyper
 
     class math final
     {
+    private:
+        struct a_sin_table_entry
+        {
+            std::uint16_t angle;
+            float slope;
+        };
+
     public:
         constexpr inline static float epsilon = 1.17549435e-38f;
 
     public:
-        template <typename T> constexpr inline static auto align_pow_2(T value, T align) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto align_pow_2(T value, T align) -> T
         {
             return (value + align - 1) & ~(align - 1);
         }
 
-        template <typename T> constexpr inline static auto round_pow_2(T value, T round) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto round_pow_2(T value, T round) -> T
         {
             return value & ~(round - 1);
         }
 
-        template <typename T> constexpr inline static bool is_pow_2(T value)
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static bool is_pow_2(T value)
         {
             return (value & (value - 1)) == 0 && value > 0;
         }
 
-        template <typename T> constexpr inline static auto set_flag(T value, T flag) -> T
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto log_2(T value) -> size_t
+        {
+#if defined(__GNUC__)
+            return __builtin_ffs(static_cast<size_t>(value)) - 1u;
+#elif defined(_MSC_VER)
+            return CHAR_BIT * sizeof(T) - ::__lzcnt(static_cast<size_t>(value)) - 1u;
+#else
+            size_t result = 0u;
+            size_t valuex = static_cast<size_t>(value);
+
+            for (/* empty */; valuex > 1u; valuex >>= 1u, ++result);
+
+            return result;
+#endif
+        }
+
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto set_flag(T value, T flag) -> T
         {
             return value; // #TODO
+        }
+
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr static inline auto ceil(T value, T divisor) -> T
+        {
+            return (value + (divisor - 1)) / divisor;
         }
 
         template <typename T> constexpr inline static auto min(T a, T b) -> T
@@ -898,5 +940,7 @@ namespace hyper
 
     private:
         static std::uint16_t a_tan_table_[258];
+
+        static a_sin_table_entry a_sin_table_[209];
     };
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/memory/slot_pool.hpp>
+#include <hyperlib/assets/loader.hpp>
 #include <hyperlib/assets/textures.hpp>
 
 namespace hyper
@@ -71,6 +73,8 @@ namespace hyper
     class geometry final
     {
     public:
+        struct model;
+
         struct texture_entry
         {
             std::uint32_t key;
@@ -243,7 +247,7 @@ namespace hyper
             matrix4x4 pivot_matrix;
             position_marker* position_markers;
             normal_smoother* normal_smoother;
-            linked_list<struct model> model_list;
+            linked_list<model> model_list;
             morph_target* morph_target_list;
             selection_set* selection_set_list;
             float volume;
@@ -257,11 +261,10 @@ namespace hyper
             solid* solid;
         };
 
-        struct list_header
+        struct list_header : public linked_node<list_header>
         {
             std::uint32_t version;
             std::uint32_t solid_count;
-            linked_node<list_header> node;
             std::uint8_t filename[0x38];
             std::uint8_t group_name[0x20];
             std::uint32_t perm_chunk_byte_offset;
@@ -283,13 +286,24 @@ namespace hyper
             texture::info* texture;
         };
 
-        struct model : linked_node<model>
+        struct model : public linked_node<model>
         {
+        public:
+            void init(std::uint32_t hash_key);
+
+            void connect(solid* solid_to_connect);
+
+        public:
             std::uint32_t key;
             solid* solid;
-            replacement_texture_table* pReplacementTextureTable;
+            replacement_texture_table* replacement_textures;
             std::uint16_t replacement_texture_count;
-            std::uint16_t lod_level;
+            std::int16_t lod_level;
+
+        public:
+            static inline instance_pool<model>*& pool = *reinterpret_cast<instance_pool<model>**>(0x00A8FF68);
+
+            static inline linked_list<model>& unattached_list = *reinterpret_cast<linked_list<model>*>(0x00A901A0);
         };
 
         struct hierarchy
@@ -316,6 +330,18 @@ namespace hyper
             flags flag;
             __declspec(align(0x04)) node nodes[1];
         };
+
+    public:
+        static auto find_solid(std::uint32_t key) -> solid*;
+
+        static auto find_solid(std::uint32_t key, list_header* header) -> solid*;
+
+    public:
+        static inline float& total_find_time = *reinterpret_cast<float*>(0x00A8FFA8);
+
+        static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A901A8);
+
+        static inline linked_list<list_header>& list_header_list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);

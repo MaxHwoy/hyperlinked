@@ -215,11 +215,11 @@ namespace hyper
 
             const vector3& position = view::instance::views[id].camera->current_key.position;
 
-            drivable = visible_section::manager::instance.find_drivable_section(position);
+            drivable = visible_section::manager::instance.get_drivable_section(position);
         }
         else
         {
-            drivable = visible_section::manager::instance.find_drivable_section(cull_info.position);
+            drivable = visible_section::manager::instance.get_drivable_section(cull_info.position);
         }
 
         if (id == view_id::player1)

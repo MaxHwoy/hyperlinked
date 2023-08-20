@@ -169,7 +169,7 @@ namespace hyper
         {
             if (this->num_allocations_ > 0)
             {
-                this->print_allocations();
+                this->print_allocations_internal();
 
                 assert(false);
             }
@@ -723,7 +723,11 @@ namespace hyper
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
+        this->print_allocations_internal();
+    }
 
+    void memory_pool::print_allocations_internal()
+    {
         this->alloc_block_list_.sort([](const alloc_block* lhs, const alloc_block* rhs) -> std::int32_t
         {
             intptr_t diff = (reinterpret_cast<intptr_t>(lhs) - lhs->prepad) - (reinterpret_cast<intptr_t>(rhs) - rhs->prepad);

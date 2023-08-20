@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/flares.hpp>
@@ -41,7 +42,7 @@ namespace hyper
             return c >= 1u && c <= 20u && i >= lod && i < (lod << 1);
         }
 
-        constexpr inline static bool IsPanoramaSectionNumber(std::uint16_t section_number, std::uint32_t lod)
+        constexpr inline static bool is_panorama_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
             std::uint32_t c = section_number / 100u;
             std::uint32_t i = section_number - c * 100u;
@@ -49,7 +50,14 @@ namespace hyper
             return c >= 1u && c <= 20u && i > (lod << 1);
         }
 
-        constexpr inline static bool IsRawAssetSectionNumber(std::uint16_t section_number)
+        constexpr inline static bool is_regular_section_number(std::uint16_t section_number)
+        {
+            std::uint32_t c = section_number / 100u;
+
+            return c >= 1u && c <= 20u;
+        }
+
+        constexpr inline static bool is_raw_asset_section_number(std::uint16_t section_number)
         {
             std::uint32_t c = section_number / 100u;
             std::uint32_t i = section_number - c * 100u;
@@ -106,7 +114,7 @@ namespace hyper
             std::uint16_t visible_sections[1];
         };
 
-        struct loading_section : linked_node<loading_section>
+        struct loading : linked_node<loading>
         {
             std::uint8_t name[0x0F];
             std::uint8_t DefaultFlag;
@@ -200,6 +208,12 @@ namespace hyper
         {
         };
 
+        struct __declspec(align(0x04)) group_info
+        {
+            char* selection_set_name;
+            bool used_for_topology;
+        };
+
         struct manager
         {
         private:
@@ -222,11 +236,15 @@ namespace hyper
         public:
             manager();
 
-            auto get_drivable_section(std::uint16_t section_number) -> const drivable*;
+            auto get_drivable_section(const vector3& position) -> const drivable*;
+
+            auto get_sections_to_load(const loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t;
 
             auto find_boundary(std::uint16_t section_number) -> const boundary*;
 
-            auto find_drivable_section(const vector3& position) -> const drivable*;
+            auto find_drivable_section(std::uint16_t section_number) -> const drivable*;
+
+            auto find_loading_section(std::uint16_t section_number) -> const loading*;
 
             auto find_closest_boundary(const vector2& position, float& distance) -> const boundary*;
 
@@ -236,14 +254,18 @@ namespace hyper
 
             void enable_group(std::uint32_t key);
 
+            void disable_group(std::uint32_t key);
+
             bool loader(chunk* block);
+
+            bool unloader(chunk* block);
 
         public:
             linked_list<boundary> drivable_boundary_list;
             linked_list<boundary> non_drivable_boundary_list;
             linked_list<drivable> drivable_section_list;
             linked_list<textures> texture_section_list;
-            linked_list<loading_section> loading_section_list;
+            linked_list<loading> loading_section_list;
             linked_list<super> super_section_list;
             linked_list<override_object> override_object_list;
             linked_list<used_in_section_info> geometry_used_in_section_info_list;
@@ -263,18 +285,21 @@ namespace hyper
             bit_table* bit_tables;
             std::uint32_t enabled_groups[0x100];
 
+        public:
             static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
 
             static inline std::uint32_t& lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
 
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
+
+            static inline geometry::model*& zone_boundary_model = *reinterpret_cast<geometry::model**>(0x00B69BE8);
         };
     };
 
     ASSERT_SIZE(visible_section::pack, 0x0C);
     ASSERT_SIZE(visible_section::boundary, 0x38);
     ASSERT_SIZE(visible_section::drivable, 0x14);
-    ASSERT_SIZE(visible_section::loading_section, 0x4C);
+    ASSERT_SIZE(visible_section::loading, 0x4C);
     ASSERT_SIZE(visible_section::elev_poly, 0x40);
     ASSERT_SIZE(visible_section::textures, 0x450);
     ASSERT_SIZE(visible_section::super, 0x30);
@@ -285,5 +310,6 @@ namespace hyper
     ASSERT_SIZE(visible_section::bit_table, 0x15E);
     ASSERT_SIZE(visible_section::user_info, 0x1C);
     ASSERT_SIZE(visible_section::unallocated_user_info, 0x08);
+    ASSERT_SIZE(visible_section::group_info, 0x08);
     ASSERT_SIZE(visible_section::manager, 0x683C);
 }

@@ -414,7 +414,7 @@ namespace hyper
                     float car_spec_scale;
                 };
 
-                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(timeofdaylighting, hashing::vlt(nameof(timeofdaylighting)))
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(timeofdaylighting, hashing::vlt_const(nameof(timeofdaylighting)))
             };
         };
     };

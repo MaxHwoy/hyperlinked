@@ -37,8 +37,8 @@ namespace hyper
             this->index_buffer->Unlock();
         }
 
-        this->flare_texture_page = texture::get_texture_info(hashing::bin("FLARE_TEXTURE_PAGE"), true, false);
-        this->streak_flares_texture = texture::get_texture_info(hashing::bin("STREAKFLARES_I"), true, false);
+        this->flare_texture_page = texture::get_texture_info(hashing::bin_const("FLARE_TEXTURE_PAGE"), true, false);
+        this->streak_flares_texture = texture::get_texture_info(hashing::bin_const("STREAKFLARES_I"), true, false);
         this->flare_texture_page->pinfo->state.colour_write_alpha = false;
     }
 

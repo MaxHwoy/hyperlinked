@@ -29,6 +29,10 @@ namespace hyper
         {
         }
 
+        template <size_t Length> inline span(T(&array)[Length]) : ptr_(reinterpret_cast<T*>(array)), length_(Length)
+        {
+        }
+
         template <typename Index> auto operator[](Index index) -> T&
         {
             assert(static_cast<size_t>(index) < this->length_);
@@ -46,6 +50,11 @@ namespace hyper
         inline auto length() const -> size_t
         {
             return this->length_;
+        }
+
+        inline bool is_empty() const
+        {
+            return this->length_ == 0u;
         }
 
         inline void clear()
@@ -86,6 +95,16 @@ namespace hyper
 
         inline array(uintptr_t address) : ptr_(reinterpret_cast<T*>(address))
         {
+        }
+
+        inline auto pointer() -> T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto pointer() const -> const T*
+        {
+            return this->ptr_;
         }
 
         template <typename Index> auto operator[](Index index) -> T&
