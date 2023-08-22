@@ -536,8 +536,6 @@ namespace hyper
 
     auto streamer::get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t
     {
-        std::int32_t original = call_function<std::int32_t(__thiscall*)(streamer*, const streamer::section&, const position_entry&, bool)>(0x0079ECE0)(this, section, entry, use_direction);
-
         const visible_section::boundary* boundary = section.boundary;
 
         if (boundary == nullptr)
