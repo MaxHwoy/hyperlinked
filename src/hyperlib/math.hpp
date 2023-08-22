@@ -888,6 +888,8 @@ namespace hyper
 
         static auto arc_sin(float value) -> std::uint16_t;
 
+        static auto arc_cos(float value) -> std::uint16_t;
+
         static auto arc_tan(float x, float y) -> std::uint16_t;
 
         static void sincos(std::uint16_t angle, float& sin, float& cos);

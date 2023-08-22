@@ -75,6 +75,25 @@ namespace hyper
             return true;
         }
 
+        constexpr inline static bool is_textures_asset_section(std::uint16_t section_number)
+        {
+            std::uint32_t c = section_number / 100u;
+
+            return c == 25u || c == 23u;
+        }
+
+        constexpr inline static bool is_geometry_asset_section(std::uint16_t section_number)
+        {
+            std::uint32_t c = section_number / 100u;
+
+            return c == 24u || c == 21u;
+        }
+
+        constexpr inline static bool is_island_section_number(std::uint16_t section_number)
+        {
+            return (section_number / 100u) == 25u && (section_number % 100u) >= 90u; // #TODO THIS IS STUPID AF WHERE IS USAGE OF LOD OFFSET???
+        }
+
         constexpr inline static bool is_shared_section_number(std::uint16_t section_number)
         {
             return section_number == shared_solid_section || section_number == shared_texture_section || section_number == shared_scenery_section;
@@ -229,14 +248,12 @@ namespace hyper
 
             void loader_elev_polies(chunk* block);
 
-            auto get_distance_outside(const boundary* bound, const vector2& position, float extra_width) const -> float;
-
-            auto get_depth_name(const vector3& position) const -> std::uint32_t;
-
         public:
             manager();
 
             auto get_drivable_section(const vector3& position) -> const drivable*;
+
+            auto get_depth_name(const vector3& position) const -> std::uint32_t;
 
             auto get_sections_to_load(const loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t;
 
@@ -259,6 +276,9 @@ namespace hyper
             bool loader(chunk* block);
 
             bool unloader(chunk* block);
+
+        public:
+            static auto get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float;
 
         public:
             linked_list<boundary> drivable_boundary_list;

@@ -69,6 +69,36 @@ namespace hyper
         return this->find_drivable_section(closest->section_number);
     }
 
+    auto visible_section::manager::get_depth_name(const vector3& position) const -> std::uint32_t
+    {
+        float maximum = -std::numeric_limits<float>::infinity();
+
+        std::uint32_t depth_name = 0u;
+
+        for (std::uint32_t i = 0u; i < this->elev_poly_count; ++i)
+        {
+            const elev_poly& poly = this->elev_polies[i];
+
+            const vector3& p1 = poly.points[0].as_vector3();
+            const vector3& p2 = poly.points[1].as_vector3();
+            const vector3& p3 = poly.points[2].as_vector3();
+
+            if (math::is_point_in_triangle(position, p1, p2, p3))
+            {
+                float elevation = math::get_triangle_height(position.as_vector2(), p1, p2, p3);
+
+                if (position.z > elevation && elevation > maximum)
+                {
+                    maximum = elevation;
+
+                    depth_name = poly.depth_name;
+                }
+            }
+        }
+
+        return depth_name;
+    }
+
     auto visible_section::manager::get_sections_to_load(const visible_section::loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t
     {
         std::uint32_t sections_to_load_count = 0u;
@@ -121,7 +151,7 @@ namespace hyper
     {
         if (game_provider::is_scenery_section_drivable(section_number, this->pack->lod_offset))
         {
-            for (const boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); ++i)
+            for (const boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); i = i->next())
             {
                 if (i->section_number == section_number)
                 {
@@ -131,7 +161,7 @@ namespace hyper
         }
         else
         {
-            for (const boundary* i = this->non_drivable_boundary_list.begin(); i != this->non_drivable_boundary_list.end(); ++i)
+            for (const boundary* i = this->non_drivable_boundary_list.begin(); i != this->non_drivable_boundary_list.end(); i = i->next())
             {
                 if (i->section_number == section_number)
                 {
@@ -184,7 +214,7 @@ namespace hyper
 
         for (boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); i = i->next())
         {
-            float outside = this->get_distance_outside(i, position, distance);
+            float outside = manager::get_distance_outside(i, position, distance);
 
             if (outside == 0.0f)
             {
@@ -407,7 +437,7 @@ namespace hyper
         this->elev_poly_count = block->aligned_size(alignment);
     }
 
-    auto visible_section::manager::get_distance_outside(const boundary* bound, const vector2& position, float extra_width) const -> float
+    auto visible_section::manager::get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float
     {
         if (math::is_in_bounding_box(position, bound->bbox_min, bound->bbox_max, extra_width))
         {
@@ -431,35 +461,5 @@ namespace hyper
         }
 
         return extra_width;
-    }
-
-    auto visible_section::manager::get_depth_name(const vector3& position) const -> std::uint32_t
-    {
-        float maximum = -std::numeric_limits<float>::infinity();
-
-        std::uint32_t depth_name = 0u;
-
-        for (std::uint32_t i = 0u; i < this->elev_poly_count; ++i)
-        {
-            const elev_poly& poly = this->elev_polies[i];
-
-            const vector3& p1 = poly.points[0].as_vector3();
-            const vector3& p2 = poly.points[1].as_vector3();
-            const vector3& p3 = poly.points[2].as_vector3();
-
-            if (math::is_point_in_triangle(position, p1, p2, p3))
-            {
-                float elevation = math::get_triangle_height(position.as_vector2(), p1, p2, p3);
-
-                if (position.z > elevation && elevation > maximum)
-                {
-                    maximum = elevation;
-
-                    depth_name = poly.depth_name;
-                }
-            }
-        }
-
-        return depth_name;
     }
 }

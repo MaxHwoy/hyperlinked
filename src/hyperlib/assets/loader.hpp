@@ -53,6 +53,8 @@ namespace hyper
     public:
         static void service_resource_loading();
 
+        static void set_delayed_resource_callback(void(*callback)(void*), void* param, bool non_recursive);
+
         static void load_chunks(void* memory, size_t size);
 
         static void unload_chunks(void* memory, size_t size);

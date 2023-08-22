@@ -11,5 +11,7 @@ namespace hyper
         static void init();
 
         static void init_visible_zones(geometry::model*& boundary_model);
+
+        static void notify_sky_loader();
     };
 }

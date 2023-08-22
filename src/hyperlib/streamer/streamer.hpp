@@ -137,7 +137,7 @@ namespace hyper
 
         void add_section_activate_callback(void(*activate_callback)(std::int32_t, bool));
 
-        auto allocate_section_memory(std::uint32_t* total_needing_allocation) -> void*;
+        void allocate_section_memory(std::uint32_t* total_needing_allocation);
 
         auto allocate_user_memory(std::uint32_t size, const char* debug_name, std::uint32_t offset) -> void*;
 
@@ -175,9 +175,11 @@ namespace hyper
 
         void free_user_memory(void* ptr);
 
+        auto get_combined_section_number(std::uint16_t section_number) -> std::uint16_t;
+
         auto get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t;
 
-        auto get_predicted_zone(const vector3& position) -> std::uint16_t;
+        auto get_predicted_zone(const position_entry& entry) -> std::uint16_t;
 
         void handle_loading();
 
@@ -201,7 +203,7 @@ namespace hyper
 
         bool make_space_in_pool(alloc_size_t size, bool force_unloading);
 
-        void make_space_in_pool(alloc_size_t size, void(*make_space_callback)(void*), void* param);
+        void make_space_in_pool_with_callback(alloc_size_t size, void(*make_space_callback)(void*), void* param);
 
         void notify_section_activation(std::uint32_t section_number, bool activated);
 
@@ -234,7 +236,7 @@ namespace hyper
         void unload_section(section& section);
 
         bool unloader(chunk* block);
-
+        
         void wait_for_current_loading_to_complete();
 
     public:
