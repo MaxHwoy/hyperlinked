@@ -40,7 +40,7 @@ namespace hyper
     {
         //hook::jump(0x007474FC, &sub_007474D0);
 
-#ifdef 0
+#if 0
         // Silverton Barriers
         hook::set<std::uint8_t>(0x0061817C, 0xEB);
 #endif
