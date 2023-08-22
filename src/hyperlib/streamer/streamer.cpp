@@ -3,6 +3,10 @@
 #include <hyperlib/utils/file.hpp>
 #include <hyperlib/assets/loader.hpp>
 #include <hyperlib/memory/memory.hpp>
+#include <hyperlib/world/grid.hpp>
+#include <hyperlib/world/world.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
+#include <hyperlib/streamer/track_path.hpp>
 #include <hyperlib/streamer/streamer.hpp>
 
 //#define SORT_STREAMING_SECTIONS
@@ -116,9 +120,9 @@ namespace hyper
         }
     }
 
-    auto streamer::allocate_section_memory(std::uint32_t* total_needing_allocation) -> void*
+    void streamer::allocate_section_memory(std::uint32_t* total_needing_allocation)
     {
-        return call_function<void*(__thiscall*)(streamer*, std::uint32_t*)>(0x0079EA00)(this, total_needing_allocation);
+        call_function<void(__thiscall*)(streamer*, std::uint32_t*)>(0x0079EA00)(this, total_needing_allocation);
     }
 
     auto streamer::allocate_user_memory(std::uint32_t size, const char* debug_name, std::uint32_t offset) -> void*
@@ -204,7 +208,60 @@ namespace hyper
 
     bool streamer::check_loading_bar()
     {
-        return call_function<bool(__thiscall*)(streamer*)>(0x007A82E0)(this);
+        float min_loading = 999.0f;
+
+        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+
+        for (std::uint32_t i = 0u; i < std::size(this->position_entries); ++i)
+        {
+            if (!this->is_loading_in_progress())
+            {
+                break;
+            }
+
+            const position_entry& entry = this->position_entries[i];
+
+            if (game_flow::manager::instance.current_state == game_flow::state::racing)
+            {
+                if (this->current_zone_far_load)
+                {
+                    break;
+                }
+
+                if (!entry.position_set || !entry.following_car)
+                {
+                    break;
+                }
+
+                if (entry.velocity.magnitude() > 178.81091f)
+                {
+                    break;
+                }
+            }
+
+            for (std::uint32_t k = 0u; k < this->current_section_count; ++k)
+            {
+                streamer::section* section = this->current_sections[k];
+
+                if (section->boundary != nullptr && section->status != section::status_type::activated)
+                {
+                    std::uint16_t section_number = section->number;
+
+                    if (game_provider::is_scenery_section_drivable(section_number, lod_offset) || 
+                        game_provider::is_lod_scenery_section_number(section_number, lod_offset))
+                    {
+                        vector2 prediction = entry.position2D + entry.velocity2D * 0.01f;
+
+                        float curr_outside = visible_section::manager::get_distance_outside(section->boundary, entry.position2D, 999.0f);
+                        float pred_outside = visible_section::manager::get_distance_outside(section->boundary, prediction, 999.0f);
+
+                        min_loading = math::min(min_loading, curr_outside - (curr_outside - pred_outside) * 20.0f);
+                    }
+                }
+            }
+        }
+
+        return min_loading < 5.0f;
     }
 
     void streamer::clear_current_zones()
@@ -267,7 +324,7 @@ namespace hyper
 
             if (entry.position_set)
             {
-                predicted_zone = this->get_predicted_zone(entry.position);
+                predicted_zone = this->get_predicted_zone(entry);
             }
 
             if (predicted_zone == entry.predicted_zone)
@@ -406,7 +463,27 @@ namespace hyper
 
     void streamer::finished_loading()
     {
-        call_function<void(__thiscall*)(streamer*)>(0x0079EF90)(this);
+        if (grid::maker::instance != nullptr && grid::maker::instance->the_grid != nullptr)
+        {
+            grid::maker::instance->set_start_position();
+        }
+
+        this->phase = loading_phase::idle;
+        this->current_zone_non_replay_load = false;
+        this->current_zone_far_load = false;
+        
+        world::notify_sky_loader();
+
+        this->position_entries[static_cast<std::uint32_t>(position_type::player1)].begin_loading_time = 0.0f;
+        this->position_entries[static_cast<std::uint32_t>(position_type::player2)].begin_loading_time = 0.0f;
+
+        if (this->callback != nullptr)
+        {
+            loader::set_delayed_resource_callback(this->callback, this->callback_param, false);
+
+            this->callback = nullptr;
+            this->callback_param = nullptr;
+        }
     }
 
     void streamer::free_section_memory()
@@ -433,14 +510,121 @@ namespace hyper
         memory::free(ptr);
     }
 
-    auto streamer::get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t
+    auto streamer::get_combined_section_number(std::uint16_t section_number) -> std::uint16_t
     {
-        return reinterpret_cast<std::int32_t(__thiscall*)(streamer*, const streamer::section&, const position_entry&, bool)>(0x0079ECE0)(this, section, entry, use_direction);
+        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+
+        if (!game_provider::is_scenery_section_drivable(section_number, lod_offset))
+        {
+            return section_number;
+        }
+
+        if (this->find_section(section_number) != nullptr)
+        {
+            return section_number;
+        }
+
+        std::uint32_t lod_number = game_provider::get_lod_from_drivable_number(section_number, lod_offset);
+
+        if (this->find_section(lod_number) != nullptr)
+        {
+            return lod_number;
+        }
+
+        return section_number;
     }
 
-    auto streamer::get_predicted_zone(const vector3& position) -> std::uint16_t
+    auto streamer::get_loading_priority(const section& section, const position_entry& entry, bool use_direction) -> std::int32_t
     {
-        return call_function<std::uint16_t(__thiscall*)(streamer*, const vector3&)>(0x007A44B0)(this, position);
+        std::int32_t original = call_function<std::int32_t(__thiscall*)(streamer*, const streamer::section&, const position_entry&, bool)>(0x0079ECE0)(this, section, entry, use_direction);
+
+        const visible_section::boundary* boundary = section.boundary;
+
+        if (boundary == nullptr)
+        {
+            return 0;
+        }
+
+        float speed = 100.0f;
+
+        if (!use_direction)
+        {
+            float speed = entry.velocity.magnitude();
+
+            if (speed < 1.0f)
+            {
+                return 0;
+            }
+        }
+
+        vector2 ahead_pos = entry.position2D + entry.velocity2D;
+        vector2 to_vector = use_direction ? entry.direction2D.normalized() : entry.velocity2D.normalized();
+        vector2 bound_dir = (boundary->center - ahead_pos).normalized();
+
+        float distance = visible_section::manager::get_distance_outside(boundary, ahead_pos, 999.0f);
+
+        float inverse = math::min(speed * 0.016666668f, 1.0f);
+
+        float angle = math::clamp(math::arc_cos(vector2::dot(bound_dir, to_vector)) * 0.0054931641f, 20.0f, 90.0f);
+
+        return math::clamp(static_cast<std::int32_t>(((1.0f - (90.0f - angle) * 0.014285714f * inverse * 0.66999996f) * distance * 0.013333334f)), 0, 2);
+    }
+
+    auto streamer::get_predicted_zone(const position_entry& entry) -> std::uint16_t
+    {
+        float speed = entry.velocity.magnitude();
+
+        track_path::zone* zone = track_path::manager::instance.find_zone(&entry.position2D, track_path::zone::type::streamer_prediction, nullptr);
+
+        if (zone != nullptr)
+        {
+            float elevation = zone->elevation;
+
+            if ((elevation <= 0.0f || entry.position.z >= elevation) && (elevation >= 0.0f || entry.position.z <= ::fabs(elevation)))
+            {
+                vector3 position;
+
+                if (speed <= 178.81091f)
+                {
+                    if (speed * 1.5f <= 100.0f)
+                    {
+                        position = entry.position + entry.velocity * 1.5f;
+                    }
+                    else
+                    {
+                        position = entry.position + entry.velocity * (100.0f / speed);
+                    }
+                }
+                else
+                {
+                    position = entry.position;
+                }
+
+                const visible_section::drivable* section = visible_section::manager::instance.get_drivable_section(position);
+
+                if (section != nullptr)
+                {
+                    for (std::uint32_t i = 0u; i < std::size(zone->data); ++i)
+                    {
+                        if (section->section_number == zone->data[i])
+                        {
+                            return section->section_number;
+                        }
+                    }
+                }
+            }
+
+            zone = track_path::manager::instance.find_zone(&entry.position2D, track_path::zone::type::streamer_prediction, zone);
+        }
+
+        const visible_section::drivable* drivable = visible_section::manager::instance.get_drivable_section(entry.position);
+
+        if (drivable != nullptr)
+        {
+            return drivable->section_number;
+        }
+
+        return 0u;
     }
 
     void streamer::handle_loading()
@@ -523,7 +707,76 @@ namespace hyper
 
     auto streamer::jettison_least_important_section() -> streamer::section*
     {
-        return call_function<streamer::section*(__thiscall*)(streamer*)>(0x007A2B30)(this);
+        streamer::section* best_to_jett = nullptr;
+
+        std::uint32_t max_priority = 0u;
+
+        for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
+        {
+            streamer::section* section = this->current_sections[i];
+
+            std::uint16_t section_number = section->number;
+
+            std::uint32_t priority = 0u;
+
+            if (game_provider::is_textures_asset_section(section_number) || game_provider::is_geometry_asset_section(section_number))
+            {
+                priority = 2u;
+
+                if (game_provider::is_shared_section_number(section_number) || game_provider::is_island_section_number(section_number))
+                {
+                    priority = 1u;
+                }
+                else if (!this->split_screen &&
+                    this->phase == loading_phase::allocating_texture_sections &&
+                    game_provider::is_textures_asset_section(section_number) &&
+                    section->status == section::status_type::activated)
+                {
+                    priority = 10000u;
+                }
+                else if (!this->split_screen &&
+                    this->phase == loading_phase::allocating_geometry_sections &&
+                    game_provider::is_geometry_asset_section(section_number) &&
+                    section->status == section::status_type::activated)
+                {
+                    priority = 10000u;
+                }
+            }
+            else if (game_provider::is_regular_section_number(section_number))
+            {
+                std::int32_t approx = this->get_loading_priority(*section, this->position_entries[static_cast<std::uint32_t>(position_type::player1)], true);
+
+                if (this->split_screen)
+                {
+                    approx = math::min(approx, this->get_loading_priority(*section, this->position_entries[static_cast<std::uint32_t>(position_type::player2)], true));
+                }
+
+                priority = 10u * static_cast<std::uint32_t>(approx) + 100u;
+            }
+
+            for (std::uint32_t k = 0u; k < std::size(this->keep_section_table); ++k)
+            {
+                if (section_number == this->keep_section_table[k])
+                {
+                    priority = 1u;
+
+                    break;
+                }
+            }
+
+            if (priority != 0u && section->status != section::status_type::loaded && section->status != section::status_type::activated)
+            {
+                ++priority;
+            }
+
+            if (priority > max_priority)
+            {
+                max_priority = priority;
+                best_to_jett = section;
+            }
+        }
+
+        return best_to_jett;
     }
 
     void streamer::jettison_section(streamer::section& section)
@@ -700,7 +953,7 @@ namespace hyper
         return size <= memory::largest_malloc(memory::create_allocation_params(memory::pool_type::streamer, false, false, 0x00u, 0x00u));
     }
 
-    void streamer::make_space_in_pool(alloc_size_t size, void(*make_space_callback)(void*), void* param)
+    void streamer::make_space_in_pool_with_callback(alloc_size_t size, void(*make_space_callback)(void*), void* param)
     {
         if (this->is_loading_in_progress())
         {
@@ -1071,12 +1324,12 @@ namespace hyper
         stream.make_space_in_pool(stream.make_space_in_pool_size, true);
 
         void(*pool_callback)(void*) = stream.make_space_in_pool_callback;
-        void* param = stream.make_space_in_pool_callback_param;
+        void* parameter = stream.make_space_in_pool_callback_param;
 
         stream.make_space_in_pool_callback = nullptr;
         stream.make_space_in_pool_callback_param = nullptr;
         stream.make_space_in_pool_size = 0u;
 
-        pool_callback(param);
+        pool_callback(parameter);
     }
 }

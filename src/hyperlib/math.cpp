@@ -278,6 +278,11 @@ namespace hyper
         }
     }
 
+    auto math::arc_cos(float value) -> std::uint16_t
+    {
+        return static_cast<std::uint16_t>(0x4000u) - math::arc_sin(value);
+    }
+
     auto math::arc_tan(float x, float y) -> std::uint16_t
     {
         std::uint32_t quad = 0;

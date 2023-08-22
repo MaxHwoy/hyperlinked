@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#pragma warning (disable : 33011)
+
 namespace hyper
 {
     template <typename T> class span

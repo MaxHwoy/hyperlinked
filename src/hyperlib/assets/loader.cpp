@@ -7,6 +7,11 @@ namespace hyper
         call_function<void(__cdecl*)()>(0x006B68D0)();
     }
 
+    void loader::set_delayed_resource_callback(void(*callback)(void*), void* param, bool non_recursive)
+    {
+        call_function<void(__cdecl*)(void(*)(void*), void*, bool)>(0x006997A0)(callback, param, non_recursive);
+    }
+
     void loader::load_chunks(void* memory, size_t size)
     {
         call_function<void(__cdecl*)(void*, size_t)>(0x006AD8F0)(memory, size);
