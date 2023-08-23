@@ -18,6 +18,11 @@ namespace hyper
         return call_function<float(__cdecl*)(std::uint32_t, std::uint32_t)>(0x0046CEF0)(start_ticks, end_ticks);
     }
 
+    auto utils::get_debug_real_time() -> float
+    {
+        return call_function<float(__cdecl*)()>(0x006A26D0)();
+    }
+
     void utils::thread_yield(std::uint32_t ms)
     {
         call_function<void(__cdecl*)(std::uint32_t)>(0x0046D0E0)(ms);

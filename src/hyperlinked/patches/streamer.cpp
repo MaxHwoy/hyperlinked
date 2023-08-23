@@ -112,7 +112,6 @@ namespace hyper
         }
     }
 
-    // #TODO TEST
     __declspec(naked) void detour_track_streamer_allocate_section_memory()
     {
         __asm
@@ -124,14 +123,13 @@ namespace hyper
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
 
-            push eax; // 'total_needing_allocation' is now at [esp + 0x08]
-            push ebx; // 'total_needing_allocation' is now at [esp + 0x0C]
-            push ecx; // 'total_needing_allocation' is now at [esp + 0x10]
-            push edx; // 'total_needing_allocation' is now at [esp + 0x14]
-            push esi; // 'total_needing_allocation' is now at [esp + 0x18]
-            push edi; // 'total_needing_allocation' is now at [esp + 0x1C]
+            push ebx; // 'total_needing_allocation' is now at [esp + 0x08]
+            push ecx; // 'total_needing_allocation' is now at [esp + 0x0C]
+            push edx; // 'total_needing_allocation' is now at [esp + 0x10]
+            push esi; // 'total_needing_allocation' is now at [esp + 0x14]
+            push edi; // 'total_needing_allocation' is now at [esp + 0x18]
 
-            push [esp + 0x1C]; // repush 'total_needing_allocation'
+            push [esp + 0x18]; // repush 'total_needing_allocation'
 
             call streamer::allocate_section_memory; // call custom allocate_section_memory
 
@@ -142,7 +140,6 @@ namespace hyper
             pop edx; // restore saved register
             pop ecx; // restore saved register
             pop ebx; // restore saved register
-            pop eax; // restore saved register
 
             retn 4; // return immediately to caller function, not back to TrackStreamer::AllocateSectionMemory; note that this is a __thiscall
         }
@@ -816,7 +813,6 @@ namespace hyper
         }
     }
 
-    // #TODO TEST
     __declspec(naked) void detour_track_streamer_handle_loading()
     {
         __asm
@@ -849,7 +845,6 @@ namespace hyper
         }
     }
 
-    // #TODO TEST
     __declspec(naked) void detour_track_streamer_handle_memory_allocation()
     {
         __asm
@@ -1012,7 +1007,7 @@ namespace hyper
             pop ecx; // restore saved register
             pop ebx; // restore saved register
 
-            retn 4; // return immediately to caller function, not back to TrackStreamer::JettisonLeastImportantSection; note that this is a __thiscall
+            retn; // return immediately to caller function, not back to TrackStreamer::JettisonLeastImportantSection; note that this is a __thiscall
         }
     }
 
@@ -1579,7 +1574,6 @@ namespace hyper
         }
     }
 
-    // #TODO TEST
     __declspec(naked) void detour_track_streamer_switch_zones()
     {
         __asm
@@ -1829,7 +1823,7 @@ namespace hyper
         hook::jump(0x0079A490, &detour_track_streamer_add_section_activate_callback);
 
         // TrackStreamer::AllocateSectionMemory
-        // hook::jump(0x0079EA00, &detour_track_streamer_allocate_section_memory);
+        hook::jump(0x0079EA00, &detour_track_streamer_allocate_section_memory);
 
         // TrackStreamer::AllocateUserMemory
         hook::jump(0x0079A2E0, &detour_track_streamer_allocate_user_memory);
@@ -1892,10 +1886,10 @@ namespace hyper
         hook::jump(0x007A44B0, &detour_track_streamer_get_predicted_zone);
 
         // TrackStreamer::HandleLoading
-        // hook::jump(0x007A7230, &detour_track_streamer_handle_loading);
+        hook::jump(0x007A7230, &detour_track_streamer_handle_loading);
 
         // TrackStreamer::HandleMemoryAllocation
-        // hook::jump(0x007A7060, &detour_track_streamer_handle_memory_allocation);
+        hook::jump(0x007A7060, &detour_track_streamer_handle_memory_allocation);
 
         // TrackStreamer::InitMemoryPool
         // hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
@@ -1958,7 +1952,7 @@ namespace hyper
         hook::jump(0x007A5590, &detour_track_streamer_start_loading_sections);
 
         // TrackStreamer::SwitchZones
-        // hook::jump(0x007A7F10, &detour_track_streamer_switch_zones);
+        hook::jump(0x007A7F10, &detour_track_streamer_switch_zones);
 
         // TrackStreamer::UnactivateSection
         hook::jump(0x007A2A20, &detour_track_streamer_unactivate_section);

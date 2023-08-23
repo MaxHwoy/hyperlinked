@@ -26,4 +26,9 @@ namespace hyper
     {
         call_function<void(__cdecl*)(void**, size_t*, std::uint32_t, const char*)>(0x006ADBC0)(memory, size, alloc_params, debug_name);
     }
+
+    void loader::post_load_fixup()
+    {
+        call_function<void(__cdecl*)()>(0x006995D0)();
+    }
 }

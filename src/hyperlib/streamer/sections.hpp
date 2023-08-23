@@ -29,7 +29,7 @@ namespace hyper
         constexpr inline static bool is_scenery_section_drivable(std::uint16_t section_number, std::uint32_t lod)
         {
             std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - c * 100u;
+            std::uint32_t i = section_number - 100u * c;
 
             return c >= 1u && c <= 20u && i >= 1u && i < lod;
         }
@@ -37,7 +37,7 @@ namespace hyper
         constexpr inline static bool is_lod_scenery_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
             std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - c * 100u;
+            std::uint32_t i = section_number - 100u * c;
 
             return c >= 1u && c <= 20u && i >= lod && i < (lod << 1);
         }
@@ -45,7 +45,7 @@ namespace hyper
         constexpr inline static bool is_panorama_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
             std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - c * 100u;
+            std::uint32_t i = section_number - 100u * c;
 
             return c >= 1u && c <= 20u && i > (lod << 1);
         }
@@ -97,6 +97,14 @@ namespace hyper
         constexpr inline static bool is_shared_section_number(std::uint16_t section_number)
         {
             return section_number == shared_solid_section || section_number == shared_texture_section || section_number == shared_scenery_section;
+        }
+
+        inline static void get_section_name_from_number(std::uint16_t section_number, char* buffer)
+        {
+            std::uint32_t c = section_number / 100u;
+            std::uint32_t i = section_number - 100u * c;
+
+            ::sprintf(buffer, "%c%d", static_cast<char>(c) + 'A', i);
         }
     };
 
