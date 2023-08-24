@@ -66,8 +66,8 @@ namespace hyper
 
     void bench::print()
     {
-        ::printf("Bench ID    CallCount    Current(ns)    Current(us)      Total(ns)      Total(us)    Maximum(ns)    Maximum(us)    Function\n");
-        ::printf("---------------------------------------------------------------------------------------------------------------------------\n");
+        ::printf("BenchID    TheCallCount    CurrAvg(ns)    CurrAvg(us)    TotalAvg(ns)    TotalAvg(us)    Maximum(ns)    Maximum(us)    TotalTime(ns)    TotalTime(us)    Function\n");
+        ::printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 
         for (std::uint32_t i = 0u; i < bench::marks_.size(); ++i)
         {
@@ -77,8 +77,8 @@ namespace hyper
             std::uint64_t tot = bench::get_total_average(i);
             const char* bname = bench::names_[i];
 
-            ::printf("    %4d    %9u    %11llu    %11llu    %11llu    %11llu    %11llu    %11llu    %s\n", 
-                current.id, current.count, avg, avg / 1000u, tot, tot / 1000u, current.max, current.max / 1000u, bname);
+            ::printf("   %4d    %12llu    %11llu    %11llu    %12llu    %12llu    %11llu    %11llu    %13llu    %13llu    %s\n", 
+                current.id, current.count, avg, avg / 1000u, tot, tot / 1000u, current.max, current.max / 1000u, current.total, current.total / 1000u, bname);
         }
     }
 

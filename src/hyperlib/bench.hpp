@@ -15,7 +15,7 @@ namespace hyper
             std::uint64_t durations[0x20];
             std::uint64_t total;
             std::uint64_t max;
-            std::uint32_t count;
+            std::uint64_t count;
             std::uint32_t id;
         };
 
@@ -72,7 +72,7 @@ namespace hyper
 }
 
 #if defined(_DEBUG)
-#define BENCHMARK()                                                                           \
+#define BENCHMARK()                                                                   \
     static std::uint32_t __s_bench_id = hyper::bench::get_free_bench_id(__FUNCSIG__); \
     hyper::bench __func_bench(__s_bench_id)
 #else

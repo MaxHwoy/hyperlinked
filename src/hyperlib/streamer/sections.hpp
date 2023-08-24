@@ -285,6 +285,11 @@ namespace hyper
 
             bool unloader(chunk* block);
 
+            inline auto get_lod_offset() -> std::uint32_t
+            {
+                return this->pack == nullptr ? 0u : this->pack->lod_offset;
+            }
+
         public:
             static auto get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float;
 
@@ -314,9 +319,13 @@ namespace hyper
             std::uint32_t enabled_groups[0x100];
 
         public:
+#if defined(USE_HYPER_VISIBILITY)
+            static manager instance;
+#else
             static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
+#endif
 
-            static inline std::uint32_t& lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
+            static inline std::uint32_t& section_lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
 
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
 

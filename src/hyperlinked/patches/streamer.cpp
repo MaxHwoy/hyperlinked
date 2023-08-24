@@ -876,41 +876,6 @@ namespace hyper
         }
     }
 
-    __declspec(naked) void detour_track_streamer_init_memory_pool()
-    {
-        __asm
-        {
-            // [esp + 0x00] is 'return address'
-            // [esp + 0x04] is 'pool_size'
-            // ecx contains pointer to streamer
-
-            // esp is auto-managed, non-incremental
-            // ebp is auto-managed, restored on function return
-
-            push eax; // 'pool_size' is now at [esp + 0x08]
-            push ebx; // 'pool_size' is now at [esp + 0x0C]
-            push ecx; // 'pool_size' is now at [esp + 0x10]
-            push edx; // 'pool_size' is now at [esp + 0x14]
-            push esi; // 'pool_size' is now at [esp + 0x18]
-            push edi; // 'pool_size' is now at [esp + 0x1C]
-
-            push [esp + 0x1C]; // repush 'pool_size'
-
-            call streamer::init_memory_pool; // call custom init_memory_pool
-
-            // no need to restore esp since 'init_memory_pool' is a __thiscall
-
-            pop edi; // restore saved register
-            pop esi; // restore saved register
-            pop edx; // restore saved register
-            pop ecx; // restore saved register
-            pop ebx; // restore saved register
-            pop eax; // restore saved register
-
-            retn 4; // return immediately to caller function, not back to TrackStreamer::InitMemoryPool; note that this is a __thiscall
-        }
-    }
-
     __declspec(naked) void detour_track_streamer_init_region()
     {
         __asm
@@ -976,6 +941,42 @@ namespace hyper
             pop ebx; // restore saved register
 
             retn; // return immediately to caller function, not back to TrackStreamer::IsLoadingInProgress; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_track_streamer_is_user_memory()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'ptr'
+            // ecx contains pointer to streamer
+
+            // eax gets overwritten regardless
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push ebx; // 'ptr' is now at [esp + 0x08]
+            push ecx; // 'ptr' is now at [esp + 0x0C]
+            push edx; // 'ptr' is now at [esp + 0x10]
+            push esi; // 'ptr' is now at [esp + 0x14]
+            push edi; // 'ptr' is now at [esp + 0x18]
+
+            push [esp + 0x18]; // repush 'ptr'
+
+            call streamer::is_user_memory; // call custom is_user_memory
+
+            // no need to restore esp since 'is_user_memory' is a __thiscall
+
+            and eax, 0x000000FF; // hack !!!
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to TrackStreamer::IsUserMemory; note that this is a __thiscall
         }
     }
 
@@ -1890,14 +1891,14 @@ namespace hyper
         // TrackStreamer::HandleMemoryAllocation
         hook::jump(0x007A7060, &detour_track_streamer_handle_memory_allocation);
 
-        // TrackStreamer::InitMemoryPool
-        hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
-
         // TrackStreamer::InitRegion
         hook::jump(0x007A27F0, &detour_track_streamer_init_region);
 
         // TrackStreamer::IsLoadingInProgress
         hook::jump(0x007A7E80, &detour_track_streamer_is_loading_in_progress);
+
+        // TrackStreamer::IsUserMemory
+        hook::jump(0x0079A340, &detour_track_streamer_is_user_memory);
 
         // TrackStreamer::JettisonLeastImportantSection
         hook::jump(0x007A2B30, &detour_track_streamer_jettison_least_important_section);
@@ -1970,5 +1971,492 @@ namespace hyper
 
         // TrackStreamer::WaitForCurrentLoadingToComplete
         hook::jump(0x007A7E30, &detour_track_streamer_wait_for_current_loading_to_complete);
+
+        // BELOW ARE PATCHES THAT REPLACE THE TRACK STREAMER POINTERS
+
+#if defined(USE_HYPER_STREAMER)
+        // CAnimPlayer::Load
+        hook::set(0x004590A0, &streamer::instance);
+
+        // CAnimPlayer::Load
+        hook::set(0x004590AA, &streamer::instance);
+
+        // CAnimPlayer::Load
+        hook::set(0x004590B8, &streamer::instance);
+
+        // CAnimPlayer::Load
+        hook::set(0x004590CB, &streamer::instance);
+
+        // CAnimPlayer::Load
+        hook::set(0x004590DB, &streamer::instance);
+
+        // CAnimPlayer::Load
+        hook::set(0x004590EC, &streamer::instance);
+
+        // CAnimPlayer::Unload
+        hook::set(0x004591A0, &streamer::instance);
+
+        // CAnimPlayer::Unload
+        hook::set(0x0045920E, &streamer::instance);
+
+        // .text:0045BDB0
+        hook::set(0x0045BDB1, &streamer::instance);
+
+        // sub_0045BDF0+2D
+        hook::set(0x0045BE1E, &streamer::instance);
+
+        // sub_0045F900
+        hook::set(0x0045F91C, &streamer::instance);
+
+        // UpdateCameraMovers
+        hook::set(0x00490B1E, &streamer::instance);
+
+        // UpdateCameraMovers
+        hook::set(0x00490C1A, &streamer::instance);
+
+        // sub_00502C70+26
+        hook::set(0x00502C97, &streamer::instance);
+
+        // EAXAemsManager::InitiateLoad
+        hook::set(0x00516D99, &streamer::instance);
+
+        // EAXAemsManager::InitiateLoad
+        hook::set(0x00516DC0, &streamer::instance);
+
+        // sub_00520810+AD
+        hook::set(0x005208BE, &streamer::instance);
+
+        // EAXAemsManager::Update
+        hook::set(0x005219EA, &streamer::instance);
+
+        // sub_0056DE90+12
+        hook::set(0x0056DEA3, &streamer::instance);
+
+        // sub_0056DE90
+        hook::set(0x0056DEAD, &streamer::instance);
+
+        // sub_0056DE90+26
+        hook::set(0x0056DEB7, &streamer::instance);
+
+        // FETrackPreviewStreamer::~FETrackPreviewStreamer
+        hook::set(0x0056F953, &streamer::instance);
+
+        // FETrackPreviewStreamer::~FETrackPreviewStreamer
+        hook::set(0x0056F95D, &streamer::instance);
+
+        // FETrackPreviewStreamer::~FETrackPreviewStreamer
+        hook::set(0x0056F967, &streamer::instance);
+
+        // sub_0056F9D0+18
+        hook::set(0x0056F9E9, &streamer::instance);
+
+        // sub_0056F9D0
+        hook::set(0x0056FA5E, &streamer::instance);
+
+        // FEPackageData::GetDataChunk
+        hook::set(0x00575BEB, &streamer::instance);
+
+        // .text:0057B807
+        hook::set(0x0057B808, &streamer::instance);
+
+        // sub_0057EF60+71
+        hook::set(0x0057EFD2, &streamer::instance);
+
+        // sub_0057EFF0+25
+        hook::set(0x0057F016, &streamer::instance);
+
+        // sub_0057F030+13
+        hook::set(0x0057F044, &streamer::instance);
+
+        // sub_0057F030+22
+        hook::set(0x0057F053, &streamer::instance);
+
+        // sub_0057F0A0+2B
+        hook::set(0x0057F0CC, &streamer::instance);
+
+        // sub_0057F110+13
+        hook::set(0x0057F124, &streamer::instance);
+
+        // sub_0057F110+22
+        hook::set(0x0057F133, &streamer::instance);
+
+        // .text
+        hook::set(0x0057F176, &streamer::instance);
+
+        // sub_00583D10
+        hook::set(0x00583D4F, &streamer::instance);
+
+        // sub_0058E3E0+59
+        hook::set(0x0058E43A, &streamer::instance);
+
+        // FEImageStreamerManager::FEImageStreamerManager
+        hook::set(0x0059710B, &streamer::instance);
+
+        // FEImageStreamerManager::FEImageStreamerManager
+        hook::set(0x00597137, &streamer::instance);
+
+        // FEImageStreamerManager::FEImageStreamerManager
+        hook::set(0x00597162, &streamer::instance);
+
+        // .text:0059FAAD
+        hook::set(0x0059FAAE, &streamer::instance);
+
+        // FECareerStateManager::HandleScreenTick
+        hook::set(0x005A58F0, &streamer::instance);
+
+        // FECareerStateManager::HandleScreenTick
+        hook::set(0x005A592C, &streamer::instance);
+
+        // FECareerStateManager::HandleScreenTick
+        hook::set(0x005A595B, &streamer::instance);
+
+        // FECareerStateManager::HandleScreenTick
+        hook::set(0x005A5998, &streamer::instance);
+
+        // FECareerStateManager::HandleScreenTick
+        hook::set(0x005A59EF, &streamer::instance);
+
+        // UITrackMapStreamer::UITrackMapStreamer
+        hook::set(0x005B76FA, &streamer::instance);
+
+        // UITrackMapStreamer::UITrackMapStreamer
+        hook::set(0x005B770F, &streamer::instance);
+
+        // FEAnyMovieScreen::FEAnyMovieScreen
+        hook::set(0x005BB79D, &streamer::instance);
+
+        // WorldMap::SetupTrackPreviewStreamingData
+        hook::set(0x005C3811, &streamer::instance);
+
+        // sub_005D76F0+20
+        hook::set(0x005D7711, &streamer::instance);
+
+        // sub_005D76F0+68
+        hook::set(0x005D7759, &streamer::instance);
+
+        // .text:005E0CCB
+        hook::set(0x005E0CCC, &streamer::instance);
+
+        // .text:005E0CF7
+        hook::set(0x005E0CF8, &streamer::instance);
+
+        // GIcon::FindSection
+        hook::set(0x00615FC2, &streamer::instance);
+
+        // GCanyonRaceStatus::IsIntermissionSync
+        hook::set(0x00616DB0, &streamer::instance);
+
+        // GManager::NotifyWorldService
+        hook::set(0x0062AB02, &streamer::instance);
+
+        // GManager::WarpToMarker
+        hook::set(0x0062AE13, &streamer::instance);
+
+        // GManager::SpawnAllLoadedSectionIcons
+        hook::set(0x0062B186, &streamer::instance);
+
+        // GManager::SpawnAllLoadedSectionIcons
+        hook::set(0x0062B19F, &streamer::instance);
+
+        // GManager::CanPlaySMS
+        hook::set(0x0062B481, &streamer::instance);
+
+        // GRaceStatus::NotifyScriptWhenLoaded
+        hook::set(0x0062D983, &streamer::instance);
+
+        // GRaceStatus::NotifyScriptWhenLoaded
+        hook::set(0x0062D9FD, &streamer::instance);
+
+        // GManager::PostClearSessionData
+        hook::set(0x0063174B, &streamer::instance);
+
+        // GRaceStatus::SetRoaming
+        hook::set(0x00641377, &streamer::instance);
+
+        // GRaceStatus::SetRoaming
+        hook::set(0x0064138A, &streamer::instance);
+
+        // sub_00646F6D+49D
+        hook::set(0x0064740B, &streamer::instance);
+
+        // sub_00646F6D+520
+        hook::set(0x0064748E, &streamer::instance);
+
+        // GManager::PostStartActivities
+        hook::set(0x006494CA, &streamer::instance);
+
+        // Game_CanyonRaceSetup
+        hook::set(0x00656C10, &streamer::instance);
+
+        // Game_WarpPlayerAndWingmanToMarker
+        hook::set(0x0065B677, &streamer::instance);
+
+        // Game_WarpPlayerAndWingmanToMarker
+        hook::set(0x0065B690, &streamer::instance);
+
+        // Game_WarpPlayerAndWingmanToMarker
+        hook::set(0x0065B6C5, &streamer::instance);
+
+        // Game_WarpPlayerAndWingmanToMarker
+        hook::set(0x0065B6E6, &streamer::instance);
+
+        // Game_KnockoutPursuit
+        hook::set(0x0065DC70, &streamer::instance);
+
+        // Game_KnockoutPursuit
+        hook::set(0x0065DCC0, &streamer::instance);
+
+        // Game_KnockoutPursuit
+        hook::set(0x0065DCD6, &streamer::instance);
+
+        // .text:00699F70
+        hook::set(0x00699F71, &streamer::instance);
+
+        // HandleTrackStreamerLoadingBar
+        hook::set(0x0069A044, &streamer::instance);
+
+        // HandleTrackStreamerLoadingBar
+        hook::set(0x0069A064, &streamer::instance);
+
+        // RegionLoader::FinishedLoading
+        hook::set(0x006A89EF, &streamer::instance);
+
+        // DelayWaitForLoadingScreen
+        hook::set(0x006A8C01, &streamer::instance);
+
+        // TrackLoader::Unload
+        hook::set(0x006B5A54, &streamer::instance);
+
+        // LoadGlobalChunks
+        hook::set(0x006B6F29, &streamer::instance);
+
+        // MiniMainLoop
+        hook::set(0x006B78F0, &streamer::instance);
+
+        // MiniMainLoop
+        hook::set(0x006B78FA, &streamer::instance);
+
+        // MainLoop
+        hook::set(0x006B7B7F, &streamer::instance);
+
+        // RegionLoader::Unload
+        hook::set(0x006B7C26, &streamer::instance);
+
+        // RegionLoader::Unload
+        hook::set(0x006B7D91, &streamer::instance);
+
+        // LoadFrontEndRegion
+        hook::set(0x006B7E4E, &streamer::instance);
+
+        // GameFlowLoadingFrontEndPart4
+        hook::set(0x006B7EF5, &streamer::instance);
+
+        // GameFlowLoadingFrontEndPart4
+        hook::set(0x006B7EFF, &streamer::instance);
+
+        // GameFlowLoadingFrontEndPart4
+        hook::set(0x006B7F09, &streamer::instance);
+
+        // BeginGameFlowUnloadingFrontend
+        hook::set(0x006BC179, &streamer::instance);
+
+        // QuickGame::IsStateDone
+        hook::set(0x00762B2C, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764D79, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764D8E, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DAC, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DB6, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DC7, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DD1, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DE0, &streamer::instance);
+
+        // Sim::SetStream
+        hook::set(0x00764DEA, &streamer::instance);
+
+        // NISActivity::ServiceLoads
+        hook::set(0x00766702, &streamer::instance);
+
+        // NISActivity::ServiceLoads
+        hook::set(0x007667B3, &streamer::instance);
+
+        // NISActivity::ServiceLoads
+        hook::set(0x0076694F, &streamer::instance);
+
+        // sub_00768CC0
+        hook::set(0x00768D4A, &streamer::instance);
+
+        // NISActivity::Load
+        hook::set(0x007696C8, &streamer::instance);
+
+        // QuickGame::QuickGame
+        hook::set(0x0076CF2E, &streamer::instance);
+
+        // QuickGame::QuickGame
+        hook::set(0x0076CF6D, &streamer::instance);
+
+        // QuickGame::QuickGame
+        hook::set(0x0076CF82, &streamer::instance);
+
+        // QuickGame::QuickGame
+        hook::set(0x0076CF8C, &streamer::instance);
+
+        // QuickGame::QuickGame
+        hook::set(0x0076CF96, &streamer::instance);
+
+        // OnlineGame::OnlineGame
+        hook::set(0x0076D49C, &streamer::instance);
+
+        // OnlineGame::OnlineGame
+        hook::set(0x0076D4B1, &streamer::instance);
+
+        // OnlineGame::OnlineGame
+        hook::set(0x0076D4BB, &streamer::instance);
+
+        // OnlineGame::OnlineGame
+        hook::set(0x0076D4C5, &streamer::instance);
+
+        // LoaderTrackStreamer
+        hook::set(0x007A2536, &streamer::instance);
+
+        // TrackStreamer::SectionLoadedCallback
+        hook::set(0x007A2A86, &streamer::instance);
+
+        // UnloaderTrackStreamer
+        hook::set(0x007A42D6, &streamer::instance);
+
+        // TrackStreamer::DiscBundleLoadedCallback
+        hook::set(0x007A43E6, &streamer::instance);
+
+        // TrackStreamer::StartLoadingSections
+        hook::set(0x007A5604, &streamer::instance);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A870C, &streamer::instance);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A871E, &streamer::instance);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A54, &streamer::instance);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A67, &streamer::instance);
+
+        // .text:007AB29B
+        hook::set(0x007AB29C, &streamer::instance);
+
+        // sub_007AB4D0+1C
+        hook::set(0x007AB4ED, &streamer::instance);
+
+        // .text:007BD433
+        hook::set(0x007BD434, &streamer::instance);
+
+        // GhostCarManager::Deserialize
+        hook::set(0x007BD527, &streamer::instance);
+
+        // World_Service
+        hook::set(0x007DCD35, &streamer::instance);
+
+        // Game_SetRaceActivity
+        hook::set(0x007E297C, &streamer::instance);
+
+        // CarLoader::LoadSkinTextures
+        hook::set(0x007E4364, &streamer::instance);
+
+        // CarLoader::SetMemoryPoolSize
+        hook::set(0x007E499C, &streamer::instance);
+
+        // FECarClassSelectStateManager::HandleScreenTick
+        hook::set(0x00847AEA, &streamer::instance);
+
+        // .text:009BA1F0
+        hook::set(0x009BA1F1, &streamer::instance);
+
+        // BeginGameFlowUnloadingFrontend
+        hook::set(0x006BC142, &streamer::instance.perm_file_loading);
+
+        // BeginGameFlowUnloadingFrontend
+        hook::set(0x006BC156, &streamer::instance.perm_file_loading);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A86E5, &streamer::instance.position_entries[static_cast<std::uint32_t>(streamer::position_type::player1)].predicted_zone_valid_time);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A2C, &streamer::instance.position_entries[static_cast<std::uint32_t>(streamer::position_type::player1)].predicted_zone_valid_time);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A86EA, &streamer::instance.position_entries[static_cast<std::uint32_t>(streamer::position_type::player2)].predicted_zone_valid_time);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A31, &streamer::instance.position_entries[static_cast<std::uint32_t>(streamer::position_type::player2)].predicted_zone_valid_time);
+
+        // sub_005058C0
+        hook::set(0x005058EE, &streamer::instance.phase);
+
+        // sub_0050E850
+        hook::set(0x0050EA63, &streamer::instance.phase);
+
+        // sub_0051C190
+        hook::set(0x0051C1A8, &streamer::instance.phase);
+
+        // Speech::Manager::Update
+        hook::set(0x0077C65F, &streamer::instance.loading_backlog);
+
+        // sub_00785220
+        hook::set(0x00785265, &streamer::instance.loading_backlog);
+
+        // GRaceStatus::NotifyScriptWhenLoaded
+        hook::set(0x0062D9F4, &streamer::instance.current_zone_far_load);
+
+        // sub_00646F6D
+        hook::set(0x00647485, &streamer::instance.current_zone_far_load);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A86F7, &streamer::instance.current_zone_needs_refreshing);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A3E, &streamer::instance.current_zone_needs_refreshing);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A86EF, &streamer::instance.zone_switching_disabled);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A36, &streamer::instance.zone_switching_disabled);
+
+        // sub_0057EF60
+        hook::set(0x0057EFAC, &streamer::instance.memory_heap);
+
+        // sub_0057EFF0
+        hook::set(0x0057EFF1, &streamer::instance.memory_heap);
+
+        // sub_0057F030
+        hook::set(0x0057F031, &streamer::instance.memory_heap);
+
+        // sub_0057F0A0
+        hook::set(0x0057F0BD, &streamer::instance.memory_heap);
+
+        // sub_0057F110
+        hook::set(0x0057F111, &streamer::instance.memory_heap);
+
+        // bRefreshTrackStreamer
+        hook::set(0x007A86FF, &streamer::instance.memory_heap);
+
+        // VisibleSectionManager::Loader
+        hook::set(0x007A8A46, &streamer::instance.memory_heap);
+#endif
     }
 }

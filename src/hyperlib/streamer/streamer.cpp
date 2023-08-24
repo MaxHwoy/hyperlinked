@@ -10,10 +10,12 @@
 #include <hyperlib/streamer/track_path.hpp>
 #include <hyperlib/streamer/streamer.hpp>
 
-#define SORT_STREAMING_SECTIONS
-
 namespace hyper
 {
+#if defined(USE_HYPER_STREAMER)
+    streamer streamer::instance = streamer();
+#endif
+
     streamer::streamer() :
         current_section_table(streamer::section_table_memory_.pointer(), streamer::section_table_memory_.length()),
         sections(nullptr),
@@ -332,7 +334,7 @@ namespace hyper
 
         float min_loading = 999.0f;
 
-        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+        std::uint32_t lod_offset = visible_section::manager::instance.get_lod_offset();
 
         for (std::uint32_t i = 0u; i < std::size(this->position_entries); ++i)
         {
@@ -572,7 +574,7 @@ namespace hyper
     {
         BENCHMARK();
 
-#if defined(SORT_STREAMING_SECTIONS)
+#if defined(USE_HYPER_STREAMER)
         return reinterpret_cast<section*>(utils::scan_hash_table_key16(section_number, this->sections, this->section_count, offsetof(section, number), sizeof(section)));
 #else
         for (std::uint32_t i = 0u; i < this->section_count; ++i)
@@ -640,7 +642,7 @@ namespace hyper
 
     auto streamer::get_combined_section_number(std::uint16_t section_number) -> std::uint16_t
     {
-        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+        std::uint32_t lod_offset = visible_section::manager::instance.get_lod_offset();
 
         if (!game_provider::is_scenery_section_drivable(section_number, lod_offset))
         {
@@ -965,7 +967,7 @@ namespace hyper
 
         visible_section::manager& manager = visible_section::manager::instance;
 
-        std::uint32_t lod_offset = manager.pack->lod_offset;
+        std::uint32_t lod_offset = manager.get_lod_offset();
 
         for (std::uint32_t i = 0u; i < this->section_count; ++i)
         {
@@ -985,6 +987,11 @@ namespace hyper
     bool streamer::is_loading_in_progress()
     {
         return !this->are_all_sections_activated();
+    }
+
+    bool streamer::is_user_memory(const void* ptr)
+    {
+        return memory::is_in_memory_pool(memory::pool_type::streamer, ptr);
     }
 
     auto streamer::jettison_least_important_section() -> streamer::section*
@@ -1171,7 +1178,7 @@ namespace hyper
                 case block_id::track_streaming_sections:
                     this->sections = reinterpret_cast<section*>(block->data());
                     this->section_count = block->size() / sizeof(section);
-#if defined(SORT_STREAMING_SECTIONS)
+#if defined(USE_HYPER_STREAMER)
                     utils::sort(this->sections, this->section_count, [](const section& lhs, const section& rhs) -> bool { return lhs.number < rhs.number; });
 #endif
                     return true;

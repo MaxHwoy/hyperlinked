@@ -58,6 +58,8 @@ workspace "hyperlinked"
 			"DEBUG",
 			"TRACE_HEAP_ALLOCATIONS",
 			"CONCURRENT_POOL_ACCESS",
+			"USE_HYPER_VISIBILITY",
+			"USE_HYPER_STREAMER"
 		}
 		optimize "debug"
 		inlining "disabled"
