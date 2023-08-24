@@ -344,6 +344,8 @@ namespace hyper
 
             world::init_visible_zones(visible_section::manager::zone_boundary_model);
 
+            streamer::instance.refresh_loading();
+
             return true;
         }
 

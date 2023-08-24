@@ -22,5 +22,11 @@ namespace hyper
 
         // eInitTextures (increase texture pack slot pool count)
         hook::set<std::uint32_t>(0x0055A018, 0x100);
+
+        // TrackStreamer::DetermineCurrentZones
+        hook::set<std::uint16_t>(0x007A486B, 0xC033); // xor eax, eax
+
+        // TrackStreamer::DetermineCurrentZones
+        hook::nop(0x007A486D, 1u);
     }
 }
