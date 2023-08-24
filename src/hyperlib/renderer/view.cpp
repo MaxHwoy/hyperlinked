@@ -10,6 +10,8 @@ namespace hyper
 
 	auto view::platform_interface::get_visible_state_sb(const bounds& bounds) const -> visible_state
 	{
+		BENCHMARK();
+
 		std::uint32_t lod_increment = 1;
 
 		const clipping_planes& clipping = this->pinfo->clipping_planes;
@@ -45,6 +47,8 @@ namespace hyper
 
 	auto view::platform_interface::get_visible_state_sb(const vector3& point, const matrix4x4* trs) const -> visible_state
 	{
+		BENCHMARK();
+
 		vector3 local(point);
 
 		if (trs != nullptr)
@@ -75,6 +79,8 @@ namespace hyper
 
 	auto view::platform_interface::get_visible_state_sb(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> visible_state
 	{
+		BENCHMARK();
+
 		std::uint32_t lod_increment = 1;
 
 		vector3 center(bbox_min);
@@ -121,6 +127,8 @@ namespace hyper
 
 	void view::platform_interface::get_screen_position(const vector3& world_pos, vector3& screen_pos) const
 	{
+		BENCHMARK();
+
 		vector4 local(world_pos);
 
 		math::transform_point(this->pinfo->view_projection_matrix, local);

@@ -156,6 +156,8 @@ namespace hyper
 
     void renderer::render_light_flare_pool(const view::instance* view)
     {
+        BENCHMARK();
+
         if (renderer::flare_pool_off || view == nullptr)
         {
             return;
@@ -251,6 +253,8 @@ namespace hyper
 
     void renderer::render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
     {
+        BENCHMARK();
+
         if (renderer::draw_light_flares && view != nullptr)
         {
             float dampness = 0.0f;

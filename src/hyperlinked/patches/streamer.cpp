@@ -876,7 +876,6 @@ namespace hyper
         }
     }
 
-    // #TODO TEST
     __declspec(naked) void detour_track_streamer_init_memory_pool()
     {
         __asm
@@ -1892,7 +1891,7 @@ namespace hyper
         hook::jump(0x007A7060, &detour_track_streamer_handle_memory_allocation);
 
         // TrackStreamer::InitMemoryPool
-        // hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
+        hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
 
         // TrackStreamer::InitRegion
         hook::jump(0x007A27F0, &detour_track_streamer_init_region);

@@ -37,6 +37,8 @@ namespace hyper
 
     auto visible_section::manager::get_drivable_section(const vector3& position) -> const drivable*
     {
+        BENCHMARK();
+
         float distance;
 
         const boundary* closest = this->find_closest_boundary(position.as_vector2(), distance);
@@ -71,6 +73,8 @@ namespace hyper
 
     auto visible_section::manager::get_depth_name(const vector3& position) const -> std::uint32_t
     {
+        BENCHMARK();
+
         float maximum = -std::numeric_limits<float>::infinity();
 
         std::uint32_t depth_name = 0u;
@@ -101,6 +105,8 @@ namespace hyper
 
     auto visible_section::manager::get_sections_to_load(const visible_section::loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t
     {
+        BENCHMARK();
+
         std::uint32_t sections_to_load_count = 0u;
 
         if (loading != nullptr && sections_to_load != nullptr && max_sections > 0u)
@@ -208,6 +214,8 @@ namespace hyper
 
     auto visible_section::manager::find_closest_boundary(const vector2& position, float& distance) -> const boundary*
     {
+        BENCHMARK();
+
         boundary* closest = nullptr;
 
         distance = std::numeric_limits<float>::infinity();
@@ -439,6 +447,8 @@ namespace hyper
 
     auto visible_section::manager::get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float
     {
+        BENCHMARK();
+
         if (math::is_in_bounding_box(position, bound->bbox_min, bound->bbox_max, extra_width))
         {
             std::uint32_t count = static_cast<std::uint32_t>(bound->point_count);

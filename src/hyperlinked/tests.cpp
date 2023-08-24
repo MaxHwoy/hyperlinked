@@ -5,12 +5,26 @@
 #include <hyperlib/renderer/culling.hpp>
 #include <hyperlib/renderer/streak.hpp>
 
+#include <hyperlib/bench.hpp>
 #include <hyperlinked/tests.hpp>
 
 namespace hyper
 {
     void print_number_of_rendering_models()
     {
+        bool print = false;
+        bool clear = false;
+
+        if (print)
+        {
+            bench::print();
+        }
+
+        if (clear)
+        {
+            bench::reset();
+        }
+
         std::uint32_t count = renderer::rendering_model_count;
 
         int f = 0;
@@ -47,7 +61,7 @@ namespace hyper
         // hook::set<std::uint8_t>(0x007D5246, 0x00);
 
         // RenderWorldInGame
-        //hook::jump(0x00727238, &test_render_world_ingame);
+        hook::jump(0x00727238, &test_render_world_ingame);
 
         // ScenerySectionHeader::DrawAScenery
         // hook::nop(0x0079FA88, 38);

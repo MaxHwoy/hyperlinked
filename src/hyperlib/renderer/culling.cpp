@@ -71,6 +71,8 @@ namespace hyper
 
     void grand_scenery_cull_info::setup_world_culling()
     {
+        BENCHMARK();
+
         this->cull_info_count = 0u;
 
         game_flow::state state = game_flow::manager::instance.current_state;
@@ -169,6 +171,8 @@ namespace hyper
 
     void grand_scenery_cull_info::cull_view(scenery_cull_info& cull_info)
     {
+        BENCHMARK();
+
         const std::uint32_t max_sections = 0x80;
 
         std::uint16_t sections[max_sections];
@@ -205,6 +209,8 @@ namespace hyper
 
     auto grand_scenery_cull_info::what_sections_should_we_draw(std::uint16_t* sections, std::uint32_t section_count, scenery_cull_info& cull_info) -> std::uint32_t
     {
+        BENCHMARK();
+
         view_id id = cull_info.view->id;
 
         const visible_section::drivable* drivable = nullptr;
@@ -252,6 +258,8 @@ namespace hyper
 
     void grand_scenery_cull_info::tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info)
     {
+        BENCHMARK();
+
         const std::uint32_t max_stack = 0x200;
 
         visible_state state[max_stack];
@@ -305,6 +313,8 @@ namespace hyper
 
     bool grand_scenery_cull_info::draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state)
     {
+        BENCHMARK();
+
         scenery::instance& instance = pack.instances[instance_index];
 
         std::int32_t preculler = cull_info.preculler_section_number;

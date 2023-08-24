@@ -29,6 +29,7 @@
 #include <hyperlib/math.hpp>
 #include <hyperlib/time.hpp>
 #include <hyperlib/array.hpp>
+#include <hyperlib/bench.hpp>
 #include <hyperlib/chunk.hpp>
 #include <hyperlib/bitset.hpp>
 #include <hyperlib/random.hpp>

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <hyperlib/math.hpp>
+#include <hyperlib/bench.hpp>
 #include <hyperlib/memory/memory.hpp>
 #include <hyperlib/memory/slot_pool.hpp>
 
@@ -255,6 +256,8 @@ namespace hyper
 
     auto memory::largest_malloc(std::uint32_t params) -> alloc_size_t
     {
+        BENCHMARK();
+
         std::uint32_t pool_number = static_cast<std::uint32_t>(memory::get_pool_number(params));
 
         memory_pool& pool = memory::pools_[pool_number];
@@ -309,6 +312,8 @@ namespace hyper
 
     auto memory::count_free_memory(memory::pool_type type) -> alloc_size_t
     {
+        BENCHMARK();
+
         memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
 
         if (pool.initialized())
@@ -333,6 +338,8 @@ namespace hyper
 
     auto memory::ware_malloc(alloc_size_t size, const char* debug_text, std::uint32_t debug_line, std::uint32_t params) -> void*
     {
+        BENCHMARK();
+
         pool_type pool_number = memory::get_pool_number(params);
 
         memory_pool_info* pool_info = memory::pool_infos_ + static_cast<std::uint32_t>(pool_number);
@@ -434,6 +441,8 @@ namespace hyper
 
     void memory::free(void* ptr)
     {
+        BENCHMARK();
+
         if (ptr != nullptr)
         {
             char magic = memory_pool::allocation_magic(ptr);

@@ -1,3 +1,4 @@
+#include <hyperlib/bench.hpp>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/utils/file.hpp>
@@ -9,7 +10,7 @@
 #include <hyperlib/streamer/track_path.hpp>
 #include <hyperlib/streamer/streamer.hpp>
 
-//#define SORT_STREAMING_SECTIONS
+#define SORT_STREAMING_SECTIONS
 
 namespace hyper
 {
@@ -58,6 +59,8 @@ namespace hyper
 
     void streamer::activate_section(streamer::section& section)
     {
+        BENCHMARK();
+
         std::uint32_t params = memory::create_allocation_params(memory::pool_type::streamer, false, true, 0x80u, 0x00u);
 
         global::allow_duplicate_solids++;
@@ -122,6 +125,8 @@ namespace hyper
 
     auto streamer::allocate_section_memory(std::uint32_t* total_needing_allocation) -> std::uint32_t
     {
+        BENCHMARK();
+
         std::uint32_t total_out_of_memory = 0u;
         std::uint32_t total_memory_allocated = 0u;
         std::uint32_t total_sections_alloced = 0u;
@@ -255,6 +260,8 @@ namespace hyper
 
     void streamer::assign_loading_priority()
     {
+        BENCHMARK();
+
         for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
         {
             streamer::section* section = this->current_sections[i];
@@ -281,6 +288,8 @@ namespace hyper
 
     void streamer::calculate_loading_backlog()
     {
+        BENCHMARK();
+
         float total_backlog = 0.0f;
 
         for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
@@ -319,6 +328,8 @@ namespace hyper
 
     bool streamer::check_loading_bar()
     {
+        BENCHMARK();
+
         float min_loading = 999.0f;
 
         std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
@@ -425,6 +436,8 @@ namespace hyper
 
     bool streamer::determine_current_zones(std::uint16_t* zones)
     {
+        BENCHMARK();
+
         bool refresh = false;
 
         for (std::uint32_t i = 0; i < std::size(this->position_entries); ++i)
@@ -477,6 +490,8 @@ namespace hyper
 
     void streamer::determine_streaming_sections()
     {
+        BENCHMARK();
+
         std::uint16_t sections_to_load[0x180];
 
         this->remove_current_streaming_sections();
@@ -555,6 +570,8 @@ namespace hyper
 
     auto streamer::find_section(std::uint16_t section_number) -> section*
     {
+        BENCHMARK();
+
 #if defined(SORT_STREAMING_SECTIONS)
         return reinterpret_cast<section*>(utils::scan_hash_table_key16(section_number, this->sections, this->section_count, offsetof(section, number), sizeof(section)));
 #else
@@ -742,6 +759,8 @@ namespace hyper
 
     void streamer::handle_loading()
     {
+        BENCHMARK();
+
         if (this->skip_next_handle_load)
         {
             this->skip_next_handle_load = false;
@@ -853,6 +872,8 @@ namespace hyper
 
     bool streamer::handle_memory_allocation()
     {
+        BENCHMARK();
+
         // while (this->unload_least_recently_used_section());
 
         this->unload_least_recently_used_section();
@@ -912,6 +933,8 @@ namespace hyper
 
     void streamer::init_region(const char* file, bool is_split_screen)
     {
+        BENCHMARK();
+
         this->split_screen = is_split_screen;
 
         ::strcpy(reinterpret_cast<char*>(this->filenames[1]), file);
@@ -1336,6 +1359,8 @@ namespace hyper
 
     void streamer::service_game_state()
     {
+        BENCHMARK();
+
         std::uint16_t zones[2]{};
 
         if (!this->zone_switching_disabled && !this->memory_heap.is_empty() && this->determine_current_zones(zones))
@@ -1360,6 +1385,8 @@ namespace hyper
 
     void streamer::service_non_game_state()
     {
+        BENCHMARK();
+
         this->handle_loading();
     }
 
@@ -1399,6 +1426,8 @@ namespace hyper
 
     void streamer::start_loading_sections()
     {
+        BENCHMARK();
+
         while (this->loading_section_count < 2)
         {
             streamer::section* best_to_load = nullptr;
@@ -1453,6 +1482,8 @@ namespace hyper
 
     void streamer::switch_zones(const std::uint16_t* zones)
     {
+        BENCHMARK();
+
         this->start_loading_time = utils::get_debug_real_time();
 
         this->current_zone_needs_refreshing = false;
@@ -1559,6 +1590,8 @@ namespace hyper
 
     void streamer::unactivate_section(streamer::section& section)
     {
+        BENCHMARK();
+
         section.unactivated_frame_count = global::frame_counter;
 
         loader::unload_chunks(section.memory, section.loaded_size);
@@ -1592,6 +1625,8 @@ namespace hyper
 
     void streamer::unload_everything()
     {
+        BENCHMARK();
+
         while (this->loading_section_count != 0u)
         {
             loader::service_resource_loading();
