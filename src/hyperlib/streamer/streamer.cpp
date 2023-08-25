@@ -284,6 +284,8 @@ namespace hyper
 
     void streamer::block_until_loading_complete()
     {
+        BENCHMARK();
+
         this->refresh_loading();
         this->wait_for_current_loading_to_complete();
     }
@@ -593,6 +595,8 @@ namespace hyper
 
     void streamer::finished_loading()
     {
+        BENCHMARK();
+
         if (grid::maker::instance != nullptr && grid::maker::instance->the_grid != nullptr)
         {
             grid::maker::instance->set_start_position();
@@ -1746,6 +1750,8 @@ namespace hyper
 
     void streamer::wait_for_current_loading_to_complete()
     {
+        BENCHMARK();
+
         while (!this->are_all_sections_activated())
         {
             this->handle_loading();

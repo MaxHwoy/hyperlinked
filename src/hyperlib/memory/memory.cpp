@@ -7,13 +7,14 @@
 
 namespace hyper
 {
-    bool memory::initialized_ = false;
-
     bool memory::memory_tracing_ = false;
 
-    bool memory::free_unused_buffers_ = true;
-
     bool memory::verify_free_patterns_ = false;
+
+#if defined(USE_HYPER_MEMORY)
+    bool memory::initialized_ = false;
+
+    bool memory::free_unused_buffers_ = true;
 
     bool memory::auto_verify_pool_integrity_ = false;
 
@@ -24,6 +25,7 @@ namespace hyper
     memory::memory_pool_info memory::pool_infos_[static_cast<std::uint32_t>(memory::pool_type::count)]{};
 
     slot_pool_manager memory::slot_manager_{};
+#endif
 
     void memory::initialize()
     {
@@ -47,6 +49,9 @@ namespace hyper
 
     void memory::initialize_pool(memory::pool_type type, void* address, alloc_size_t size, const char* debug_name)
     {
+#if !defined(USE_HYPER_MEMORY)
+        memory::pool_ptr_[type] = &memory::pools_[type];
+#endif
         memory::pool_infos_[static_cast<std::uint32_t>(type)].top_means_larger_address = false;
         memory::pool_infos_[static_cast<std::uint32_t>(type)].overflow_pool_number = -1;
         memory::pool_infos_[static_cast<std::uint32_t>(type)].default_alignment = 0x10u;
@@ -56,6 +61,9 @@ namespace hyper
     void memory::close_pool(memory::pool_type type)
     {
         memory::pools_[static_cast<std::uint32_t>(type)].close();
+#if !defined(USE_HYPER_MEMORY)
+        memory::pool_ptr_[type] = nullptr;
+#endif
     }
 
     auto memory::create_persistent_pool(alloc_size_t size) -> pool_type
@@ -79,13 +87,20 @@ namespace hyper
         return memory::total_allocations_;
     }
 
+    bool memory::is_memory_pool_initialized(memory::pool_type type)
+    {
+#if defined(USE_HYPER_MEMORY)
+        return memory::pools_[static_cast<std::uint32_t>(type)].initialized();
+#else
+        return memory::pool_ptr_[type] != nullptr;
+#endif
+    }
+
     bool memory::is_memory_pool_unlimited(memory::pool_type type)
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
-
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            return pool.is_unlimited();
+            return memory::pools_[static_cast<std::uint32_t>(type)].is_unlimited();
         }
 
         const memory_pool::override_info* override_info = memory::pool_infos_[static_cast<std::uint32_t>(type)].override_info;
@@ -113,21 +128,27 @@ namespace hyper
 
     void memory::set_memory_pool_debug_fill(memory::pool_type type, bool fill)
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
-
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            pool.set_debug_fill(fill);
+            memory::pools_[static_cast<std::uint32_t>(type)].set_debug_fill(fill);
         }
+    }
+
+    void memory::set_memory_pool_debug_tracing(memory::pool_type type, bool trace)
+    {
+#if !defined(USE_HYPER_MEMORY)
+        if (memory::is_memory_pool_initialized(type))
+        {
+            memory::pools_[static_cast<std::uint32_t>(type)].set_debug_tracing(trace);
+        }
+#endif
     }
 
     void memory::set_memory_pool_limitness(memory::pool_type type, bool unlimited)
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
-
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            pool.set_limitness(unlimited);
+            memory::pools_[static_cast<std::uint32_t>(type)].set_limitness(unlimited);
         }
     }
 
@@ -148,11 +169,11 @@ namespace hyper
 
     void memory::verify_pool_integrity(memory::pool_type type)
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
+        BENCHMARK();
 
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            pool.verify_pool_integrity(memory::verify_free_patterns_);
+            memory::pools_[static_cast<std::uint32_t>(type)].verify_pool_integrity(memory::verify_free_patterns_);
         }
     }
 
@@ -173,11 +194,11 @@ namespace hyper
     
     auto memory::get_pool_allocations(memory::pool_type type, void** allocations, std::uint32_t max_allocations) -> std::uint32_t
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
+        BENCHMARK();
 
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            return pool.get_allocations(allocations, max_allocations);
+            return memory::pools_[static_cast<std::uint32_t>(type)].get_allocations(allocations, max_allocations);
         }
 
         return 0u;
@@ -185,21 +206,21 @@ namespace hyper
 
     void memory::print_pool_allocations(memory::pool_type type)
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
+        BENCHMARK();
 
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            pool.print_allocations();
+            memory::pools_[static_cast<std::uint32_t>(type)].print_allocations();
         }
     }
 
     auto memory::get_free_memory_pool_number() -> std::int32_t
     {
-        for (std::int32_t i = 0; i < static_cast<std::uint32_t>(pool_type::count); ++i)
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(pool_type::count); ++i)
         {
             memory_pool_info& pool_info = memory::pool_infos_[i];
 
-            if (!pool_info.number_reserved && pool_info.override_info == nullptr && !memory::pools_[i].initialized())
+            if (!pool_info.number_reserved && pool_info.override_info == nullptr && !memory::is_memory_pool_initialized(static_cast<pool_type>(i)))
             {
                 return i;
             }
@@ -210,11 +231,9 @@ namespace hyper
 
     auto memory::get_memory_pool_name(memory::pool_type type) -> const char*
     {
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
-
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
-            return pool.debug_name();
+            return memory::pools_[static_cast<std::uint32_t>(type)].debug_name();
         }
 
         const memory_pool::override_info* override_info = memory::pool_infos_[static_cast<std::uint32_t>(type)].override_info;
@@ -229,13 +248,11 @@ namespace hyper
 
     auto memory::get_memory_pool_index(const char* name) -> std::int32_t
     {
-        for (std::int32_t i = 0; i < static_cast<std::uint32_t>(pool_type::count); ++i)
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(pool_type::count); ++i)
         {
-            memory_pool& pool = memory::pools_[i];
-
-            if (pool.initialized())
+            if (memory::is_memory_pool_initialized(static_cast<pool_type>(i)))
             {
-                if (!::strcmp(pool.debug_name(), name))
+                if (!::strcmp(memory::pools_[i].debug_name(), name))
                 {
                     return i;
                 }
@@ -260,9 +277,7 @@ namespace hyper
 
         std::uint32_t pool_number = static_cast<std::uint32_t>(memory::get_pool_number(params));
 
-        memory_pool& pool = memory::pools_[pool_number];
-
-        if (!pool.initialized())
+        if (!memory::is_memory_pool_initialized(static_cast<pool_type>(pool_number)))
         {
             const memory_pool::override_info* override_info = memory::pool_infos_[pool_number].override_info;
 
@@ -273,6 +288,8 @@ namespace hyper
 
             return 0u;
         }
+
+        memory_pool& pool = memory::pools_[pool_number];
 
         if (pool.is_unlimited())
         {
@@ -314,10 +331,10 @@ namespace hyper
     {
         BENCHMARK();
 
-        memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
-
-        if (pool.initialized())
+        if (memory::is_memory_pool_initialized(type))
         {
+            memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(type)];
+
             if (pool.is_unlimited())
             {
                 return static_cast<alloc_size_t>(std::numeric_limits<std::int32_t>::max());
@@ -342,7 +359,7 @@ namespace hyper
 
         pool_type pool_number = memory::get_pool_number(params);
 
-        memory_pool_info* pool_info = memory::pool_infos_ + static_cast<std::uint32_t>(pool_number);
+        memory_pool_info* pool_info = &memory::pool_infos_[static_cast<std::uint32_t>(pool_number)];
 
         std::int32_t overflow_pool_number = pool_info->overflow_pool_number;
 
@@ -354,7 +371,7 @@ namespace hyper
             {
                 pool_number = static_cast<pool_type>(pool_info->overflow_pool_number);
 
-                pool_info = memory::pool_infos_ + static_cast<std::uint32_t>(pool_number);
+                pool_info = &memory::pool_infos_[static_cast<std::uint32_t>(pool_number)];
 
                 params = overflow_params;
             }
@@ -379,11 +396,9 @@ namespace hyper
 
         if (memory::auto_verify_pool_integrity_)
         {
-            memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(pool_number)];
-
-            if (pool.initialized())
+            if (memory::is_memory_pool_initialized(pool_number))
             {
-                pool.verify_pool_integrity(memory::verify_free_patterns_);
+                memory::pools_[static_cast<std::uint32_t>(pool_number)].verify_pool_integrity(memory::verify_free_patterns_);
             }
         }
 
@@ -396,14 +411,16 @@ namespace hyper
 
         assert(math::is_pow_2(alignment));
 
+        assert(memory::is_memory_pool_initialized(pool_number));
+
         memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(pool_number)];
-
-        std::uint32_t offset = memory::get_offset(params);
         
-        assert(pool.initialized());
-
+        std::uint32_t offset = memory::get_offset(params);
+#if defined(USE_HYPER_MEMORY)
         void* ptr = pool.allocate_memory(size, alignment, offset, memory::get_start_from_top(params), memory::get_use_best_fit(params), debug_text, static_cast<std::int32_t>(debug_line));
-
+#else
+        void* ptr = pool.allocate_memory(size, alignment, offset, memory::get_start_from_top(params), memory::get_use_best_fit(params), debug_text, static_cast<std::int32_t>(debug_line), static_cast<char>(pool_number));
+#endif
         if (ptr == nullptr)
         {
             pool.print_allocations();
@@ -445,6 +462,7 @@ namespace hyper
 
         if (ptr != nullptr)
         {
+#if defined(USE_HYPER_MEMORY)
             char magic = memory_pool::allocation_magic(ptr);
 
             if (magic == memory_pool::alloc_magic)
@@ -463,6 +481,42 @@ namespace hyper
             {
                 assert(false);
             }
+#else
+            for (std::uint32_t i = 0u; i < static_cast<std::uint32_t>(pool_type::count); ++i)
+            {
+                const memory_pool::override_info* override_info = memory::pool_infos_[i].override_info;
+
+                if (override_info != nullptr && override_info->contains(ptr))
+                {
+                    for (std::uint32_t k = 1u; k < static_cast<std::uint32_t>(pool_type::count); ++k)
+                    {
+                        if (memory::is_memory_pool_initialized(static_cast<pool_type>(k)))
+                        {
+                            if (memory::pools_[k].is_inside_initial_zone(ptr))
+                            {
+                                goto LABEL_DEALLOC;
+                            }
+                        }
+                    }
+
+                    override_info->release_memory(ptr);
+
+                    return;
+                }
+            }
+
+        LABEL_DEALLOC:
+            char magic = memory_pool::allocation_magic(ptr);
+
+            if (magic == memory_pool::alloc_magic)
+            {
+                memory::pools_[memory_pool::allocation_pool(ptr)].release_memory(ptr);
+            }
+            else
+            {
+                assert(false);
+            }
+#endif
         }
     }
 }

@@ -1726,9 +1726,9 @@ namespace hyper
         hook::jump(0x00477BD0, &detour_b_delete_slot_pool);
 
         // CarLoader::SetMemoryPoolSize
-        hook::jump(0x007E49A5, &detour_car_loader_set_memory_pool_size);
+        //hook::jump(0x007E49A5, &detour_car_loader_set_memory_pool_size);
 
         // TrackStreamer::InitMemoryPool
-        hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
+        //hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
     }
 }

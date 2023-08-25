@@ -13,9 +13,9 @@ namespace hyper
     {
         generic_patches::init();
         memory_patches::init();
-        section_patches::init();
-        culling_patches::init();
-        drawing_patches::init();
-        streamer_patches::init();
+        //section_patches::init();
+        //culling_patches::init();
+        //drawing_patches::init();
+        //streamer_patches::init();
     }
 }

@@ -26,4 +26,59 @@ namespace hyper
             std::sort(ptr, ptr + count, comparer);
         }
     };
+
+    class bmutex final
+    {
+    public:
+        class deadlock final
+        {
+        private:
+            deadlock() = delete;
+            deadlock(const deadlock& other) = delete;
+            deadlock(deadlock&& other) = delete;
+            deadlock& operator=(const deadlock& other) = delete;
+            deadlock& operator=(deadlock&& other) = delete;
+
+        public:
+            inline deadlock(bmutex& mtx);
+
+            inline ~deadlock();
+
+        private:
+            bmutex& ref_;
+        };
+
+        inline void create();
+
+        inline void destroy();
+
+    private:
+        bmutex* mutex;
+        CRITICAL_SECTION cs;
+    };
 }
+
+namespace hyper
+{
+    bmutex::deadlock::deadlock(bmutex& mtx) : ref_(mtx)
+    {
+        ::EnterCriticalSection(&mtx.cs);
+    }
+
+    bmutex::deadlock::~deadlock()
+    {
+        ::LeaveCriticalSection(&this->ref_.cs);
+    }
+
+    void bmutex::create()
+    {
+        ::InitializeCriticalSection(&this->cs);
+    }
+
+    void bmutex::destroy()
+    {
+        ::DeleteCriticalSection(&this->cs);
+    }
+}
+
+#define LOCK_MUTEX(X) hyper::bmutex::deadlock __dead_lock(X)
