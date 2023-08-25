@@ -76,17 +76,10 @@ namespace hyper
         this->pool_number_ = 0;
     }
 
-#if defined(USE_HYPER_MEMORY)
     auto ts_memory_pool::override_malloc(void* pool, alloc_size_t size, std::uint32_t header_size, std::uint32_t params) -> void*
     {
         return reinterpret_cast<ts_memory_pool*>(pool)->allocate_memory(size, header_size, params);
     }
-#else
-    auto ts_memory_pool::override_malloc(void* pool, alloc_size_t size, const char* debug_text, std::uint32_t debug_line, std::uint32_t params) -> void*
-    {
-        return reinterpret_cast<ts_memory_pool*>(pool)->allocate_memory(size, memory_pool::minimum_allocation(), params);
-    }
-#endif
 
     void ts_memory_pool::override_free(void* pool, void* ptr)
     {

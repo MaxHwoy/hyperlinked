@@ -20,17 +20,6 @@ bool IsBadReadPtr(void* ptr, std::uint32_t size)
 
 namespace hyper
 {
-#if defined(USE_HYPER_MEMORY)
-    memory_pool::override_info::override_info(const char* name, void* pool, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
-    {
-        this->name_ = name;
-        this->pool_ = pool;
-        this->malloc_ = malloc_ptr;
-        this->free_ = free_ptr;
-        this->amount_free_ = amount_free_ptr;
-        this->largest_free_ = largest_free_ptr;
-    }
-#else
     memory_pool::override_info::override_info(const char* name, void* pool, void* memory, alloc_size_t size, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
     {
         this->name_ = name;
@@ -42,7 +31,6 @@ namespace hyper
         this->amount_free_ = amount_free_ptr;
         this->largest_free_ = largest_free_ptr;
     }
-#endif
 
     auto memory_pool::override_info::name() const -> const char*
     {
@@ -51,7 +39,6 @@ namespace hyper
 
     auto memory_pool::override_info::allocate_memory(char pool_number, alloc_size_t size, const char* debug_text, std::int32_t debug_line, std::uint32_t params) const -> void*
     {
-#if defined(USE_HYPER_MEMORY)
         void* ptr = this->malloc_(this->pool_, size, sizeof(alloc_block), params);
 
         if (ptr != nullptr)
@@ -71,33 +58,11 @@ namespace hyper
         }
 
         return nullptr;
-#else
-        void* ptr = this->malloc_(this->pool_, size, debug_text, debug_line, params);
-
-        if (ptr != nullptr)
-        {
-            alloc_block* block = reinterpret_cast<alloc_block*>(ptr);
-
-            block->size = size + sizeof(alloc_block);
-            block->requested_size = size;
-            block->prepad = 0u;
-            block->pool_number = pool_number;
-            block->magic_number = memory_pool::alloc_override_magic;
-
-            return block + 1;
-        }
-
-        return nullptr;
-#endif
     }
 
     void memory_pool::override_info::release_memory(void* ptr) const
     {
-#if defined(USE_HYPER_MEMORY)
         this->free_(this->pool_, reinterpret_cast<alloc_block*>(ptr) - 1);
-#else
-        this->free_(this->pool_, reinterpret_cast<alloc_block*>(ptr) - 1);
-#endif
     }
 
     auto memory_pool::override_info::get_amount_free() const -> alloc_size_t
@@ -109,13 +74,6 @@ namespace hyper
     {
         return this->largest_free_(this->pool_);
     }
-
-#if !defined(USE_HYPER_MEMORY)
-    bool memory_pool::override_info::contains(const void* ptr) const
-    {
-        return ptr >= this->memory_ && ptr < reinterpret_cast<const char*>(this->memory_) + this->size_;
-    }
-#endif
 
     memory_pool::memory_pool() : free_block_list_(), alloc_block_list_(), buffer_block_list_(), mutex_()
     {
@@ -132,16 +90,12 @@ namespace hyper
         this->debug_fill_enabled_ = false;
         this->unlimited_pool_ = false;
         this->initialized_ = false;
-#if defined(USE_HYPER_MEMORY)
         this->pool_number_ = 0;
-#endif
     }
 
     memory_pool::~memory_pool()
     {
-//#if defined(USE_HYPER_MEMORY)
         if (this->initialized_)
-//#endif
         {
             for (buffer_block* i = this->buffer_block_list_.begin(); i != this->buffer_block_list_.end(); /* empty */)
             {
@@ -169,18 +123,14 @@ namespace hyper
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
             this->initialized_ = false;
-#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = 0;
-#endif
         }
     }
 
     void memory_pool::initialize(void* address, alloc_size_t size, char pool_number, const char* debug_name)
     {
-#if defined(USE_HYPER_MEMORY)
-#if defined(CONCURRENT_POOL_ACCESS)
+#if defined(USE_HYPER_MEMORY) && defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
-#endif
 #endif
         if (!this->initialized_)
         {
@@ -200,9 +150,8 @@ namespace hyper
             this->unlimited_pool_ = false;
             this->debug_name_ = debug_name;
             this->initialized_ = true;
-#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = pool_number;
-#else
+#if !defined(USE_HYPER_MEMORY)
             this->mutex_.create();
 #endif
             this->add_free_memory(address, size, debug_name);
@@ -211,10 +160,8 @@ namespace hyper
 
     void memory_pool::close()
     {
-#if defined(USE_HYPER_MEMORY)
-#if defined(CONCURRENT_POOL_ACCESS)
+#if defined(USE_HYPER_MEMORY) && defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
-#endif
 #endif
         if (this->initialized_)
         {
@@ -251,9 +198,8 @@ namespace hyper
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
             this->initialized_ = false;
-#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = 0;
-#else
+#if !defined(USE_HYPER_MEMORY)
             this->mutex_.destroy();
 #endif
         }
@@ -311,11 +257,14 @@ namespace hyper
         return largest;
     }
 
-#if defined(USE_HYPER_MEMORY)
     auto memory_pool::allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line) -> void*
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
+#endif
+#else
+        LOCK_MUTEX(this->mutex_);
 #endif
         alloc_size_t true_size = 0u;
         std::uint16_t prepad = 0u;
@@ -342,34 +291,6 @@ namespace hyper
 
         return nullptr;
     }
-#else
-    auto memory_pool::allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line, char pool) -> void*
-    {
-        LOCK_MUTEX(this->mutex_);
-
-        alloc_size_t true_size = 0u;
-        std::uint16_t prepad = 0u;
-
-        void* ptr = this->allocate_memory_internal(size, alignment, offset, start_from_top, use_best_fit, &true_size, &prepad);
-
-        if (ptr != nullptr)
-        {
-            alloc_block* block = reinterpret_cast<alloc_block*>(ptr);
-
-            this->alloc_block_list_.add(block);
-
-            block->size = true_size;
-            block->requested_size = size;
-            block->prepad = prepad;
-            block->pool_number = pool;
-            block->magic_number = memory_pool::alloc_magic;
-
-            return block + 1;
-        }
-
-        return nullptr;
-    }
-#endif
 
     void memory_pool::release_memory(void* ptr)
     {
