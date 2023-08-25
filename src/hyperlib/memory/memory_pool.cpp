@@ -72,7 +72,22 @@ namespace hyper
 
         return nullptr;
 #else
-        return this->malloc_(this->pool_, size, debug_text, debug_line, params);
+        void* ptr = this->malloc_(this->pool_, size, debug_text, debug_line, params);
+
+        if (ptr != nullptr)
+        {
+            alloc_block* block = reinterpret_cast<alloc_block*>(ptr);
+
+            block->size = size + sizeof(alloc_block);
+            block->requested_size = size;
+            block->prepad = 0u;
+            block->pool_number = pool_number;
+            block->magic_number = memory_pool::alloc_override_magic;
+
+            return block + 1;
+        }
+
+        return nullptr;
 #endif
     }
 
@@ -81,7 +96,7 @@ namespace hyper
 #if defined(USE_HYPER_MEMORY)
         this->free_(this->pool_, reinterpret_cast<alloc_block*>(ptr) - 1);
 #else
-        this->free_(this->pool_, ptr);
+        this->free_(this->pool_, reinterpret_cast<alloc_block*>(ptr) - 1);
 #endif
     }
 
@@ -116,17 +131,17 @@ namespace hyper
         this->least_amount_free_ = 0;
         this->debug_fill_enabled_ = false;
         this->unlimited_pool_ = false;
-#if defined(USE_HYPER_MEMORY)
         this->initialized_ = false;
+#if defined(USE_HYPER_MEMORY)
         this->pool_number_ = 0;
 #endif
     }
 
     memory_pool::~memory_pool()
     {
-#if defined(USE_HYPER_MEMORY)
+//#if defined(USE_HYPER_MEMORY)
         if (this->initialized_)
-#endif
+//#endif
         {
             for (buffer_block* i = this->buffer_block_list_.begin(); i != this->buffer_block_list_.end(); /* empty */)
             {
@@ -153,8 +168,8 @@ namespace hyper
             this->least_amount_free_ = 0u;
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
-#if defined(USE_HYPER_MEMORY)
             this->initialized_ = false;
+#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = 0;
 #endif
         }
@@ -166,8 +181,8 @@ namespace hyper
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-        if (!this->initialized_)
 #endif
+        if (!this->initialized_)
         {
             this->free_block_list_.clear();
             this->alloc_block_list_.clear();
@@ -184,8 +199,8 @@ namespace hyper
             this->debug_fill_enabled_ = true;
             this->unlimited_pool_ = false;
             this->debug_name_ = debug_name;
-#if defined(USE_HYPER_MEMORY)
             this->initialized_ = true;
+#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = pool_number;
 #else
             this->mutex_.create();
@@ -200,8 +215,8 @@ namespace hyper
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-        if (this->initialized_)
 #endif
+        if (this->initialized_)
         {
             if (this->num_allocations_ > 0)
             {
@@ -235,8 +250,8 @@ namespace hyper
             this->least_amount_free_ = 0u;
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
-#if defined(USE_HYPER_MEMORY)
             this->initialized_ = false;
+#if defined(USE_HYPER_MEMORY)
             this->pool_number_ = 0;
 #else
             this->mutex_.destroy();

@@ -79,6 +79,12 @@ namespace hyper
             this->head_.next() = this->end();
         }
 
+        inline void null()
+        {
+            this->head_.next() = nullptr;
+            this->head_.prev() = nullptr;
+        }
+
         inline auto head() -> T*
         {
             return reinterpret_cast<T*>(&this->head_);

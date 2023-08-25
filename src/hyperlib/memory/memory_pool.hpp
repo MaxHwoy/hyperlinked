@@ -160,12 +160,12 @@ namespace hyper
 
         void print_allocations();
 
-#if defined(USE_HYPER_MEMORY)
+//#if defined(USE_HYPER_MEMORY)
         inline bool initialized() const
         {
             return this->initialized_;
         }
-#endif
+//#endif
 
         inline bool is_unlimited() const
         {
@@ -263,6 +263,7 @@ namespace hyper
         bool debug_fill_enabled_;
         bool debug_tracing_enabled_;
         bool unlimited_pool_;
+        bool initialized_;
         bmutex mutex_;
         char pad[4];
 

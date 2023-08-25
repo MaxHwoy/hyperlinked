@@ -22,8 +22,12 @@ namespace hyper
         };
 
     private:
+#if defined(USE_HYPER_MEMORY)
         static auto override_malloc(void* pool, alloc_size_t size, std::uint32_t header_size, std::uint32_t params) -> void*;
-        
+#else
+        static auto override_malloc(void* pool, alloc_size_t size, const char* debug_text, std::uint32_t debug_line, std::uint32_t params) -> void*;
+#endif
+
         static void override_free(void* pool, void* ptr);
         
         static auto override_amount_free(void* pool) -> alloc_size_t;
