@@ -10,6 +10,8 @@ namespace hyper
 {
     void grand_scenery_cull_info::setup_scenery_cull_info(view::instance& view, instance_flags flags)
     {
+        BENCHMARK();
+
         view_mode mode = renderer::mode;
 
         scenery_cull_info& cull_info = this->scenery_cull_infos[this->cull_info_count++];
@@ -71,6 +73,8 @@ namespace hyper
 
     void grand_scenery_cull_info::setup_world_culling()
     {
+        BENCHMARK();
+
         this->cull_info_count = 0u;
 
         game_flow::state state = game_flow::manager::instance.current_state;
@@ -139,6 +143,8 @@ namespace hyper
 
     void grand_scenery_cull_info::do_culling()
     {
+        BENCHMARK();
+
         this->first_draw_info = reinterpret_cast<scenery_draw_info*>(0x00B5A4F0);
         this->current_draw_info = reinterpret_cast<scenery_draw_info*>(0x00B5A4F0);
         this->top_draw_info = reinterpret_cast<scenery_draw_info*>(0x00B68F50);
@@ -169,6 +175,8 @@ namespace hyper
 
     void grand_scenery_cull_info::cull_view(scenery_cull_info& cull_info)
     {
+        BENCHMARK();
+
         const std::uint32_t max_sections = 0x80;
 
         std::uint16_t sections[max_sections];
@@ -205,6 +213,8 @@ namespace hyper
 
     auto grand_scenery_cull_info::what_sections_should_we_draw(std::uint16_t* sections, std::uint32_t section_count, scenery_cull_info& cull_info) -> std::uint32_t
     {
+        BENCHMARK();
+
         view_id id = cull_info.view->id;
 
         const visible_section::drivable* drivable = nullptr;
@@ -252,6 +262,8 @@ namespace hyper
 
     void grand_scenery_cull_info::tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info)
     {
+        BENCHMARK();
+
         const std::uint32_t max_stack = 0x200;
 
         visible_state state[max_stack];
@@ -305,6 +317,8 @@ namespace hyper
 
     bool grand_scenery_cull_info::draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state)
     {
+        BENCHMARK();
+
         scenery::instance& instance = pack.instances[instance_index];
 
         std::int32_t preculler = cull_info.preculler_section_number;
@@ -429,6 +443,8 @@ namespace hyper
 
     bool grand_scenery_cull_info::commit_scenery(scenery::instance& instance, scenery::info& info, scenery_cull_info& cull_info, model_lod lod, visible_state state)
     {
+        BENCHMARK();
+
         geometry::model* rendered = info.models[static_cast<std::uint32_t>(lod)];
 
         if (rendered == nullptr || rendered->solid == nullptr)
@@ -545,6 +561,8 @@ namespace hyper
 
     auto grand_scenery_cull_info::get_pixel_size(const scenery_cull_info& cull_info, const vector3& position, float radius, float& distance) -> std::uint32_t
     {
+        BENCHMARK();
+
         vector3 direction = position - cull_info.position;
 
         if (-radius <= vector3::dot(direction, cull_info.direction))
@@ -567,6 +585,8 @@ namespace hyper
 
     void grand_scenery_cull_info::create_wind_matrix(const view::instance* view, std::uint32_t degrees, matrix4x4& matrix)
     {
+        BENCHMARK();
+
         matrix4x4 stack(matrix);
 
         float sin = math::sin(math::to_uint16_degrees(degrees + renderer::wind_angle));
@@ -594,6 +614,8 @@ namespace hyper
 
     void grand_scenery_cull_info::commit_flares(const scenery::instance& instance, const geometry::solid& solid, const scenery_cull_info& cull_info)
     {
+        BENCHMARK();
+
         view_id id = cull_info.view->id;
 
         if (renderer::can_render_flares_in_view(id) && !renderer::is_friend_flare_view_already_committed(id))

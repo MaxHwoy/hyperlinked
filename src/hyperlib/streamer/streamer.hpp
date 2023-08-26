@@ -137,7 +137,7 @@ namespace hyper
 
         void add_section_activate_callback(void(*activate_callback)(std::int32_t, bool));
 
-        void allocate_section_memory(std::uint32_t* total_needing_allocation);
+        auto allocate_section_memory(std::uint32_t* total_needing_allocation) -> std::uint32_t;
 
         auto allocate_user_memory(std::uint32_t size, const char* debug_name, std::uint32_t offset) -> void*;
 
@@ -191,6 +191,8 @@ namespace hyper
 
         bool is_loading_in_progress();
 
+        bool is_user_memory(const void* ptr);
+
         auto jettison_least_important_section() -> section*;
 
         void jettison_section(section& section);
@@ -221,6 +223,8 @@ namespace hyper
 
         void service_non_game_state();
 
+        void set_loading_phase(loading_phase new_phase);
+
         void set_streaming_position(position_type type, const vector3& position);
 
         void start_loading_sections();
@@ -232,6 +236,8 @@ namespace hyper
         void unjettison_sections();
 
         void unload_everything();
+
+        bool unload_least_recently_used_section();
 
         void unload_section(section& section);
 
@@ -246,7 +252,7 @@ namespace hyper
 
         static void ready_to_make_space_in_pool_bridge(void* param);
 
-    private:
+    public:
         section* sections;
         std::uint32_t section_count;
         disc_bundle* discs;
@@ -304,12 +310,17 @@ namespace hyper
         bool make_space_in_pool_force_defrag;
 
     public:
+#if defined(USE_HYPER_STREAMER)
+        static streamer instance;
+#else
         static inline streamer& instance = *reinterpret_cast<streamer*>(0x00B70650);
+#endif
 
     private:
-        static inline array<std::uint8_t, 350u> section_table_memory_ = array<std::uint8_t, 350u>(0x00B68F68);
+        static inline array<std::uint8_t, 2800u / CHAR_BIT> section_table_memory_ = array<std::uint8_t, 2800u / CHAR_BIT>(0x00B68F68);
     };
 
+    CREATE_ENUM_EXPR_OPERATORS(streamer::loading_phase);
     CREATE_ENUM_EXPR_OPERATORS(streamer::position_type);
 
     ASSERT_SIZE(streamer::barrier, 0x10);

@@ -55,9 +55,19 @@ namespace hyper
             }
         }
 
+        inline auto next_ref() const -> T* const*
+        {
+            return &this->next_;
+        }
+
+        inline auto prev_ref() const -> T* const*
+        {
+            return &this->prev_;
+        }
+
     private:
-        T* prev_;
         T* next_;
+        T* prev_;
     };
 
     template <typename T> class linked_list

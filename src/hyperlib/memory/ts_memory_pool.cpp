@@ -19,6 +19,7 @@ namespace hyper
         this->num_allocations_ = 0u;
         this->pool_number_ = pool_number;
 
+#if defined(USE_HYPER_MEMORY)
         this->override_ = memory_pool::override_info
         (
             debug_name,
@@ -28,6 +29,7 @@ namespace hyper
             &ts_memory_pool::override_amount_free,
             &ts_memory_pool::override_largest_free
         );
+#endif
 
         if (buffer != nullptr)
         {

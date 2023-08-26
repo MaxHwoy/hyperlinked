@@ -3,7 +3,10 @@
 #include <cstdint>
 #include <mutex>
 
-#include <hyperlib/linked_list.hpp>
+#include <hyperlib/shared.hpp>
+#include <hyperlib/utils/utils.hpp>
+
+//#define USE_HYPER_MEMORY
 
 #if defined(LARGE_ADDRESS_ALLOC)
 typedef size_t alloc_size_t;
@@ -19,14 +22,25 @@ namespace hyper
         class override_info final
         {
         public:
+#if defined(USE_HYPER_MEMORY)
             using malloc = void*(*)(void* pool, alloc_size_t size, std::uint32_t header_size, std::uint32_t params);
             using free = void(*)(void* pool, void* ptr);
             using amount_free = alloc_size_t(*)(void* pool);
             using largest_free = alloc_size_t(*)(void* pool);
+#else
+            using malloc = void*(*)(void* pool, alloc_size_t size, const char* debug_text, std::uint32_t debug_line, std::uint32_t params);
+            using free = void(*)(void* pool, void* ptr);
+            using amount_free = alloc_size_t(*)(void* pool);
+            using largest_free = alloc_size_t(*)(void* pool);
+#endif
 
         private:
             const char* name_;
             void* pool_;
+#if !defined(USE_HYPER_MEMORY)
+            void* memory_;
+            alloc_size_t size_;
+#endif
             malloc malloc_;
             free free_;
             amount_free amount_free_;
@@ -38,18 +52,24 @@ namespace hyper
             override_info(override_info&& other) = default;
             override_info& operator=(const override_info& other) = default;
             override_info& operator=(override_info&& other) = default;
+#if defined(USE_HYPER_MEMORY)
             override_info(const char* name, void* pool, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr);
-
+#else
+            override_info(const char* name, void* pool, void* memory, alloc_size_t size, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr);
+#endif
             auto name() const -> const char*;
             auto allocate_memory(char pool_number, alloc_size_t size, const char* debug_text, std::int32_t debug_line, std::uint32_t params) const -> void*;
             void release_memory(void* ptr) const;
             auto get_amount_free() const -> alloc_size_t;
             auto get_largest_free_block() const -> alloc_size_t;
+#if !defined(USE_HYPER_MEMORY)
+            bool contains(const void* ptr) const;
+#endif
         };
 
         constexpr inline static std::uint32_t debug_free_fill = 0xEEEEEEEE;
         constexpr inline static std::uint32_t debug_alloc_fill = 0xAAAAAAAA;
-        constexpr inline static std::uint32_t free_magic = 0x13371337;
+        constexpr inline static std::uint32_t free_magic = 0x44443333;
         constexpr inline static char alloc_magic = 0x22;
         constexpr inline static char alloc_override_magic = 0x69;
 
@@ -68,6 +88,7 @@ namespace hyper
 
         struct alloc_block : public linked_node<alloc_block>
         {
+#if defined(USE_HYPER_MEMORY)
 #if defined(TARGET_64BIT)
             /* 0x10 */ alloc_size_t size;
             /* 0x18 */ alloc_size_t requested_size;
@@ -92,12 +113,17 @@ namespace hyper
             /* 0x1C */ const char* debug_text;
 #endif
 #endif
+#else
+            char pool_number;
+            char magic_number;
+            std::uint16_t prepad;
+            alloc_size_t size;
+            alloc_size_t requested_size;
+#endif
         };
 
         memory_pool(const memory_pool&) = delete;
         memory_pool& operator=(const memory_pool&) = delete;
-
-        void trace_new_pool();
 
         void verify_pool_integrity_internal(bool verify_free_pattern);
 
@@ -116,13 +142,17 @@ namespace hyper
 
         void close();
 
+#if defined(USE_HYPER_MEMORY)
         auto allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line) -> void*;
+#else
+        auto allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line, char pool) -> void*;
+#endif
 
         void release_memory(void* ptr);
 
         void verify_pool_integrity(bool verify_free_pattern);
 
-        auto get_amount_free() const -> alloc_size_t;
+        auto get_amount_free() -> alloc_size_t;
 
         auto get_largest_free_block() -> alloc_size_t;
 
@@ -130,10 +160,12 @@ namespace hyper
 
         void print_allocations();
 
+#if defined(USE_HYPER_MEMORY)
         inline bool initialized() const
         {
             return this->initialized_;
         }
+#endif
 
         inline bool is_unlimited() const
         {
@@ -145,15 +177,22 @@ namespace hyper
             return this->debug_name_;
         }
 
-        inline bool is_inside_initial_zone(void* ptr) const
+        inline bool is_inside_initial_zone(const void* ptr) const
         {
-            return this->initialized_ && ptr >= this->initial_address_ && ptr < reinterpret_cast<char*>(this->initial_address_) + this->initial_size_;
+            return ptr >= this->initial_address_ && ptr < reinterpret_cast<const char*>(this->initial_address_) + this->initial_size_;
         }
 
         inline void set_debug_fill(bool enabled)
         {
             this->debug_fill_enabled_ = enabled;
         }
+
+#if !defined(USE_HYPER_MEMORY)
+        inline void set_debug_tracing(bool enabled)
+        {
+            this->debug_tracing_enabled_ = enabled;
+        }
+#endif
 
         inline void set_limitness(bool unlimited)
         {
@@ -186,6 +225,7 @@ namespace hyper
         }
 
     private:
+#if defined(USE_HYPER_MEMORY)
         linked_list<free_block> free_block_list_;
         linked_list<alloc_block> alloc_block_list_;
         linked_list<buffer_block> buffer_block_list_;
@@ -206,5 +246,34 @@ namespace hyper
 #if defined(CONCURRENT_POOL_ACCESS)
         std::mutex mutex_;
 #endif
+#else
+        const char* debug_name_;
+        linked_list<free_block> free_block_list_;
+        linked_list<alloc_block> alloc_block_list_;
+        linked_list<buffer_block> buffer_block_list_;
+        void* initial_address_;
+        alloc_size_t initial_size_;
+        alloc_size_t num_allocations_;
+        alloc_size_t total_num_allocations_;
+        alloc_size_t total_allocated_;
+        alloc_size_t amount_allocated_;
+        alloc_size_t most_amount_allocated_;
+        alloc_size_t amount_free_;
+        alloc_size_t least_amount_free_;
+        bool debug_fill_enabled_;
+        bool debug_tracing_enabled_;
+        bool unlimited_pool_;
+        bmutex mutex_;
+        char pad[4];
+
+        ASSERT_SIZE(memory_pool::override_info, 0x20);
+        ASSERT_SIZE(memory_pool::buffer_block, 0x10);
+        ASSERT_SIZE(memory_pool::free_block, 0x10);
+        ASSERT_SIZE(memory_pool::alloc_block, 0x14);
+#endif
     };
+
+#if !defined(USE_HYPER_MEMORY)
+    ASSERT_SIZE(memory_pool, 0x64);
+#endif
 }

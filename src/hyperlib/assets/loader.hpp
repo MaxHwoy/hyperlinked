@@ -60,6 +60,11 @@ namespace hyper
         static void unload_chunks(void* memory, size_t size);
 
         static void load_temp_perm_chunks(void** memory, size_t* size, std::uint32_t alloc_params, const char* debug_name);
+
+        static void post_load_fixup();
+
+    public:
+        static inline bool& post_load_fixup_disabled = *reinterpret_cast<bool*>(0x00A995F8);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(loader::streaming_entry::flags);

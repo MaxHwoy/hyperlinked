@@ -3,31 +3,13 @@
 #include <hyperlib/memory/memory.hpp>
 #include <hyperlib/memory/slot_pool.hpp>
 #include <hyperlib/memory/ts_memory_pool.hpp>
+#include <hyperlib/streamer/streamer.hpp>
 
 #include <hyperlinked/patches/memory.hpp>
 #include <hyperlinked/car_loader.hpp>
-#include <hyperlinked/track_streamer.hpp>
 
 namespace hyper
 {
-    void init_hyper_streamer_pool(void* __this, alloc_size_t size)
-    {
-        track_streamer* streamer = reinterpret_cast<track_streamer*>(__this);
-
-        size = math::align_pow_2<alloc_size_t>(size, 0x80u);
-
-#if defined(_DEBUG)
-        streamer->memory_pool_size = static_cast<alloc_size_t>(std::numeric_limits<std::int32_t>::max());
-        streamer->memory_pool_heap = memory::malloc_debug(size, memory::create_allocation_params(memory::pool_type::main, false, false, 0x80u, 0x00u), __FILE__, __LINE__);
-#else
-        streamer->memory_pool_size = static_cast<alloc_size_t>(std::numeric_limits<std::int32_t>::max());
-        streamer->memory_pool_heap = memory::malloc(size, memory::create_allocation_params(memory::pool_type::main, false, false, 0x80u, 0x00u));
-#endif
-        streamer->memory_pool = new ts_memory_pool(streamer->memory_pool_heap, size, "Hyper Streamer", static_cast<char>(memory::pool_type::streamer));
-
-        memory::set_pool_override_info(memory::pool_type::streamer, streamer->memory_pool->get_override_info());
-    }
-
     void init_car_loader_pool(void* __this, alloc_size_t size)
     {
         car_loader* loader = reinterpret_cast<car_loader*>(__this);
@@ -1541,48 +1523,7 @@ namespace hyper
         }
     }
 
-    __declspec(naked) void detour_init_hyper_streamer_pool()
-    {
-        __asm
-        {
-            // 'size' is already in ebx and pushed, meaning [esp + 0x00]
-            // 'this' is in ecx, push as well to avoid '__thiscall' conv
-
-            // NOTE!!! since the function is a __thiscall originally, we
-            // have to clear the stack ourselves here! we pass only 1 
-            // argument via stack by default, which is 'size' argument;
-            // we can either increment esp manually by 4 at the end and
-            // then push the return address, or we can straight up 
-            // overwrite at the end the 'size' argument present on stack
-            // with the return address
-
-            push eax; // 'size' is now at [esp + 0x04]
-            push ebx; // 'size' is now at [esp + 0x08]
-            push ecx; // 'size' is now at [esp + 0x0C]
-            push edx; // 'size' is now at [esp + 0x10]
-            push esi; // 'size' is now at [esp + 0x14]
-            push edi; // 'size' is now at [esp + 0x18]
-
-            push [esp + 0x18]; // push 'size'
-            push ecx;          // push 'this'
-
-            call init_hyper_streamer_pool; // call custom initializer
-
-            add esp, 0x08; // since we repushed all arguments
-
-            pop edi; // restore saved register
-            pop esi; // restore saved register
-            pop edx; // restore saved register
-            pop ecx; // restore saved register
-            pop ebx; // restore saved register
-            pop eax; // restore saved register
-
-            mov dword ptr [esp], 0x006B6F32; // read the top comment
-            retn; // return
-        }
-    }
-
-    __declspec(naked) void detour_init_car_loader_pool()
+    __declspec(naked) void detour_car_loader_set_memory_pool_size()
     {
         __asm
         {
@@ -1612,6 +1553,41 @@ namespace hyper
 
             push 0x007E49F0;
             retn; // return
+        }
+    }
+
+    __declspec(naked) void detour_track_streamer_init_memory_pool()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'pool_size'
+            // ecx contains pointer to streamer
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'pool_size' is now at [esp + 0x08]
+            push ebx; // 'pool_size' is now at [esp + 0x0C]
+            push ecx; // 'pool_size' is now at [esp + 0x10]
+            push edx; // 'pool_size' is now at [esp + 0x14]
+            push esi; // 'pool_size' is now at [esp + 0x18]
+            push edi; // 'pool_size' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'pool_size'
+
+            call streamer::init_memory_pool; // call custom init_memory_pool
+
+            // no need to restore esp since 'init_memory_pool' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to TrackStreamer::InitMemoryPool; note that this is a __thiscall
         }
     }
 
@@ -1749,10 +1725,10 @@ namespace hyper
         // bDeleteSlotPool
         hook::jump(0x00477BD0, &detour_b_delete_slot_pool);
 
-        // TrackStreamer::InitMemoryPool
-        hook::jump(0x006B6F2D, &detour_init_hyper_streamer_pool);
-
         // CarLoader::SetMemoryPoolSize
-        hook::jump(0x007E49A5, &detour_init_car_loader_pool);
+        //hook::jump(0x007E49A5, &detour_car_loader_set_memory_pool_size);
+
+        // TrackStreamer::InitMemoryPool
+        //hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
     }
 }

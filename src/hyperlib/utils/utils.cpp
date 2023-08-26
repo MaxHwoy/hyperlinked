@@ -1,6 +1,8 @@
 #include <thread>
 #include <hyperlib/utils/utils.hpp>
 
+using signed_t = std::make_signed_t<size_t>;
+
 namespace hyper
 {
     void utils::init_ticker()
@@ -18,6 +20,11 @@ namespace hyper
         return call_function<float(__cdecl*)(std::uint32_t, std::uint32_t)>(0x0046CEF0)(start_ticks, end_ticks);
     }
 
+    auto utils::get_debug_real_time() -> float
+    {
+        return call_function<float(__cdecl*)()>(0x006A26D0)();
+    }
+
     void utils::thread_yield(std::uint32_t ms)
     {
         call_function<void(__cdecl*)(std::uint32_t)>(0x0046D0E0)(ms);
@@ -30,12 +37,12 @@ namespace hyper
             return nullptr;
         }
 
-        size_t start = 0u;
-        size_t end = table_size - 1u;
+        signed_t start = 0;
+        signed_t end = static_cast<signed_t>(table_size) - 1;
 
         while (start <= end)
         {
-            size_t middle = start + ((end - start) >> 1u); // do this instead of (end + start) >> 1 b/c no overflow
+            size_t middle = static_cast<size_t>(start + ((end - start) >> 1u)); // do this instead of (end + start) >> 1 b/c no overflow
 
             uintptr_t address = reinterpret_cast<uintptr_t>(table_ptr) + middle * entry_size;
 
@@ -62,11 +69,11 @@ namespace hyper
 
             if (key < compare)
             {
-                end = middle;
+                end = static_cast<signed_t>(middle) - 1;
             }
             else
             {
-                start = middle;
+                start = static_cast<signed_t>(middle) + 1;
             }
         }
 
@@ -80,12 +87,12 @@ namespace hyper
             return nullptr;
         }
 
-        size_t start = 0u;
-        size_t end = table_size - 1u;
+        signed_t start = 0;
+        signed_t end = table_size - 1;
 
         while (start <= end)
         {
-            size_t middle = start + ((end - start) >> 1u); // do this instead of (end + start) >> 1 b/c no overflow
+            size_t middle = static_cast<size_t>(start + ((end - start) >> 1u)); // do this instead of (end + start) >> 1 b/c no overflow
 
             uintptr_t address = reinterpret_cast<uintptr_t>(table_ptr) + middle * entry_size;
 
@@ -112,11 +119,11 @@ namespace hyper
 
             if (key < compare)
             {
-                end = middle;
+                end = static_cast<signed_t>(middle) - 1;
             }
             else
             {
-                start = middle;
+                start = static_cast<signed_t>(middle) + 1;
             }
         }
 

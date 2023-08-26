@@ -1,3 +1,4 @@
+#include <hyperlib/bench.hpp>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/utils/file.hpp>
@@ -9,10 +10,12 @@
 #include <hyperlib/streamer/track_path.hpp>
 #include <hyperlib/streamer/streamer.hpp>
 
-//#define SORT_STREAMING_SECTIONS
-
 namespace hyper
 {
+#if defined(USE_HYPER_STREAMER)
+    streamer streamer::instance = streamer();
+#endif
+
     streamer::streamer() :
         current_section_table(streamer::section_table_memory_.pointer(), streamer::section_table_memory_.length()),
         sections(nullptr),
@@ -58,6 +61,8 @@ namespace hyper
 
     void streamer::activate_section(streamer::section& section)
     {
+        BENCHMARK();
+
         std::uint32_t params = memory::create_allocation_params(memory::pool_type::streamer, false, true, 0x80u, 0x00u);
 
         global::allow_duplicate_solids++;
@@ -120,9 +125,122 @@ namespace hyper
         }
     }
 
-    void streamer::allocate_section_memory(std::uint32_t* total_needing_allocation)
+    auto streamer::allocate_section_memory(std::uint32_t* total_needing_allocation) -> std::uint32_t
     {
-        call_function<void(__thiscall*)(streamer*, std::uint32_t*)>(0x0079EA00)(this, total_needing_allocation);
+        BENCHMARK();
+
+        std::uint32_t total_out_of_memory = 0u;
+        std::uint32_t total_memory_allocated = 0u;
+        std::uint32_t total_sections_alloced = 0u;
+
+        if (this->phase == loading_phase::allocating_regular_sections && this->discs < this->last_disc)
+        {
+            disc_bundle* current = this->discs;
+
+            do
+            {
+                std::uint32_t matching = 0u;
+
+                for (std::uint32_t i = 0u; i < current->member_count; ++i)
+                {
+                    streamer::section* section = current->members[i].section;
+
+                    if (section->currently_visible == 0u || section->status != section::status_type::unloaded)
+                    {
+                        break;
+                    }
+
+                    matching++;
+                }
+
+                if (matching == current->member_count)
+                {
+                    std::uint32_t params = memory::create_allocation_params(memory::pool_type::streamer, false, true, 0x80u, 0x00u);
+
+                    for (std::uint32_t i = 0u; i < current->member_count; ++i)
+                    {
+                        streamer::section* section = current->members[i].section;
+#if defined(_DEBUG)
+                        section->memory = memory::malloc_debug(section->size, params, __FILE__, __LINE__);
+#else
+                        section->memory = memory::malloc(section->size, params);
+#endif
+                        section->disc = current;
+                        section->status = section::status_type::allocated;
+                    }
+
+                    total_memory_allocated += current->file_size;
+                    total_sections_alloced++;
+                }
+
+                uintptr_t address = reinterpret_cast<uintptr_t>(current);
+
+                address += (sizeof(disc_bundle) - sizeof(disc_bundle::members)) + current->member_count * sizeof(disc_bundle::member);
+
+                current = reinterpret_cast<disc_bundle*>(address);
+            }
+            while (current < this->last_disc);
+        }
+
+        for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
+        {
+            streamer::section* section = this->current_sections[i];
+
+            if (section->status == section::status_type::unloaded)
+            {
+                std::uint16_t section_number = section->number;
+
+                if (!game_provider::is_shared_section_number(section_number))
+                {
+                    if (this->phase == loading_phase::allocating_texture_sections && !game_provider::is_textures_asset_section(section_number))
+                    {
+                        continue;
+                    }
+
+                    if (this->phase == loading_phase::allocating_geometry_sections && !game_provider::is_geometry_asset_section(section_number))
+                    {
+                        continue;
+                    }
+                }
+
+                std::uint32_t params = memory::create_allocation_params(memory::pool_type::streamer, false, true, 0x80u, 0x00u);
+
+                total_memory_allocated += section->size;
+
+                if (section->size <= memory::largest_malloc(params))
+                {
+#if defined(_DEBUG)
+                    section->memory = memory::malloc_debug(section->size, params, __FILE__, __LINE__);
+#else
+                    section->memory = memory::malloc(section->size, params);
+#endif
+                    assert(section->memory);
+
+                    section->status = section::status_type::allocated;
+
+                    if (++total_sections_alloced >= 2)
+                    {
+                        this->current_zone_allocated_but_incomplete = true;
+
+                        *total_needing_allocation = total_memory_allocated;
+
+                        return total_out_of_memory;
+                    }
+                }
+                else
+                {
+                    total_out_of_memory += section->size;
+
+                    this->out_of_memory_section_count++;
+                }
+            }
+        }
+
+        this->current_zone_allocated_but_incomplete = false;
+
+        *total_needing_allocation = total_memory_allocated;
+
+        return total_out_of_memory;
     }
 
     auto streamer::allocate_user_memory(std::uint32_t size, const char* debug_name, std::uint32_t offset) -> void*
@@ -144,6 +262,8 @@ namespace hyper
 
     void streamer::assign_loading_priority()
     {
+        BENCHMARK();
+
         for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
         {
             streamer::section* section = this->current_sections[i];
@@ -164,12 +284,16 @@ namespace hyper
 
     void streamer::block_until_loading_complete()
     {
+        BENCHMARK();
+
         this->refresh_loading();
         this->wait_for_current_loading_to_complete();
     }
 
     void streamer::calculate_loading_backlog()
     {
+        BENCHMARK();
+
         float total_backlog = 0.0f;
 
         for (std::uint32_t i = 0u; i < this->current_section_count; ++i)
@@ -208,9 +332,11 @@ namespace hyper
 
     bool streamer::check_loading_bar()
     {
+        BENCHMARK();
+
         float min_loading = 999.0f;
 
-        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+        std::uint32_t lod_offset = visible_section::manager::instance.get_lod_offset();
 
         for (std::uint32_t i = 0u; i < std::size(this->position_entries); ++i)
         {
@@ -314,6 +440,8 @@ namespace hyper
 
     bool streamer::determine_current_zones(std::uint16_t* zones)
     {
+        BENCHMARK();
+
         bool refresh = false;
 
         for (std::uint32_t i = 0; i < std::size(this->position_entries); ++i)
@@ -366,6 +494,8 @@ namespace hyper
 
     void streamer::determine_streaming_sections()
     {
+        BENCHMARK();
+
         std::uint16_t sections_to_load[0x180];
 
         this->remove_current_streaming_sections();
@@ -444,7 +574,9 @@ namespace hyper
 
     auto streamer::find_section(std::uint16_t section_number) -> section*
     {
-#if defined(SORT_STREAMING_SECTIONS)
+        BENCHMARK();
+
+#if defined(USE_HYPER_STREAMER)
         return reinterpret_cast<section*>(utils::scan_hash_table_key16(section_number, this->sections, this->section_count, offsetof(section, number), sizeof(section)));
 #else
         for (std::uint32_t i = 0u; i < this->section_count; ++i)
@@ -463,6 +595,8 @@ namespace hyper
 
     void streamer::finished_loading()
     {
+        BENCHMARK();
+
         if (grid::maker::instance != nullptr && grid::maker::instance->the_grid != nullptr)
         {
             grid::maker::instance->set_start_position();
@@ -512,7 +646,7 @@ namespace hyper
 
     auto streamer::get_combined_section_number(std::uint16_t section_number) -> std::uint16_t
     {
-        std::uint32_t lod_offset = visible_section::manager::instance.pack->lod_offset;
+        std::uint32_t lod_offset = visible_section::manager::instance.get_lod_offset();
 
         if (!game_provider::is_scenery_section_drivable(section_number, lod_offset))
         {
@@ -524,7 +658,7 @@ namespace hyper
             return section_number;
         }
 
-        std::uint32_t lod_number = game_provider::get_lod_from_drivable_number(section_number, lod_offset);
+        std::uint16_t lod_number = game_provider::get_lod_from_drivable_number(section_number, lod_offset);
 
         if (this->find_section(lod_number) != nullptr)
         {
@@ -543,11 +677,15 @@ namespace hyper
             return 0;
         }
 
-        float speed = 100.0f;
+        float speed;
 
-        if (!use_direction)
+        if (use_direction)
         {
-            float speed = entry.velocity.magnitude();
+            speed = 100.0f;
+        }
+        else
+        {
+            speed = entry.velocity.magnitude();
 
             if (speed < 1.0f)
             {
@@ -627,12 +765,162 @@ namespace hyper
 
     void streamer::handle_loading()
     {
-        call_function<void(__thiscall*)(streamer*)>(0x007A7230)(this);
+        BENCHMARK();
+
+        if (this->skip_next_handle_load)
+        {
+            this->skip_next_handle_load = false;
+        }
+        else
+        {
+            while (true)
+            {
+                if (this->phase == loading_phase::idle)
+                {
+                    break;
+                }
+
+                if (this->phase == loading_phase::loading_texture_sections ||
+                    this->phase == loading_phase::loading_geometry_sections ||
+                    this->phase == loading_phase::loading_regular_sections)
+                {
+                    this->start_loading_sections();
+
+                    if (this->loading_section_count == 0u)
+                    {
+                        loading_phase next_phase;
+
+                        if (this->current_zone_allocated_but_incomplete)
+                        {
+                            next_phase = static_cast<loading_phase>(static_cast<std::uint32_t>(this->phase) - 1u);
+                        }
+                        else
+                        {
+                            if (this->phase == loading_phase::loading_regular_sections)
+                            {
+                                this->finished_loading();
+
+                                return;
+                            }
+
+                            next_phase = static_cast<loading_phase>(static_cast<std::uint32_t>(this->phase) + 1u);
+                        }
+
+                        this->set_loading_phase(next_phase);
+                    }
+                }
+
+                if (this->phase != loading_phase::allocating_texture_sections &&
+                    this->phase != loading_phase::allocating_geometry_sections &&
+                    this->phase != loading_phase::allocating_regular_sections ||
+                    this->loading_section_count != 0u)
+                {
+                    return;
+                }
+
+                bool has_any_deactivated = false;
+
+                for (std::uint32_t i = 0u; i < this->section_count; ++i)
+                {
+                    streamer::section& section = this->sections[i];
+
+                    if (section.status == section::status_type::activated && section.currently_visible == 0u)
+                    {
+                        if ((this->phase == loading_phase::allocating_geometry_sections && game_provider::is_textures_asset_section(section.number)) ||
+                            (this->phase == loading_phase::allocating_regular_sections && game_provider::is_geometry_asset_section(section.number)))
+                        {
+                            this->unactivate_section(section);
+
+                            has_any_deactivated = true;
+                        }
+                    }
+                }
+
+                if (has_any_deactivated)
+                {
+                    this->skip_next_handle_load = true;
+
+                    return;
+                }
+
+                loader::post_load_fixup_disabled = true;
+
+                bool handled = this->handle_memory_allocation();
+
+                loader::post_load_fixup_disabled = false;
+
+                if (this->moved_section_count != 0u)
+                {
+                    loader::post_load_fixup();
+                }
+
+                if (!handled)
+                {
+                    return;
+                }
+
+                this->set_loading_phase(static_cast<loading_phase>(static_cast<std::uint32_t>(this->phase) + 1u));
+
+                if (this->phase == loading_phase::loading_texture_sections || this->phase == loading_phase::loading_geometry_sections)
+                {
+                    this->unjettison_sections();
+                }
+
+                if (this->skip_next_handle_load)
+                {
+                    this->skip_next_handle_load = false;
+
+                    return;
+                }
+            }
+        }
     }
 
     bool streamer::handle_memory_allocation()
     {
-        return call_function<bool(__thiscall*)(streamer*)>(0x007A7060)(this);
+        BENCHMARK();
+
+        // while (this->unload_least_recently_used_section());
+
+        this->unload_least_recently_used_section();
+
+        this->moved_section_count = 0u;
+
+        std::uint32_t amount_needed = 0u;
+        std::uint32_t out_of_memory = 0u;
+
+        while (true)
+        {
+            this->free_section_memory();
+
+            out_of_memory = this->allocate_section_memory(&amount_needed);
+
+            if (out_of_memory == 0u)
+            {
+                break;
+            }
+
+            this->free_section_memory();
+
+            if (!this->unload_least_recently_used_section())
+            {
+                this->current_zone_out_of_memory = true;
+
+                while (amount_needed + 0x4000u > memory::count_free_memory(memory::pool_type::streamer))
+                {
+                    streamer::section* jettisonned = this->jettison_least_important_section();
+
+                    if (jettisonned == nullptr)
+                    {
+                        return false;
+                    }
+
+                    this->jettison_section(*jettisonned);
+                }
+            }
+        }
+
+        return true;
     }
 
     void streamer::init_memory_pool(alloc_size_t pool_size)
@@ -651,6 +939,8 @@ namespace hyper
 
     void streamer::init_region(const char* file, bool is_split_screen)
     {
+        BENCHMARK();
+
         this->split_screen = is_split_screen;
 
         ::strcpy(reinterpret_cast<char*>(this->filenames[1]), file);
@@ -681,7 +971,7 @@ namespace hyper
 
         visible_section::manager& manager = visible_section::manager::instance;
 
-        std::uint32_t lod_offset = manager.pack->lod_offset;
+        std::uint32_t lod_offset = manager.get_lod_offset();
 
         for (std::uint32_t i = 0u; i < this->section_count; ++i)
         {
@@ -703,8 +993,18 @@ namespace hyper
         return !this->are_all_sections_activated();
     }
 
+    bool streamer::is_user_memory(const void* ptr)
+    {
+        return memory::is_in_memory_pool(memory::pool_type::streamer, ptr);
+    }
+
     auto streamer::jettison_least_important_section() -> streamer::section*
     {
+        if (this->jettisoned_section_count == std::size(this->jettisoned_sections))
+        {
+            return nullptr;
+        }
+
         streamer::section* best_to_jett = nullptr;
 
         std::uint32_t max_priority = 0u;
@@ -859,7 +1159,7 @@ namespace hyper
 
             disc_bundle* current = this->discs;
 
-            while (current != this->last_disc)
+            while (current < this->last_disc)
             {
                 for (std::uint32_t i = 0u; i < current->member_count; ++i)
                 {
@@ -882,7 +1182,7 @@ namespace hyper
                 case block_id::track_streaming_sections:
                     this->sections = reinterpret_cast<section*>(block->data());
                     this->section_count = block->size() / sizeof(section);
-#if defined(SORT_STREAMING_SECTIONS)
+#if defined(USE_HYPER_STREAMER)
                     utils::sort(this->sections, this->section_count, [](const section& lhs, const section& rhs) -> bool { return lhs.number < rhs.number; });
 #endif
                     return true;
@@ -1070,6 +1370,8 @@ namespace hyper
 
     void streamer::service_game_state()
     {
+        BENCHMARK();
+
         std::uint16_t zones[2]{};
 
         if (!this->zone_switching_disabled && !this->memory_heap.is_empty() && this->determine_current_zones(zones))
@@ -1094,7 +1396,23 @@ namespace hyper
 
     void streamer::service_non_game_state()
     {
+        BENCHMARK();
+
         this->handle_loading();
+    }
+
+    void streamer::set_loading_phase(loading_phase new_phase)
+    {
+        this->phase = new_phase;
+
+        if (new_phase == loading_phase::idle || new_phase == loading_phase::loading_regular_sections)
+        {
+            file::set_queued_file_min_priority(0);
+        }
+        else
+        {
+            file::set_queued_file_min_priority(file::default_queued_file_priority);
+        }
     }
 
     void streamer::set_streaming_position(position_type type, const vector3& position)
@@ -1119,6 +1437,8 @@ namespace hyper
 
     void streamer::start_loading_sections()
     {
+        BENCHMARK();
+
         while (this->loading_section_count < 2)
         {
             streamer::section* best_to_load = nullptr;
@@ -1173,11 +1493,116 @@ namespace hyper
 
     void streamer::switch_zones(const std::uint16_t* zones)
     {
-        call_function<void(__thiscall*)(streamer*, const std::uint16_t*)>(0x007A7F10)(this, zones);
+        BENCHMARK();
+
+        this->start_loading_time = utils::get_debug_real_time();
+
+        this->current_zone_needs_refreshing = false;
+
+        for (std::uint32_t i = 0u; i < std::size(this->position_entries); ++i)
+        {
+            std::uint16_t section_number = zones[i];
+
+            position_entry& entry = this->position_entries[i];
+
+            if (section_number != entry.current_zone)
+            {
+                const visible_section::boundary* prev_boundary = visible_section::manager::instance.find_boundary(entry.current_zone);
+
+                const visible_section::boundary* next_boundary = visible_section::manager::instance.find_boundary(section_number);
+
+                if (prev_boundary == nullptr || next_boundary == nullptr || prev_boundary->point_count == 0u)
+                {
+                    this->current_zone_far_load = true;
+                }
+                else
+                {
+                    float min_distance = 10000.0f;
+
+                    for (std::uint32_t k = 0u; k < prev_boundary->point_count; ++k)
+                    {
+                        min_distance = math::min(min_distance, visible_section::manager::get_distance_outside(next_boundary, prev_boundary->points[k], 999.0f));
+                    }
+
+                    if (min_distance > 30.0f)
+                    {
+                        this->current_zone_far_load = true;
+                    }
+                }
+
+                entry.current_zone = section_number;
+                entry.begin_loading_position = entry.position2D;
+                entry.begin_loading_time = this->start_loading_time;
+                entry.sections_to_load_count = 0u;
+                entry.loaded_section_count = 0u;
+                entry.amount_to_load = 0u;
+                entry.amount_loaded = 0u;
+            }
+        }
+
+        if (zones[0] == 0u)
+        {
+            this->current_zone_name[0] = '-';
+            this->current_zone_name[1] = '-';
+            this->current_zone_name[2] = 0;
+        }
+        else
+        {
+            game_provider::get_section_name_from_number(zones[0], reinterpret_cast<char*>(this->current_zone_name));
+        }
+
+        this->determine_streaming_sections();
+
+        bool has_any_deactivated = false;
+
+        loader::post_load_fixup_disabled = true;
+
+        for (std::uint32_t i = 0u; i < this->section_count; ++i)
+        {
+            streamer::section& section = this->sections[i];
+
+            if (section.status == section::status_type::activated && section.currently_visible == 0u)
+            {
+                if (!game_provider::is_textures_asset_section(section.number) && !game_provider::is_geometry_asset_section(section.number))
+                {
+                    this->unactivate_section(section);
+
+                    has_any_deactivated = true;
+                }
+            }
+        }
+
+        loader::post_load_fixup_disabled = false;
+
+        if (has_any_deactivated)
+        {
+            loader::post_load_fixup();
+
+            this->skip_next_handle_load = true;
+        }
+
+        this->free_section_memory();
+
+        this->phase = loading_phase::allocating_texture_sections;
+
+        file::set_queued_file_min_priority(file::default_queued_file_priority);
+
+        this->current_zone_out_of_memory = false;
+        this->current_zone_allocated_but_incomplete = false;
+        this->memory_safety_margin = 0u;
+        this->amount_jettisoned = 0u;
+        this->jettisoned_section_count = 0u;
+#if defined(_DEBUG)
+        ::memset(this->jettisoned_sections, 0, sizeof(this->jettisoned_sections));
+#endif
+        this->assign_loading_priority();
+        this->calculate_loading_backlog();
     }
 
     void streamer::unactivate_section(streamer::section& section)
     {
+        BENCHMARK();
+
         section.unactivated_frame_count = global::frame_counter;
 
         loader::unload_chunks(section.memory, section.loaded_size);
@@ -1211,6 +1636,8 @@ namespace hyper
 
     void streamer::unload_everything()
     {
+        BENCHMARK();
+
         while (this->loading_section_count != 0u)
         {
             loader::service_resource_loading();
@@ -1228,6 +1655,40 @@ namespace hyper
 
         this->free_section_memory();
         this->clear_current_zones();
+    }
+
+    bool streamer::unload_least_recently_used_section()
+    {
+        streamer::section* best_to_unload = nullptr;
+
+        for (std::uint32_t i = 0u; i < this->section_count; ++i)
+        {
+            streamer::section* section = this->sections + i;
+
+            if (section->status == section::status_type::loaded && section->currently_visible == 0u)
+            {
+                if (best_to_unload == nullptr)
+                {
+                    best_to_unload = section;
+                }
+                else
+                {
+                    if (section->last_needed_timestamp < best_to_unload->last_needed_timestamp)
+                    {
+                        best_to_unload = section;
+                    }
+                }
+            }
+        }
+
+        if (best_to_unload == nullptr)
+        {
+            return false;
+        }
+
+        this->unload_section(*best_to_unload);
+
+        return true;
     }
 
     void streamer::unload_section(streamer::section& section)
@@ -1289,6 +1750,8 @@ namespace hyper
 
     void streamer::wait_for_current_loading_to_complete()
     {
+        BENCHMARK();
+
         while (!this->are_all_sections_activated())
         {
             this->handle_loading();

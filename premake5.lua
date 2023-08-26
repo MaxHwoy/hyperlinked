@@ -58,6 +58,8 @@ workspace "hyperlinked"
 			"DEBUG",
 			"TRACE_HEAP_ALLOCATIONS",
 			"CONCURRENT_POOL_ACCESS",
+			"USE_HYPER_VISIBILITY",
+			"USE_HYPER_STREAMER"
 		}
 		optimize "debug"
 		inlining "disabled"
@@ -68,7 +70,9 @@ workspace "hyperlinked"
 		defines {
 			"NDEBUG",
 			"USE_SIMD_VECTORIZATIONS",
-			"CONCURRENT_POOL_ACCESS"
+			"CONCURRENT_POOL_ACCESS",
+			"USE_HYPER_VISIBILITY",
+			"USE_HYPER_STREAMER"
 		}
 		optimize "full"
 		inlining "auto"

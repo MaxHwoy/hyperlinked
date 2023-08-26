@@ -20,6 +20,7 @@ bool IsBadReadPtr(void* ptr, std::uint32_t size)
 
 namespace hyper
 {
+#if defined(USE_HYPER_MEMORY)
     memory_pool::override_info::override_info(const char* name, void* pool, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
     {
         this->name_ = name;
@@ -29,6 +30,19 @@ namespace hyper
         this->amount_free_ = amount_free_ptr;
         this->largest_free_ = largest_free_ptr;
     }
+#else
+    memory_pool::override_info::override_info(const char* name, void* pool, void* memory, alloc_size_t size, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
+    {
+        this->name_ = name;
+        this->pool_ = pool;
+        this->memory_ = memory;
+        this->size_ = size;
+        this->malloc_ = malloc_ptr;
+        this->free_ = free_ptr;
+        this->amount_free_ = amount_free_ptr;
+        this->largest_free_ = largest_free_ptr;
+    }
+#endif
 
     auto memory_pool::override_info::name() const -> const char*
     {
@@ -37,6 +51,7 @@ namespace hyper
 
     auto memory_pool::override_info::allocate_memory(char pool_number, alloc_size_t size, const char* debug_text, std::int32_t debug_line, std::uint32_t params) const -> void*
     {
+#if defined(USE_HYPER_MEMORY)
         void* ptr = this->malloc_(this->pool_, size, sizeof(alloc_block), params);
 
         if (ptr != nullptr)
@@ -48,21 +63,26 @@ namespace hyper
             block->prepad = 0u;
             block->pool_number = pool_number;
             block->magic_number = memory_pool::alloc_override_magic;
-
 #if defined(TRACE_HEAP_ALLOCATIONS)
             block->debug_text = debug_text;
             block->debug_line = debug_line;
 #endif
-
             return block + 1;
         }
 
         return nullptr;
+#else
+        return this->malloc_(this->pool_, size, debug_text, debug_line, params);
+#endif
     }
 
     void memory_pool::override_info::release_memory(void* ptr) const
     {
+#if defined(USE_HYPER_MEMORY)
         this->free_(this->pool_, reinterpret_cast<alloc_block*>(ptr) - 1);
+#else
+        this->free_(this->pool_, ptr);
+#endif
     }
 
     auto memory_pool::override_info::get_amount_free() const -> alloc_size_t
@@ -74,6 +94,13 @@ namespace hyper
     {
         return this->largest_free_(this->pool_);
     }
+
+#if !defined(USE_HYPER_MEMORY)
+    bool memory_pool::override_info::contains(const void* ptr) const
+    {
+        return ptr >= this->memory_ && ptr < reinterpret_cast<const char*>(this->memory_) + this->size_;
+    }
+#endif
 
     memory_pool::memory_pool() : free_block_list_(), alloc_block_list_(), buffer_block_list_(), mutex_()
     {
@@ -89,13 +116,17 @@ namespace hyper
         this->least_amount_free_ = 0;
         this->debug_fill_enabled_ = false;
         this->unlimited_pool_ = false;
-        this->pool_number_ = 0;
+#if defined(USE_HYPER_MEMORY)
         this->initialized_ = false;
+        this->pool_number_ = 0;
+#endif
     }
 
     memory_pool::~memory_pool()
     {
+#if defined(USE_HYPER_MEMORY)
         if (this->initialized_)
+#endif
         {
             for (buffer_block* i = this->buffer_block_list_.begin(); i != this->buffer_block_list_.end(); /* empty */)
             {
@@ -122,18 +153,25 @@ namespace hyper
             this->least_amount_free_ = 0u;
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
-            this->pool_number_ = 0;
+#if defined(USE_HYPER_MEMORY)
             this->initialized_ = false;
+            this->pool_number_ = 0;
+#endif
         }
     }
 
     void memory_pool::initialize(void* address, alloc_size_t size, char pool_number, const char* debug_name)
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
         if (!this->initialized_)
+#endif
         {
+            this->free_block_list_.clear();
+            this->alloc_block_list_.clear();
+            this->buffer_block_list_.clear();
             this->initial_address_ = address;
             this->initial_size_ = size;
             this->num_allocations_ = 0u;
@@ -146,26 +184,24 @@ namespace hyper
             this->debug_fill_enabled_ = true;
             this->unlimited_pool_ = false;
             this->debug_name_ = debug_name;
-            this->pool_number_ = pool_number;
-
-            if (memory::memory_tracing())
-            {
-                this->trace_new_pool();
-            }
-
-            this->add_free_memory(address, size, debug_name);
-
+#if defined(USE_HYPER_MEMORY)
             this->initialized_ = true;
+            this->pool_number_ = pool_number;
+#else
+            this->mutex_.create();
+#endif
+            this->add_free_memory(address, size, debug_name);
         }
     }
 
     void memory_pool::close()
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-
         if (this->initialized_)
+#endif
         {
             if (this->num_allocations_ > 0)
             {
@@ -199,31 +235,55 @@ namespace hyper
             this->least_amount_free_ = 0u;
             this->debug_fill_enabled_ = false;
             this->unlimited_pool_ = false;
-            this->pool_number_ = 0;
+#if defined(USE_HYPER_MEMORY)
             this->initialized_ = false;
+            this->pool_number_ = 0;
+#else
+            this->mutex_.destroy();
+#endif
         }
     }
 
     void memory_pool::verify_pool_integrity(bool verify_free_pattern)
     {
-#if defined (CONCURRENT_POOL_ACCESS)
+#if defined(USE_HYPER_MEMORY)
+#if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
+#endif
+#else
+        LOCK_MUTEX(this->mutex_);
 #endif
         this->verify_pool_integrity_internal(verify_free_pattern);
     }
 
-    auto memory_pool::get_amount_free() const -> alloc_size_t
+    auto memory_pool::get_amount_free() -> alloc_size_t
     {
+#if defined(USE_HYPER_MEMORY)
         return this->amount_free_;
+#else
+        LOCK_MUTEX(this->mutex_);
+
+        alloc_size_t total = 0u;
+
+        for (const free_block* i = this->free_block_list_.begin(); i != this->free_block_list_.end(); i = i->next())
+        {
+            total += i->size;
+        }
+
+        return total;
+#endif
     }
 
     auto memory_pool::get_largest_free_block() -> alloc_size_t
     {
-#if defined (CONCURRENT_POOL_ACCESS)
+#if defined(USE_HYPER_MEMORY)
+#if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-
-        alloc_size_t largest = 0;
+#else
+        LOCK_MUTEX(this->mutex_);
+#endif
+        alloc_size_t largest = 0u;
 
         for (const free_block* i = this->free_block_list_.begin(); i != this->free_block_list_.end(); i = i->next())
         {
@@ -233,15 +293,15 @@ namespace hyper
             }
         }
 
-        return static_cast<std::int32_t>(largest);
+        return largest;
     }
 
+#if defined(USE_HYPER_MEMORY)
     auto memory_pool::allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line) -> void*
     {
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-
         alloc_size_t true_size = 0u;
         std::uint16_t prepad = 0u;
 
@@ -258,24 +318,53 @@ namespace hyper
             block->prepad = prepad;
             block->pool_number = this->pool_number_;
             block->magic_number = memory_pool::alloc_magic;
-
 #if defined(TRACE_HEAP_ALLOCATIONS)
             block->debug_text = debug_text;
             block->debug_line = debug_line;
 #endif
+            return block + 1;
+        }
+
+        return nullptr;
+    }
+#else
+    auto memory_pool::allocate_memory(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, const char* debug_text, std::int32_t debug_line, char pool) -> void*
+    {
+        LOCK_MUTEX(this->mutex_);
+
+        alloc_size_t true_size = 0u;
+        std::uint16_t prepad = 0u;
+
+        void* ptr = this->allocate_memory_internal(size, alignment, offset, start_from_top, use_best_fit, &true_size, &prepad);
+
+        if (ptr != nullptr)
+        {
+            alloc_block* block = reinterpret_cast<alloc_block*>(ptr);
+
+            this->alloc_block_list_.add(block);
+
+            block->size = true_size;
+            block->requested_size = size;
+            block->prepad = prepad;
+            block->pool_number = pool;
+            block->magic_number = memory_pool::alloc_magic;
 
             return block + 1;
         }
 
         return nullptr;
     }
+#endif
 
     void memory_pool::release_memory(void* ptr)
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-
+#else
+        LOCK_MUTEX(this->mutex_);
+#endif
         if (memory::auto_verify_pool_integrity())
         {
             this->verify_pool_integrity_internal(memory::verify_free_patterns());
@@ -294,30 +383,6 @@ namespace hyper
         this->num_allocations_--;
         this->amount_allocated_ -= size;
         this->amount_free_ = this->total_allocated_ - this->amount_allocated_;
-    }
-
-    void memory_pool::trace_new_pool()
-    {
-        const int max_length = 0x1F;
-        
-        char buffer[max_length + 1];
-
-        const char* name = this->debug_name_;
-
-        if (name != nullptr)
-        {
-            for (int i = 0; i < max_length; ++i)
-            {
-                buffer[i] = name[i];
-
-                if (name[i] == '\0')
-                {
-                    break;
-                }
-            }
-
-            // ok but WHAT IS THE FUCKING POINT BLACKBOX ???
-        }
     }
 
     void memory_pool::verify_pool_integrity_internal(bool verify_free_pattern)
@@ -342,7 +407,7 @@ namespace hyper
         {
             for (const free_block* i = this->free_block_list_.begin(); i != this->free_block_list_.end(); i = i->next())
             {
-                const std::uint32_t* endptr = reinterpret_cast<const std::uint32_t*>(reinterpret_cast<const char*>(i) + i->size);
+                const std::uint32_t* endptr = reinterpret_cast<const std::uint32_t*>(reinterpret_cast<uintptr_t>(i) + i->size);
 
                 for (const std::uint32_t* ptr = reinterpret_cast<const std::uint32_t*>(i + 1); ptr < endptr; ++ptr)
                 {
@@ -478,11 +543,7 @@ namespace hyper
 
     auto memory_pool::allocate_memory_internal(alloc_size_t size, std::uint32_t alignment, std::uint32_t offset, bool start_from_top, bool use_best_fit, alloc_size_t* new_size, std::uint16_t* prepad) -> void*
     {
-#if defined(TARGET_64BIT)
         size = math::align_pow_2<alloc_size_t>(size, memory::memory_alignment);
-#else
-        size = math::align_pow_2<alloc_size_t>(size, memory::memory_alignment);
-#endif
 
         if (size < 0x10)
         {
@@ -689,10 +750,13 @@ namespace hyper
 
     auto memory_pool::get_allocations(void** allocations, std::uint32_t max_allocations) -> std::uint32_t
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
 #endif
-
+#else
+        LOCK_MUTEX(this->mutex_);
+#endif
         this->alloc_block_list_.sort([](const alloc_block* lhs, const alloc_block* rhs) -> std::int32_t
         {
             intptr_t diff = (reinterpret_cast<intptr_t>(lhs) - lhs->prepad) - (reinterpret_cast<intptr_t>(rhs) - rhs->prepad);
@@ -720,8 +784,12 @@ namespace hyper
 
     void memory_pool::print_allocations()
     {
+#if defined(USE_HYPER_MEMORY)
 #if defined(CONCURRENT_POOL_ACCESS)
         const std::lock_guard<std::mutex> lock = std::lock_guard(this->mutex_);
+#endif
+#else
+        LOCK_MUTEX(this->mutex_);
 #endif
         this->print_allocations_internal();
     }
@@ -748,7 +816,7 @@ namespace hyper
 
         for (const alloc_block* i = this->alloc_block_list_.begin(); i != this->alloc_block_list_.end(); i = i->next())
         {
-#if defined(TRACE_HEAP_ALLOCATIONS)
+#if defined(USE_HYPER_MEMORY) && defined(TRACE_HEAP_ALLOCATIONS)
             if (i->debug_line < 0)
             {
                 ::printf("    %5d          0x%08X       0x%08X       %10d       %10d     Caller: 0x%08X\n", index++, reinterpret_cast<uintptr_t>(i) - i->prepad, 

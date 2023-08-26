@@ -4,6 +4,10 @@
 
 namespace hyper
 {
+#if defined(USE_HYPER_VISIBILITY)
+    visible_section::manager visible_section::manager::instance = visible_section::manager();
+#endif
+
     visible_section::manager::manager() :
         drivable_boundary_list(),
         non_drivable_boundary_list(),
@@ -37,6 +41,8 @@ namespace hyper
 
     auto visible_section::manager::get_drivable_section(const vector3& position) -> const drivable*
     {
+        BENCHMARK();
+
         float distance;
 
         const boundary* closest = this->find_closest_boundary(position.as_vector2(), distance);
@@ -71,6 +77,8 @@ namespace hyper
 
     auto visible_section::manager::get_depth_name(const vector3& position) const -> std::uint32_t
     {
+        BENCHMARK();
+
         float maximum = -std::numeric_limits<float>::infinity();
 
         std::uint32_t depth_name = 0u;
@@ -101,6 +109,10 @@ namespace hyper
 
     auto visible_section::manager::get_sections_to_load(const visible_section::loading* loading, std::uint16_t* sections_to_load, std::uint32_t max_sections) -> std::uint32_t
     {
+        BENCHMARK();
+
+        std::uint32_t lod_offset = this->get_lod_offset();
+
         std::uint32_t sections_to_load_count = 0u;
 
         if (loading != nullptr && sections_to_load != nullptr && max_sections > 0u)
@@ -131,9 +143,9 @@ namespace hyper
                 {
                     sections_to_load[sections_to_load_count++] = section_number;
 
-                    if (game_provider::is_scenery_section_drivable(section_number, this->pack->lod_offset))
+                    if (game_provider::is_scenery_section_drivable(section_number, lod_offset))
                     {
-                        section_number = game_provider::get_lod_from_drivable_number(section_number, this->pack->lod_offset);
+                        section_number = game_provider::get_lod_from_drivable_number(section_number, lod_offset);
 
                         if (std::find(sections_to_load, sections_to_load + sections_to_load_count, section_number) == (sections_to_load + sections_to_load_count))
                         {
@@ -149,7 +161,7 @@ namespace hyper
 
     auto visible_section::manager::find_boundary(std::uint16_t section_number) -> const boundary*
     {
-        if (game_provider::is_scenery_section_drivable(section_number, this->pack->lod_offset))
+        if (game_provider::is_scenery_section_drivable(section_number, this->get_lod_offset()))
         {
             for (const boundary* i = this->drivable_boundary_list.begin(); i != this->drivable_boundary_list.end(); i = i->next())
             {
@@ -208,6 +220,8 @@ namespace hyper
 
     auto visible_section::manager::find_closest_boundary(const vector2& position, float& distance) -> const boundary*
     {
+        BENCHMARK();
+
         boundary* closest = nullptr;
 
         distance = std::numeric_limits<float>::infinity();
@@ -302,29 +316,29 @@ namespace hyper
             {
                 switch (i->id())
                 {
-                case block_id::visible_section_pack_header:
-                    this->loader_pack_header(i);
-                    break;
+                    case block_id::visible_section_pack_header:
+                        this->loader_pack_header(i);
+                        break;
 
-                case block_id::visible_section_boundaries:
-                    this->loader_boundaries(i);
-                    break;
+                    case block_id::visible_section_boundaries:
+                        this->loader_boundaries(i);
+                        break;
 
-                case block_id::visible_section_drivables:
-                    this->loader_drivables(i);
-                    break;
+                    case block_id::visible_section_drivables:
+                        this->loader_drivables(i);
+                        break;
 
-                case block_id::visible_section_specifics:
-                    this->loader_specifics(i);
-                    break;
+                    case block_id::visible_section_specifics:
+                        this->loader_specifics(i);
+                        break;
 
-                case block_id::visible_section_loadings:
-                    this->loader_loadings(i);
-                    break;
+                    case block_id::visible_section_loadings:
+                        this->loader_loadings(i);
+                        break;
 
-                case block_id::visible_section_elev_polies:
-                    this->loader_elev_polies(i);
-                    break;
+                    case block_id::visible_section_elev_polies:
+                        this->loader_elev_polies(i);
+                        break;
                 }
             }
 
@@ -375,7 +389,7 @@ namespace hyper
     {
         this->pack = reinterpret_cast<visible_section::pack*>(block->data());
 
-        visible_section::manager::lod_offset = this->pack->lod_offset;
+        visible_section::manager::section_lod_offset = this->pack->lod_offset;
     }
 
     void visible_section::manager::loader_boundaries(chunk* block)
@@ -383,11 +397,13 @@ namespace hyper
         uintptr_t current = reinterpret_cast<uintptr_t>(block->data());
         uintptr_t endaddr = reinterpret_cast<uintptr_t>(block->end());
 
+        std::uint32_t lod_offset = this->get_lod_offset();
+
         while (current < endaddr)
         {
             boundary* bound = reinterpret_cast<boundary*>(current);
 
-            if (game_provider::is_scenery_section_drivable(bound->section_number, this->pack->lod_offset))
+            if (game_provider::is_scenery_section_drivable(bound->section_number, lod_offset))
             {
                 this->drivable_boundary_list.add(bound);
             }
@@ -439,6 +455,8 @@ namespace hyper
 
     auto visible_section::manager::get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float
     {
+        BENCHMARK();
+
         if (math::is_in_bounding_box(position, bound->bbox_min, bound->bbox_max, extra_width))
         {
             std::uint32_t count = static_cast<std::uint32_t>(bound->point_count);

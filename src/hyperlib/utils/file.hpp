@@ -52,10 +52,14 @@ namespace hyper
         };
 
     public:
+        static void set_queued_file_min_priority(std::int32_t priority);
+
         static void add_queued_file(void* buffer, const char* filename, size_t file_pos, size_t num_bytes, void(*callback)(void*, bool), void* callback_param, queued_file_params* params);
 
     public:
         static inline std::int32_t& default_queued_file_priority = *reinterpret_cast<std::int32_t*>(0x00A62EC8);
+
+        static inline std::int32_t& min_queued_file_priority = *reinterpret_cast<std::int32_t*>(0x00A99680);
     };
 
     ASSERT_SIZE(file::queued_file_params, 0x10);

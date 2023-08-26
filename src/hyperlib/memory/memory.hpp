@@ -57,6 +57,9 @@ namespace hyper
         // bMemoryGetAllocationNumber
         static auto get_allocation_count() -> size_t;
 
+        // bIsMemoryPoolInitialized
+        static bool is_memory_pool_initialized(pool_type type);
+
         // bIsMemoryPoolUnlimited
         static bool is_memory_pool_unlimited(pool_type type);
 
@@ -68,6 +71,9 @@ namespace hyper
 
         // bSetMemoryPoolDebugFill
         static void set_memory_pool_debug_fill(pool_type type, bool fill);
+
+        // bSetMemoryPoolDebugTracing
+        static void set_memory_pool_debug_tracing(pool_type type, bool trace);
 
         // bSetMemoryPoolLimitness
         static void set_memory_pool_limitness(memory::pool_type type, bool unlimited);
@@ -208,6 +214,11 @@ namespace hyper
         }
 
     private:
+        static bool memory_tracing_;
+
+        static bool verify_free_patterns_;
+
+#if defined(USE_HYPER_MEMORY)
         static memory_pool_info pool_infos_[static_cast<std::uint32_t>(pool_type::count)];
 
         static memory_pool pools_[static_cast<std::uint32_t>(pool_type::count)];
@@ -216,14 +227,27 @@ namespace hyper
 
         static bool initialized_;
 
-        static bool memory_tracing_;
-
         static bool free_unused_buffers_;
-
-        static bool verify_free_patterns_;
 
         static bool auto_verify_pool_integrity_;
 
         static size_t total_allocations_;
+#else
+        static inline auto pool_infos_ = array<memory_pool_info, static_cast<size_t>(pool_type::count)>(0x00A84B18);
+
+        static inline auto pools_ = array<memory_pool, static_cast<size_t>(pool_type::count)>(0x00A84D00);
+
+        static inline auto pool_ptr_ = array<memory_pool*, static_cast<size_t>(pool_type::count)>(0x00A84C20);
+
+        static inline bool& initialized_ = *reinterpret_cast<bool*>(0x00A853A0);
+
+        static inline bool& free_unused_buffers_ = *reinterpret_cast<bool*>(0x00A4E298);
+
+        static inline bool& auto_verify_pool_integrity_ = *reinterpret_cast<bool*>(0x00A85374);
+
+        static inline size_t& total_allocations_ = *reinterpret_cast<size_t*>(0x00A8539C);
+
+        ASSERT_SIZE(memory::memory_pool_info, 0x10);
+#endif
     };
 }
