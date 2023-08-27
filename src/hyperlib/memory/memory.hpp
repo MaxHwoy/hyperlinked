@@ -219,9 +219,9 @@ namespace hyper
         static bool verify_free_patterns_;
 
 #if defined(USE_HYPER_MEMORY)
-        static memory_pool_info pool_infos_[static_cast<std::uint32_t>(pool_type::count)];
-
         static memory_pool pools_[static_cast<std::uint32_t>(pool_type::count)];
+
+        static memory_pool_info pool_infos_[static_cast<std::uint32_t>(pool_type::count)];
 
         static slot_pool_manager slot_manager_;
 
@@ -233,9 +233,9 @@ namespace hyper
 
         static size_t total_allocations_;
 #else
-        static inline auto pool_infos_ = array<memory_pool_info, static_cast<size_t>(pool_type::count)>(0x00A84B18);
-
         static inline auto pools_ = array<memory_pool, static_cast<size_t>(pool_type::count)>(0x00A84D00);
+
+        static inline auto pool_infos_ = array<memory_pool_info, static_cast<size_t>(pool_type::count)>(0x00A84B18);
 
         static inline auto pool_ptr_ = array<memory_pool*, static_cast<size_t>(pool_type::count)>(0x00A84C20);
 

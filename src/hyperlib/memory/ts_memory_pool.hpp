@@ -23,7 +23,7 @@ namespace hyper
 
     private:
         static auto override_malloc(void* pool, alloc_size_t size, std::uint32_t header_size, std::uint32_t params) -> void*;
-        
+
         static void override_free(void* pool, void* ptr);
         
         static auto override_amount_free(void* pool) -> alloc_size_t;

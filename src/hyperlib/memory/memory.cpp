@@ -12,6 +12,10 @@ namespace hyper
     bool memory::verify_free_patterns_ = false;
 
 #if defined(USE_HYPER_MEMORY)
+    memory_pool memory::pools_[static_cast<std::uint32_t>(memory::pool_type::count)]{};
+
+    memory::memory_pool_info memory::pool_infos_[static_cast<std::uint32_t>(memory::pool_type::count)]{};
+
     bool memory::initialized_ = false;
 
     bool memory::free_unused_buffers_ = true;
@@ -19,10 +23,6 @@ namespace hyper
     bool memory::auto_verify_pool_integrity_ = false;
 
     size_t memory::total_allocations_ = 0u;
-
-    memory_pool memory::pools_[static_cast<std::uint32_t>(memory::pool_type::count)]{};
-
-    memory::memory_pool_info memory::pool_infos_[static_cast<std::uint32_t>(memory::pool_type::count)]{};
 
     slot_pool_manager memory::slot_manager_{};
 #endif
@@ -49,9 +49,6 @@ namespace hyper
 
     void memory::initialize_pool(memory::pool_type type, void* address, alloc_size_t size, const char* debug_name)
     {
-#if !defined(USE_HYPER_MEMORY)
-        memory::pool_ptr_[type] = &memory::pools_[type];
-#endif
         memory::pool_infos_[static_cast<std::uint32_t>(type)].top_means_larger_address = false;
         memory::pool_infos_[static_cast<std::uint32_t>(type)].overflow_pool_number = -1;
         memory::pool_infos_[static_cast<std::uint32_t>(type)].default_alignment = 0x10u;
@@ -61,9 +58,6 @@ namespace hyper
     void memory::close_pool(memory::pool_type type)
     {
         memory::pools_[static_cast<std::uint32_t>(type)].close();
-#if !defined(USE_HYPER_MEMORY)
-        memory::pool_ptr_[type] = nullptr;
-#endif
     }
 
     auto memory::create_persistent_pool(alloc_size_t size) -> pool_type
@@ -89,11 +83,7 @@ namespace hyper
 
     bool memory::is_memory_pool_initialized(memory::pool_type type)
     {
-#if defined(USE_HYPER_MEMORY)
         return memory::pools_[static_cast<std::uint32_t>(type)].initialized();
-#else
-        return memory::pool_ptr_[type] != nullptr;
-#endif
     }
 
     bool memory::is_memory_pool_unlimited(memory::pool_type type)
@@ -416,11 +406,9 @@ namespace hyper
         memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(pool_number)];
         
         std::uint32_t offset = memory::get_offset(params);
-#if defined(USE_HYPER_MEMORY)
+
         void* ptr = pool.allocate_memory(size, alignment, offset, memory::get_start_from_top(params), memory::get_use_best_fit(params), debug_text, static_cast<std::int32_t>(debug_line));
-#else
-        void* ptr = pool.allocate_memory(size, alignment, offset, memory::get_start_from_top(params), memory::get_use_best_fit(params), debug_text, static_cast<std::int32_t>(debug_line), static_cast<char>(pool_number));
-#endif
+
         if (ptr == nullptr)
         {
             pool.print_allocations();
@@ -462,7 +450,6 @@ namespace hyper
 
         if (ptr != nullptr)
         {
-#if defined(USE_HYPER_MEMORY)
             char magic = memory_pool::allocation_magic(ptr);
 
             if (magic == memory_pool::alloc_magic)
@@ -481,42 +468,6 @@ namespace hyper
             {
                 assert(false);
             }
-#else
-            for (std::uint32_t i = 0u; i < static_cast<std::uint32_t>(pool_type::count); ++i)
-            {
-                const memory_pool::override_info* override_info = memory::pool_infos_[i].override_info;
-
-                if (override_info != nullptr && override_info->contains(ptr))
-                {
-                    for (std::uint32_t k = 1u; k < static_cast<std::uint32_t>(pool_type::count); ++k)
-                    {
-                        if (memory::is_memory_pool_initialized(static_cast<pool_type>(k)))
-                        {
-                            if (memory::pools_[k].is_inside_initial_zone(ptr))
-                            {
-                                goto LABEL_DEALLOC;
-                            }
-                        }
-                    }
-
-                    override_info->release_memory(ptr);
-
-                    return;
-                }
-            }
-
-        LABEL_DEALLOC:
-            char magic = memory_pool::allocation_magic(ptr);
-
-            if (magic == memory_pool::alloc_magic)
-            {
-                memory::pools_[memory_pool::allocation_pool(ptr)].release_memory(ptr);
-            }
-            else
-            {
-                assert(false);
-            }
-#endif
         }
     }
 }
