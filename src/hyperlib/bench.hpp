@@ -54,9 +54,9 @@ namespace hyper
 
     bench::~bench()
     {
-        bench::mark& current = bench::marks_[this->id_];
-
         std::chrono::system_clock::duration duration = std::chrono::system_clock::now() - this->start_;
+
+        bench::mark& current = bench::marks_[this->id_];
 
         std::uint64_t elapsed = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count());
 

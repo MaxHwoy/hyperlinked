@@ -6,8 +6,6 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/utils/utils.hpp>
 
-//#define USE_HYPER_MEMORY
-
 #if defined(LARGE_ADDRESS_ALLOC)
 typedef size_t alloc_size_t;
 #else
