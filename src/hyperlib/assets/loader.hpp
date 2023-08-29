@@ -55,11 +55,9 @@ namespace hyper
 
         static void set_delayed_resource_callback(void(*callback)(void*), void* param, bool non_recursive);
 
-        static void load_chunks(void* memory, size_t size);
+        static void load_chunks(void* memory, size_t size, const char* debug_name);
 
         static void unload_chunks(void* memory, size_t size);
-
-        static void endian_swap_chunks_if_needed(chunk* block, size_t size);
 
         static void verify_chunk_integrity(chunk* block, size_t size, std::uint32_t depth);
 

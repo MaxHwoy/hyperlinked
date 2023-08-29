@@ -193,18 +193,18 @@ namespace hyper
 
                 if (pack != nullptr)
                 {
-                    if (pack->tree_nodes)
+                    if (pack->tree_nodes.is_empty())
                     {
-                        this->tree_cull(*pack, cull_info);
-                    }
-                    else
-                    {
-                        std::uint32_t count = pack->instance_count;
+                        size_t count = pack->instances.length();
 
-                        for (std::uint32_t k = 0; k < count; ++k)
+                        for (size_t k = 0; k < count; ++k)
                         {
                             this->draw_a_scenery(*pack, k, cull_info, visible_state::partial);
                         }
+                    }
+                    else
+                    {
+                        this->tree_cull(*pack, cull_info);
                     }
                 }
             }
@@ -260,7 +260,7 @@ namespace hyper
         return count;
     }
 
-    void grand_scenery_cull_info::tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info)
+    void grand_scenery_cull_info::tree_cull(scenery::pack& pack, scenery_cull_info& cull_info)
     {
         BENCHMARK();
 
@@ -269,7 +269,7 @@ namespace hyper
         visible_state state[max_stack];
         std::uint16_t stack[max_stack];
 
-        scenery::tree_node* tree = pack.tree_nodes;
+        const scenery::tree_node* tree = &pack.tree_nodes[0];
 
         stack[0] = 0u;
         state[0] = visible_state::partial;
@@ -280,7 +280,7 @@ namespace hyper
         {
             top--;
 
-            scenery::tree_node* current = stack[top] + tree;
+            const scenery::tree_node* current = stack[top] + tree;
 
             visible_state visible = state[top];
 
@@ -308,14 +308,14 @@ namespace hyper
                     }
                     else
                     {
-                        this->draw_a_scenery(pack, static_cast<std::int32_t>(index), cull_info, visible);
+                        this->draw_a_scenery(pack, static_cast<size_t>(index), cull_info, visible);
                     }
                 }
             }
         }
     }
 
-    bool grand_scenery_cull_info::draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state)
+    bool grand_scenery_cull_info::draw_a_scenery(scenery::pack& pack, size_t instance_index, scenery_cull_info& cull_info, visible_state state)
     {
         BENCHMARK();
 

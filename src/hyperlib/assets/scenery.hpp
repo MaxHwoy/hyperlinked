@@ -40,9 +40,13 @@ namespace hyper
         lightmapped                 = 1u << 31, // 0x80000000
     };
 
+    CREATE_ENUM_FLAG_OPERATORS(instance_flags);
+
     class scenery final
     {
     public:
+        struct pack;
+
         struct light_texture_collection
         {
             geometry::texture_entry light_map_entry[3];
@@ -88,8 +92,12 @@ namespace hyper
 
         struct override_info_hookup
         {
+#if defined(USE_HYPER_SCENERY)
+            std::uint32_t override_info_number;
+#else
             std::uint16_t override_info_number;
             std::uint16_t instance_number;
+#endif
         };
 
         struct preculler_info
@@ -97,22 +105,72 @@ namespace hyper
             std::uint8_t visibility_bits[0x80];
         };
 
-        struct __declspec(align(4)) scenery_group : linked_node<scenery_group>
+        class group : public linked_node<group>
         {
+        public:
+            static void enable(std::uint32_t key, bool flip_artwork);
+
+            static void disable(std::uint32_t key);
+
+            static auto find(std::uint32_t key) -> const group*;
+
+            static bool loader(chunk* block);
+
+            static bool unloader(chunk* block);
+
+        public:
+            void enable_rendering(bool flip_artwork) const;
+
+            void disable_rendering() const;
+
+        public:
             std::uint32_t key;
             std::uint16_t group_number;
-            std::uint16_t index_count;
+            std::uint16_t override_count;
             std::uint8_t barrier_flag;
             std::uint8_t drive_through_barrier_flag;
             std::uint16_t race_specific_section_number;
-            std::uint16_t override_info_numbers[1];
+#if defined(USE_HYPER_SCENERY)
+            std::uint32_t overrides[0x01];
+#else
+            std::uint16_t overrides[0x02];
+#endif
+        public:
+            static inline bool& print_groups = *reinterpret_cast<bool*>(0x00A99630);
+
+            static inline linked_list<group>& list = *reinterpret_cast<linked_list<group>*>(0x00B71430);
+
+            static inline array<std::uint8_t, 0x1000u> enabled_table = array<std::uint8_t, 0x1000u>(0x00A71C28);
+
+        private:
+            static const group* scenery_group_door_;
         };
 
         struct override_info
         {
+        public:
+            constexpr inline static bool can_flip(instance_flags flags)
+            {
+                return (flags & instance_flags::flip_on_backwards_track) != 0;
+            }
+
+            constexpr inline static bool should_flip(instance_flags old_flags, instance_flags new_flags)
+            {
+                return ((old_flags ^ new_flags) & instance_flags::artwork_flipped) != 0;
+            }
+
+        public:
+            void set_exclude_flags(std::uint16_t mask, std::uint16_t flag);
+
+            void assign_overrides(pack& pack) const;
+
+        public:
             std::uint16_t section_number;
             std::uint16_t instance_number;
             std::uint16_t instance_flags;
+
+        public:
+            static inline span<override_info>& table = *reinterpret_cast<span<override_info>*>(0x00B69BE0);
         };
 
         struct custom
@@ -123,37 +181,36 @@ namespace hyper
 
         struct section_box
         {
-            vector4 centre;
+            vector4 center;
             vector4 diag;
         };
 
         struct pack : linked_node<pack>
         {
+        public:
             std::uint32_t chunks_loaded;
             std::uint16_t section_number;
-            __declspec(align(0x04)) std::uint32_t polygon_in_memory_count;
+            std::uint32_t polygon_in_memory_count;
             std::uint32_t polygon_in_world_count;
-            scenery::info* infos;
-            std::uint32_t info_count;
-            scenery::instance* instances;
-            std::uint32_t instance_count;
+            span<scenery::info> infos;
+            span<scenery::instance> instances;
             section_box* ngbbs;
-            tree_node* tree_nodes;
-            std::uint32_t tree_node_count;
-            preculler_info* preculler_infos;
-            std::uint32_t preculler_info_count;
+            span<tree_node> tree_nodes;
+            span<preculler_info> preculler_infos;
             std::uint32_t views_visible_this_frame;
             light_texture_collection* light_tex_list;
+
+        public:
+            static inline linked_list<pack>& list = *reinterpret_cast<linked_list<pack>*>(0x00B70640);
         };
     };
-
-    CREATE_ENUM_FLAG_OPERATORS(instance_flags);
 
     ASSERT_SIZE(scenery::info, 0x48);
     ASSERT_SIZE(scenery::instance, 0x60);
     ASSERT_SIZE(scenery::tree_node, 0x30);
     ASSERT_SIZE(scenery::override_info_hookup, 0x04);
     ASSERT_SIZE(scenery::preculler_info, 0x80);
+    ASSERT_SIZE(scenery::group, 0x14 + sizeof(std::uint32_t));
     ASSERT_SIZE(scenery::override_info, 0x06);
     ASSERT_SIZE(scenery::pack, 0x44);
 }

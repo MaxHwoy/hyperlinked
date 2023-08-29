@@ -13,49 +13,14 @@ namespace hyper
         call_function<void(__cdecl*)(void(*)(void*), void*, bool)>(0x006997A0)(callback, param, non_recursive);
     }
 
-    void loader::load_chunks(void* memory, size_t size)
+    void loader::load_chunks(void* memory, size_t size, const char* debug_name)
     {
-        call_function<void(__cdecl*)(void*, size_t)>(0x006AD8F0)(memory, size);
+        call_function<void(__cdecl*)(void*, size_t, const char*)>(0x006AD8F0)(memory, size, debug_name);
     }
 
     void loader::unload_chunks(void* memory, size_t size)
     {
         call_function<void(__cdecl*)(void*, size_t)>(0x006A83A0)(memory, size);
-    }
-
-    void loader::endian_swap_chunks_if_needed(chunk* block, size_t size)
-    {
-        const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);
-
-        if (block != end)
-        {
-            chunk* curr = block;
-
-            while (true)
-            {
-                chunk* next = curr->end();
-
-                if (next == end)
-                {
-                    return;
-                }
-
-                if (next < block || next > end)
-                {
-                    break;
-                }
-
-                curr = next;
-            }
-
-            std::uint32_t address = static_cast<std::uint32_t>(reinterpret_cast<uintptr_t>(curr) - reinterpret_cast<uintptr_t>(block));
-            std::uint32_t chunkid = static_cast<std::uint32_t>(curr->id());
-            std::uint32_t chunksz = static_cast<std::uint32_t>(curr->size());
-
-            ::printf("Warning: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)\n", address, chunkid, chunksz);
-
-            NFSU360TIFY();
-        }
     }
 
     void loader::verify_chunk_integrity(chunk* block, size_t size, std::uint32_t depth)
@@ -217,6 +182,7 @@ namespace hyper
 
         if (loader::split_temp_perm_chunks(true, block, count, nullptr, 0u, 0u))
         {
+            alloc_params = hyper::memory::overwrite_alignment(alloc_params, 0x80u); // 0x0045529B (AnimLoader::LoadResourceFile)
 #if defined(_DEBUG)
             void* perm_memory = hyper::memory::malloc_debug(perm_size, alloc_params, debug_name, 0u);
 #else
@@ -226,9 +192,9 @@ namespace hyper
 
             loader::clobber_perm_chunks(block, count);
 
-            loader::load_chunks(block, count);
+            loader::load_chunks(block, count, debug_name);
 
-            loader::load_chunks(perm_memory, perm_size);
+            loader::load_chunks(perm_memory, perm_size, debug_name);
 
             loader::unload_chunks(block, count);
 
@@ -241,7 +207,7 @@ namespace hyper
         }
         else
         {
-            loader::load_chunks(block, count);
+            loader::load_chunks(block, count, debug_name);
 
             return false;
         }

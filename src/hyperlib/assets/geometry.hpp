@@ -263,6 +263,7 @@ namespace hyper
 
         struct list_header : public linked_node<list_header>
         {
+        public:
             std::uint32_t version;
             std::uint32_t solid_count;
             std::uint8_t filename[0x38];
@@ -277,6 +278,9 @@ namespace hyper
             std::uint16_t default_texture_count;
             linked_list<texture::pack> texture_pack_list;
             linked_list<texture::pack> default_texture_list;
+
+        public:
+            static inline linked_list<list_header>& list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
         };
 
         struct replacement_texture_table
@@ -340,8 +344,6 @@ namespace hyper
         static inline float& total_find_time = *reinterpret_cast<float*>(0x00A8FFA8);
 
         static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A901A8);
-
-        static inline linked_list<list_header>& list_header_list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);

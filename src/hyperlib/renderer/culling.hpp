@@ -44,9 +44,9 @@ namespace hyper
 
         auto what_sections_should_we_draw(std::uint16_t* sections, std::uint32_t section_count, scenery_cull_info& cull_info) -> std::uint32_t;
 
-        void tree_cull(const scenery::pack& pack, scenery_cull_info& cull_info);
+        void tree_cull(scenery::pack& pack, scenery_cull_info& cull_info);
 
-        bool draw_a_scenery(const scenery::pack& pack, std::uint32_t instance_index, scenery_cull_info& cull_info, visible_state state);
+        bool draw_a_scenery(scenery::pack& pack, size_t instance_index, scenery_cull_info& cull_info, visible_state state);
 
         bool commit_scenery(scenery::instance& instance, scenery::info& info, scenery_cull_info& cull_info, model_lod lod, visible_state state);
 

@@ -198,6 +198,11 @@ namespace hyper
             return (params & ~0x0Fu) | (new_pool & 0x0F);
         }
 
+        inline static auto overwrite_alignment(std::uint32_t params, std::uint32_t new_alignment) -> std::uint32_t
+        {
+            return (params & 0xFFF800FFu) | ((new_alignment >> 2) << 8);
+        }
+
         inline static auto toggle_top_start(std::uint32_t params)
         {
             return params ^ 0x40u;

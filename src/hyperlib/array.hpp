@@ -109,6 +109,11 @@ namespace hyper
             return this->ptr_;
         }
 
+        inline void clear()
+        {
+            ::memset(this->ptr_, 0, Length * sizeof(T));
+        }
+
         template <typename Index> auto operator[](Index index) -> T&
         {
             assert(static_cast<size_t>(index) < Length);

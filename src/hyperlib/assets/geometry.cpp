@@ -62,7 +62,7 @@ namespace hyper
 
         if (header == nullptr)
         {
-            for (list_header* i = geometry::list_header_list.begin(); i != geometry::list_header_list.end(); i = i->next())
+            for (list_header* i = geometry::list_header::list.begin(); i != geometry::list_header::list.end(); i = i->next())
             {
                 void* ptr = utils::scan_hash_table_key32(key, i->solid_index_entry_table, i->solid_count, offsetof(index_entry, key), sizeof(index_entry));
 
@@ -72,7 +72,7 @@ namespace hyper
                 {
                     result = entry->solid;
 
-                    geometry::list_header_list.move_front(i);
+                    geometry::list_header::list.move_front(i);
 
                     break;
                 }
