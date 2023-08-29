@@ -59,11 +59,21 @@ namespace hyper
 
         static void unload_chunks(void* memory, size_t size);
 
-        static void load_temp_perm_chunks(void** memory, size_t* size, std::uint32_t alloc_params, const char* debug_name);
+        static void endian_swap_chunks_if_needed(chunk* block, size_t size);
+
+        static void verify_chunk_integrity(chunk* block, size_t size, std::uint32_t depth);
+
+        static auto split_temp_perm_chunks(bool count_temp, chunk* block, size_t size, void* dst, size_t dst_offset, std::uint32_t depth) -> size_t;
+
+        static void clobber_perm_chunks(chunk* block, size_t size);
+
+        static bool load_temp_perm_chunks(void** memory, size_t* size, std::uint32_t alloc_params, const char* debug_name);
 
         static void post_load_fixup();
 
     public:
+        static inline bool& split_vram_data = *reinterpret_cast<bool*>(0x00A62B74);
+
         static inline bool& post_load_fixup_disabled = *reinterpret_cast<bool*>(0x00A995F8);
     };
 

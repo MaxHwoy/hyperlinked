@@ -8,6 +8,8 @@ namespace hyper
 {
     enum class block_id : std::uint32_t
     {
+        empty                       = 0x00000000,
+
         smokeable_spawners          = 0x00034027,
 
         scenery_header              = 0x00034101,
@@ -83,6 +85,18 @@ namespace hyper
 
 
 
+        texture_pack_info_header    = 0x33310001,
+        texture_pack_info_entries   = 0x33310002,
+        texture_pack_info_stream    = 0x33310003,
+        texture_pack_info_textures  = 0x33310004,
+        texture_pack_info_plats     = 0x33310005,
+        texture_pack_anim_header    = 0x33312001,
+        texture_pack_anim_frames    = 0x33312002,
+        texture_pack_vram_header    = 0x33320001,
+        texture_pack_vram_data      = 0x33320002,
+
+
+
         scenery_section             = 0x80034100,
 
         model_hierarchy_tree        = 0x8003410B,
@@ -99,11 +113,23 @@ namespace hyper
         event_systems               = 0x8003B810,
 
         collision_volumes           = 0x8003B900,
+
+
+
+        texture_pack                = 0xB3300000,
+        texture_pack_info           = 0xB3310000,
+        texture_pack_anim_pack      = 0xB3312000,
+        texture_pack_anim_inst      = 0xB3312004,
+        texture_pack_vram           = 0xB3320000,
     };
 
     class chunk
     {
     public:
+        inline chunk(block_id id, std::uint32_t size) : id_(static_cast<std::uint32_t>(id)), size_(size)
+        {
+        }
+
         inline auto id() const -> block_id
         {
             return static_cast<block_id>(this->id_);
@@ -132,6 +158,21 @@ namespace hyper
         inline auto end() const -> chunk*
         {
             return reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(this->data()) + this->size_);
+        }
+
+        inline bool is_container() const
+        {
+            return (this->id_ & 0x80000000u) != 0u;
+        }
+
+        inline void set_id(block_id id)
+        {
+            this->id_ = static_cast<std::uint32_t>(id);
+        }
+
+        inline void set_size(std::uint32_t size)
+        {
+            this->size_ = size;
         }
 
     private:

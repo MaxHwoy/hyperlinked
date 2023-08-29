@@ -27,5 +27,7 @@ int main()
 
     hyper::bench::print();
 
+    NFSU360TIFY();
+
     return 0;
 }
