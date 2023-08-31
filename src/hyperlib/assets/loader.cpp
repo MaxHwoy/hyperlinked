@@ -29,7 +29,7 @@ namespace hyper
         {
             ::printf("Chunks are internally corrupted! Exceeding maximum recursive depth!");
 
-            NFSU360TIFY();
+            NFSU360IFY();
         }
 
         const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);
@@ -66,7 +66,7 @@ namespace hyper
 
             ::printf("Warning: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)\n", address, chunkid, chunksz);
 
-            NFSU360TIFY();
+            NFSU360IFY();
         }
     }
 
@@ -76,7 +76,7 @@ namespace hyper
         {
             ::printf("Chunks are internally corrupted! Exceeding maximum recursive depth!");
 
-            NFSU360TIFY();
+            NFSU360IFY();
         }
 
         const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);

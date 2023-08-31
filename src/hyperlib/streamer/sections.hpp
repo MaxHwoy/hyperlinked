@@ -16,6 +16,11 @@ namespace hyper
         constexpr inline static std::uint16_t shared_texture_section = 2500u;
         constexpr inline static std::uint16_t shared_scenery_section = 2600u;
 
+        constexpr inline static auto maximum_sections() -> std::uint16_t
+        {
+            return 2700u;
+        }
+
         constexpr inline static auto get_drivable_from_lod_number(std::uint16_t section_number, std::uint32_t lod) -> std::uint16_t
         {
             return static_cast<std::uint16_t>(section_number - lod);

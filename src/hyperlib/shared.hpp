@@ -43,9 +43,9 @@
 #define ASSERT_SIZE(T, N) static_assert(sizeof(T) == N, "sizeof("#T") != "#N)
 
 #if defined(_DEBUG)
-#define NFSU360TIFY() assert(false)
+#define NFSU360IFY() assert(false)
 #else
-#define NFSU360TIFY() _asm mov dword ptr ds : 0, 0
+#define NFSU360IFY() _asm mov dword ptr ds : 0, 0
 #endif
 
 #define CREATE_ENUM_EXPR_OPERATORS(T)																\
