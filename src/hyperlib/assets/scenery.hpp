@@ -92,12 +92,8 @@ namespace hyper
 
         struct override_info_hookup
         {
-#if defined(USE_HYPER_SCENERY)
-            std::uint32_t override_info_number;
-#else
             std::uint16_t override_info_number;
             std::uint16_t instance_number;
-#endif
         };
 
         struct preculler_info
@@ -130,11 +126,8 @@ namespace hyper
             std::uint8_t barrier_flag;
             std::uint8_t drive_through_barrier_flag;
             std::uint16_t race_specific_section_number;
-#if defined(USE_HYPER_SCENERY)
-            std::uint32_t overrides[0x01];
-#else
             std::uint16_t overrides[0x02];
-#endif
+
         public:
             static inline bool& print_groups = *reinterpret_cast<bool*>(0x00A99630);
 
@@ -203,6 +196,24 @@ namespace hyper
         public:
             static inline linked_list<pack>& list = *reinterpret_cast<linked_list<pack>*>(0x00B70640);
         };
+
+    private:
+        static bool loader_scenery_section(chunk* block);
+
+        static bool loader_override_infos(chunk* block);
+
+        static bool loader_model_hierarchy(chunk* block);
+
+        static bool unloader_scenery_section(chunk* block);
+
+        static bool unloader_override_infos(chunk* block);
+
+        static bool unloader_model_hierarchy(chunk* block);
+
+    public:
+        static bool loader(chunk* block);
+
+        static bool unloader(chunk* block);
     };
 
     ASSERT_SIZE(scenery::info, 0x48);
@@ -210,7 +221,7 @@ namespace hyper
     ASSERT_SIZE(scenery::tree_node, 0x30);
     ASSERT_SIZE(scenery::override_info_hookup, 0x04);
     ASSERT_SIZE(scenery::preculler_info, 0x80);
-    ASSERT_SIZE(scenery::group, 0x14 + sizeof(std::uint32_t));
+    ASSERT_SIZE(scenery::group, 0x14 + sizeof(scenery::group::overrides));
     ASSERT_SIZE(scenery::override_info, 0x06);
     ASSERT_SIZE(scenery::pack, 0x44);
 }

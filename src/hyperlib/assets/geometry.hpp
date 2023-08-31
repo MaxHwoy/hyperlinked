@@ -4,6 +4,7 @@
 #include <hyperlib/memory/slot_pool.hpp>
 #include <hyperlib/assets/loader.hpp>
 #include <hyperlib/assets/textures.hpp>
+#include <hyperlib/collections/eastl.hpp>
 
 namespace hyper
 {
@@ -312,6 +313,11 @@ namespace hyper
 
         struct hierarchy
         {
+            struct map : eastl::map<std::uint32_t, hierarchy*>
+            {
+                static inline map& instance = *reinterpret_cast<map*>(0x00B70E5C);
+            };
+
             enum class flags : std::uint8_t
             {
                 internal = 0x01,
@@ -365,5 +371,6 @@ namespace hyper
     ASSERT_SIZE(geometry::list_header, 0x90);
     ASSERT_SIZE(geometry::model, 0x18);
     ASSERT_SIZE(geometry::hierarchy, 0x18);
+    ASSERT_SIZE(geometry::hierarchy::map, 0x1C);
     ASSERT_SIZE(geometry::hierarchy::node, 0x10);
 }

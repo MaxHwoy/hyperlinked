@@ -98,20 +98,6 @@ namespace hyper
 
         template <typename T, typename Pointer, typename Reference> struct rbtree_iterator
         {
-            /*
-            typedef rbtree_iterator<T, Pointer, Reference>      this_type;
-            typedef rbtree_iterator<T, T*, T&>                  iterator;
-            typedef rbtree_iterator<T, const T*, const T&>      const_iterator;
-            typedef eastl_size_t                                size_type;     // See config.h for the definition of eastl_size_t, which defaults to size_t.
-            typedef ptrdiff_t                                   difference_type;
-            typedef T                                           value_type;
-            typedef rbtree_node_base                            base_node_type;
-            typedef rbtree_node<T>                              node_type;
-            typedef Pointer                                     pointer;
-            typedef Reference                                   reference;
-            typedef EASTL_ITC_NS::bidirectional_iterator_tag    iterator_category;
-            */
-
         public:
             rbtree_iterator();
 
@@ -164,43 +150,16 @@ namespace hyper
 
         template <typename Key, typename Value, typename Comparer, typename Allocator, typename ExtractKey, bool MutableIterators, bool UniqueKeys> class rbtree : public rb_base<Key, Value, Comparer, ExtractKey, UniqueKeys, rbtree<Key, Value, Comparer, Allocator, ExtractKey, MutableIterators, UniqueKeys>>
         {
-            /*
-            typedef ptrdiff_t                                                                       difference_type;
-            typedef eastl_size_t                                                                    size_type;     // See config.h for the definition of eastl_size_t, which defaults to size_t.
-            typedef Key                                                                             key_type;
-            typedef Value                                                                           value_type;
-            typedef rbtree_node<value_type>                                                         node_type;
-            typedef value_type&                                                                     reference;
-            typedef const value_type&                                                               const_reference;
-            typedef value_type*                                                                     pointer;
-            typedef const value_type*                                                               const_pointer;
-
-            typedef typename conditional<bMutableIterators,
-                rbtree_iterator<value_type, value_type*, value_type&>,
-                rbtree_iterator<value_type, const value_type*, const value_type&> >::type           iterator;
-
-            typedef rbtree_iterator<value_type, const value_type*, const value_type&>               const_iterator;
-            typedef eastl::reverse_iterator<iterator>                                               reverse_iterator;
-            typedef eastl::reverse_iterator<const_iterator>                                         const_reverse_iterator;
-
-            typedef Allocator                                                                       allocator_type;
-            typedef Compare                                                                         key_compare;
-            typedef typename conditional<bUniqueKeys, eastl::pair<iterator, bool>, iterator>::type  insert_return_type;  // map/set::insert return a pair, multimap/multiset::iterator return an iterator.
-            
-            typedef rbtree<Key, Value, Compare, Allocator,
-                ExtractKey, bMutableIterators, bUniqueKeys>                                         this_type;
-
-            typedef rb_base<Key, Value, Compare, ExtractKey, bUniqueKeys, this_type>                base_type;
-            typedef integral_constant<bool, bUniqueKeys>                                            has_unique_keys_type;
-            typedef typename base_type::extract_key                                                 extract_key;
-            */
-
         public:
-            typedef typename std::conditional<MutableIterators,
+            typedef typename std::conditional_t<MutableIterators,
                 rbtree_iterator<Value, Value*, Value&>,
-                rbtree_iterator<Value, const Value*, const Value&>>::type   iterator;
+                rbtree_iterator<Value, const Value*, const Value&>>                                 iterator;
 
-            typedef rbtree_iterator<Value, const Value*, const Value&>      const_iterator;
+            typedef rbtree_iterator<Value, const Value*, const Value&>                              const_iterator;
+
+            typedef typename std::conditional_t<UniqueKeys, std::pair<iterator, bool>, iterator>    insert_return_type;
+
+            typedef std::bool_constant<UniqueKeys>                                                  has_unique_keys_type;
 
         public:
             rbtree();
@@ -215,11 +174,11 @@ namespace hyper
             
             rbtree(rbtree&& other, const Allocator& allocator);
 
-            //rbtree& operator=(const rbtree& x);
+            auto operator=(const rbtree& other) -> rbtree&;
 
-            //rbtree& operator=(std::initializer_list<Value> ilist);
+            auto operator=(rbtree&& other) -> rbtree&;
 
-            //rbtree& operator=(rbtree&& x);
+            auto operator=(const std::initializer_list<Value>& ilist) -> rbtree&;
 
             ~rbtree();
 
@@ -284,7 +243,23 @@ namespace hyper
 
             auto find(const Key& key) const -> const_iterator;
 
+            auto lower_bound(const Key& key) -> iterator;
 
+            auto lower_bound(const Key& key) const -> const_iterator;
+
+            auto upper_bound(const Key& key) -> iterator;
+            
+            auto upper_bound(const Key& key) const -> const_iterator;
+
+            template <typename... Args> auto emplace(Args&&... args) -> insert_return_type;
+
+            auto insert(const Value& value) -> insert_return_type;
+
+            void insert(const std::initializer_list<Value>& ilist);
+
+            auto erase(const Key& key) -> iterator;
+
+            auto erase(const_iterator position) -> iterator;
 
         protected:
             auto allocate_node() -> rbtree_node<Value>*;
@@ -309,6 +284,36 @@ namespace hyper
 
             void swap(rbtree& other);
 
+            auto insert_value(std::true_type, Value&& value) -> std::pair<iterator, bool>;
+
+            auto insert_value(std::false_type, Value&& value) -> iterator;
+
+            auto insert_value_impl(rbtree_node_base* parent, bool force_to_left, const Key& key, rbtree_node<Value>* new_node) -> iterator;
+
+            template <typename... Args> auto insert_value(std::true_type, Args&&... args) -> std::pair<iterator, bool>;
+
+            template <typename... Args> auto insert_value(std::false_type, Args&&... args) -> iterator;
+
+            template <typename... Args> auto insert_value_impl(rbtree_node_base* parent, bool force_to_left, const Key& key, Args&&... args) -> iterator;
+
+            auto insert_key(std::true_type, const Key& key) -> std::pair<iterator, bool>;
+
+            auto insert_key(std::false_type, const Key& key) -> iterator;
+
+            auto insert_key(std::true_type, const_iterator position, const Key& key) -> iterator;
+
+            auto insert_key(std::false_type, const_iterator position, const Key& key) -> iterator;
+
+            auto insert_key_impl(rbtree_node_base* parent, bool force_to_left, const Key& key);
+
+            auto get_key_insertion_position_unique_keys(bool& can_insert, const Key& key) -> rbtree_node_base*;
+
+            auto get_key_insertion_position_non_unique_keys(const Key& key) -> rbtree_node_base*;
+
+            auto get_key_insertion_position_unique_keys_hint(const_iterator position, bool& force_to_left, const Key& key) -> rbtree_node_base*;
+
+            auto get_key_insertion_position_non_unique_keys_hint(const_iterator position, bool& force_to_left, const Key& key) -> rbtree_node_base*;
+
         private:
             rbtree_node_base anchor_;
             size_t size_;
@@ -321,6 +326,10 @@ namespace hyper
 
         template <typename Key, typename Value, typename Comparer = std::less<Key>, typename Allocator = bstl::allocator> class map : public rbtree<Key, std::pair<const Key, Value>, Comparer, Allocator, eastl::use_first<std::pair<const Key, Value>>, true, true>
         {
+        public:
+            auto operator[](const Key& key) -> Value&;
+
+            auto at(const Key& key) -> Value*;
         };
 
         static auto rbtree_increment(const rbtree_node_base* node) -> rbtree_node_base*;
@@ -348,7 +357,7 @@ namespace hyper
     {
     }
 
-    template <typename T, typename P, typename R> eastl::rbtree_iterator<T, P, R>::rbtree_iterator(const rbtree_node_base* node) : node_(node)
+    template <typename T, typename P, typename R> eastl::rbtree_iterator<T, P, R>::rbtree_iterator(const rbtree_node_base* node) : node_(const_cast<rbtree_node_base*>(node))
     {
     }
 
@@ -472,14 +481,57 @@ namespace hyper
         this->swap(other);
     }
 
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<K, Value, C, A, E, MI, UK>::operator=(const rbtree& other) -> rbtree&
+    {
+        if (this != &other)
+        {
+            this->clear();
 
+            this->allocator_ = other.allocator_;
+            this->comparer_ = other.comparer_;
+
+            if (other.anchor_.parent != nullptr)
+            {
+                this->anchor_.parent = this->copy_subtree(reinterpret_cast<const rbtree_node<Value>*>(other.anchor_.parent), &this->anchor_);
+                this->anchor_.right = eastl::rbtree_get_max_child(this->anchor_.parent);
+                this->anchor_.left = eastl::rbtree_get_min_child(this->anchor_.parent);
+                this->size_ = other.size_;
+            }
+        }
+
+        return *this;
+    }
+
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<K, Value, C, A, E, MI, UK>::operator=(rbtree&& other) -> rbtree&
+    {
+        if (this != &other)
+        {
+            this->clear();     // to consider: are we really required to clear here? 'other' is going away soon and will clear itself in its dtor.
+            this->swap(other); // member swap handles the case that x has a different allocator than our allocator by doing a copy.
+        }
+
+        return *this;
+    }
+
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<K, Value, C, A, E, MI, UK>::operator=(const std::initializer_list<Value>& ilist) -> rbtree&
+    {
+        // the simplest means of doing this is to clear and insert. there probably isn't a generic
+        // solution that's any more efficient without having prior knowledge of the ilist contents.
+        
+        this->clear();
+
+        for (Value* i = ilist.begin(); i != ilist.end(); ++i)
+        {
+            this->insert_value(has_unique_keys_type(), std::move(*i));
+        }
+
+        return *this;
+    }
 
     template <typename K, typename V, typename C, typename A, typename E, bool MI, bool UK> eastl::rbtree<K, V, C, A, E, MI, UK>::~rbtree()
     {
         this->nuke_subtree(this->anchor_.parent);
     }
-
-
 
     template <typename K, typename V, typename C, typename A, typename E, bool MI, bool UK> void eastl::rbtree<K, V, C, A, E, MI, UK>::clear()
     {
@@ -520,7 +572,472 @@ namespace hyper
         return const_iterator(const_cast<rbtree<Key, Value, C, A, ExtractKey, MI, UK>*>(this)->find(key));
     }
 
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::lower_bound(const Key& key) -> iterator
+    {
+        ExtractKey extractor;
 
+        rbtree_node_base* current = this->anchor_.parent; // start with the root node.
+        rbtree_node_base* range_end = &this->anchor_;     // set it to the container end for now.
+
+        while (current != nullptr) // do a walk down the tree.
+        {
+            if (!this->comparer_(extractor(reinterpret_cast<rbtree_node<Value>*>(current)->value), key)) // if current is >= key...
+            {
+                range_end = current;
+                current = current->left;
+            }
+            else
+            {
+                current = current->right;
+            }
+        }
+
+        return iterator(range_end);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::lower_bound(const Key& key) const -> const_iterator
+    {
+        return const_iterator(const_cast<rbtree<Key, Value, C, A, ExtractKey, MI, UK>*>(this)->lower_bound(key));
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::upper_bound(const Key& key) -> iterator
+    {
+        ExtractKey extractor;
+
+        rbtree_node_base* current = this->anchor_.parent; // start with the root node.
+        rbtree_node_base* range_end = &this->anchor_;     // set it to the container end for now.
+
+        while (current != nullptr) // do a walk down the tree.
+        {
+            if (this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(current)->value))) // If key is < current...
+            {
+                range_end = current;
+                current = current->left;
+            }
+            else
+            {
+                current = current->right;
+            }
+        }
+
+        return iterator(range_end);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::upper_bound(const Key& key) const -> const_iterator
+    {
+        return const_iterator(const_cast<rbtree<Key, Value, C, A, ExtractKey, MI, UK>*>(this)->upper_bound(key));
+    }
+
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UniqueKeys> template <typename... Args> auto eastl::rbtree<K, Value, C, A, E, MI, UniqueKeys>::emplace(Args&&... args) -> insert_return_type
+    {
+        return this->insert_value(has_unique_keys_type(), std::forward<Args>(args)...);
+    }
+
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UniqueKeys> auto eastl::rbtree<K, Value, C, A, E, MI, UniqueKeys>::insert(const Value& value) -> insert_return_type
+    {
+        return this->insert_value(has_unique_keys_type(), value);
+    }
+
+    template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UniqueKeys> void eastl::rbtree<K, Value, C, A, E, MI, UniqueKeys>::insert(const std::initializer_list<Value>& ilist)
+    {
+        for (Value* i = ilist.begin(); i != ilist.end(); ++i)
+        {
+            this->insert_value(has_unique_keys_type(), std::move(*i));
+        }
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, E, MI, UK>::erase(const Key& key) -> iterator
+    {
+        iterator it = this->lower_bound(key);
+
+        if (it != this->end())
+        {
+            return this->erase(const_iterator(it.node));
+        }
+
+        return it;
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, E, MI, UK>::erase(const_iterator position) -> iterator
+    {
+        const iterator ierase(position.node);
+        
+        --this->size_;
+        
+        ++position;
+
+        eastl::rbtree_erase(ierase.node, &this->anchor_);
+
+        this->free_node(reinterpret_cast<rbtree_node<Value>*>(ierase.node));
+        
+        return iterator(position.node);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value(std::true_type, Value&& value) -> std::pair<iterator, bool>
+    {
+        bool can_insert;
+
+        ExtractKey extractor;
+        
+        Key key(extractor(value));
+
+        rbtree_node_base* position = this->get_key_insertion_position_unique_keys(can_insert, key);
+
+        if (can_insert)
+        {
+            const iterator result(this->insert_value_impl(position, false, key, std::move(value)));
+
+            return std::pair<iterator, bool>(result, true);
+        }
+
+        return std::pair<iterator, bool>(iterator(position), false);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value(std::false_type, Value&& value) -> iterator
+    {
+        ExtractKey extractor;
+
+        Key key(extractor(value));
+
+        rbtree_node_base* position = this->get_key_insertion_position_non_unique_keys(key);
+
+        return this->insert_value_impl(position, false, key, std::move(value));
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value_impl(rbtree_node_base* parent, bool force_to_left, const Key& key, rbtree_node<Value>* new_node) -> iterator
+    {
+        assert(new_node != nullptr);
+
+        rbtree_side side;
+        ExtractKey extractor;
+
+        if (force_to_left || (parent == &this->anchor_) || this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(parent)->value)))
+        {
+            side = rbtree_side::left;
+        }
+        else
+        {
+            side = rbtree_side::right;
+        }
+
+        eastl::rbtree_insert(new_node, parent, &this->anchor_, side);
+        
+        ++this->size_;
+
+        return iterator(new_node);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> template <class... Args> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value(std::true_type, Args&&... args) -> std::pair<iterator, bool>
+    {
+        // this is the pathway for insertion of unique keys (map and set, but not multimap and multiset).
+        // note that we return a pair and not an iterator. this is because the C++ standard for map
+        // and set is to return a pair and not just an iterator.
+
+        rbtree_node<Value>* new_node = this->create_node(std::forward<Args>(args)...);
+
+        const Key& key = ExtractKey{}(new_node->value);
+
+        bool can_insert;
+
+        rbtree_node_base* position = this->get_key_insertion_position_unique_keys(can_insert, key);
+
+        if (can_insert)
+        {
+            iterator result(this->insert_value_impl(position, false, key, new_node));
+
+            return std::pair<iterator, bool>(result, true);
+        }
+
+        this->free_node(new_node);
+
+        return std::pair<iterator, bool>(iterator(position), false);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> template <class... Args> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value(std::false_type, Args&&... args) -> iterator
+    {
+        // we have a problem here if sizeof(value_type) is too big for the stack. We may want to consider having a specialization for large value_types.
+        // todo: change this so that we call create_node(eastl::forward<Args>(args)...) here and use the value from the resulting node to get the 
+        // key, and make insert_value_impl take that node as an argument. That way there is no value created on the stack.
+
+        rbtree_node<Value>* const new_node = this->create_node(std::forward<Args>(args)...);
+
+        const Key& key = ExtractKey{}(new_node->value);
+
+        rbtree_node_base* position = this->get_key_insertion_position_non_unique_keys(key);
+
+        return this->insert_value_impl(position, false, key, new_node);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> template <class... Args> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value_impl(rbtree_node_base* parent, bool force_to_left, const Key& key, Args&&... args) -> iterator
+    {
+        rbtree_node<Value>* const new_node = this->create_node(std::forward<Args>(args)...);
+
+        return this->insert_value_impl(parent, force_to_left, key, new_node);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_key(std::true_type, const Key& key) -> std::pair<iterator, bool>
+    {
+        // this is the pathway for insertion of unique keys (map and set, but not multimap and multiset).
+        // note that we return a pair and not an iterator. this is because the C++ standard for map
+        // and set is to return a pair and not just an iterator.
+        bool can_insert;
+
+        rbtree_node_base* position = this->get_key_insertion_position_unique_keys(can_insert, key);
+
+        if (can_insert)
+        {
+            const iterator result(this->insert_key_impl(position, false, key));
+
+            return std::pair<iterator, bool>(result, true);
+        }
+
+        return std::pair<iterator, bool>(iterator(position), false);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_key(std::false_type, const Key& key) -> iterator
+    {
+        rbtree_node_base* position = this->get_key_insertion_position_non_unique_keys(key);
+
+        return this->insert_key_impl(position, false, key);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_key(std::true_type, const_iterator position, const Key& key) -> iterator
+    {
+        bool force_to_left;
+
+        rbtree_node_base* position = this->get_key_insertion_position_unique_keys_hint(position, force_to_left, key);
+
+        if (position != nullptr)
+        {
+            return this->insert_key_impl(position, force_to_left, key);
+        }
+        else
+        {
+            return this->insert_key(has_unique_keys_type(), key).first;
+        }
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_key(std::false_type, const_iterator position, const Key& key) -> iterator
+    {
+        bool force_to_left;
+
+        rbtree_node_base* position = this->get_key_insertion_position_non_unique_keys_hint(position, force_to_left, key);
+
+        if (position != nullptr)
+        {
+            return this->insert_key_impl(position, force_to_left, key);
+        }
+        else
+        {
+            return this->insert_key(has_unique_keys_type(), key);
+        }
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_key_impl(rbtree_node_base* parent, bool force_to_left, const Key& key)
+    {
+        rbtree_side side;
+        ExtractKey extractor;
+
+        if (force_to_left || (parent == &this->anchor_) || this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(parent)->value)))
+        {
+            side = rbtree_side::left;
+        }
+        else
+        {
+            side = rbtree_side::right;
+        }
+
+        rbtree_node<Value>* const new_node = this->create_node_from_key(key);
+
+        eastl::rbtree_insert(new_node, parent, &this->anchor_, side);
+        
+        ++this->size_++;
+
+        return iterator(new_node);
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::get_key_insertion_position_unique_keys(bool& can_insert, const Key& key) -> rbtree_node_base*
+    {
+        // this code is essentially a slightly modified copy of the the rbtree::insert
+        // function whereby this version takes a key and not a full value_type.
+        ExtractKey extractor;
+
+        rbtree_node_base* current = this->anchor_.parent; // start with the root node.
+        rbtree_node_base* lower_bound = &this->anchor_;   // Set it to the container end for now.
+        rbtree_node_base* parent;                         // This will be where we insert the new node.
+
+        bool value_less_than_node = true; // if the tree is empty, this will result in an insertion at the front.
+
+        // find insertion position of the value. this will either be a position which 
+        // already contains the value, a position which is greater than the value or
+        // end(), which we treat like a position which is greater than the value.
+        while (current != nullptr) // do a walk down the tree.
+        {
+            value_less_than_node = this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(current)->value));
+
+            lower_bound = current;
+
+            if (value_less_than_node)
+            {
+                current = current->left;
+            }
+            else
+            {
+                current = current->right;
+            }
+        }
+
+        parent = lower_bound; // lower_bound is actually upper bound right now (i.e. it is > value instead of <=), but we will make it the lower bound below.
+
+        if (value_less_than_node) // if we ended up on the left side of the last parent node...
+        {
+            if (lower_bound != this->anchor_.left) // if the tree was empty or if we otherwise need to insert at the very front of the tree...
+            {
+                // at this point, pLowerBound points to a node which is > than value.
+                // move it back by one, so that it points to a node which is <= value.
+
+                lower_bound = eastl::rbtree_decrement(lower_bound);
+            }
+            else
+            {
+                can_insert = true;
+
+                return lower_bound;
+            }
+        }
+
+        // since here we require values to be unique, we will do nothing if the value already exists.
+        
+        rbtree_node<Value>* const lower_bound_full_node = reinterpret_cast<rbtree_node<Value>*>(lower_bound);
+
+        if (this->comparer_(extractor(lower_bound_full_node->value), key)) // if the node is < the value (i.e. if value is >= the node)...
+        {
+            can_insert = true;
+
+            return parent;
+        }
+
+        // the item already exists (as found by the compare directly above), so return false.
+        can_insert = false;
+
+        return lower_bound;
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::get_key_insertion_position_non_unique_keys(const Key& key) -> rbtree_node_base*
+    {
+        ExtractKey extractor;
+
+        rbtree_node_base* current = this->anchor_.parent; // start with the root node.
+        rbtree_node_base* range_end = &this->anchor_;     // set it to the container end for now.
+
+        while (current != nullptr)
+        {
+            range_end = current;
+
+            if (this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(current)->value)))
+            {
+                current = current->left;
+            }
+            else
+            {
+                current = current->right;
+            }
+        }
+
+        return range_end;
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::get_key_insertion_position_unique_keys_hint(const_iterator position, bool& force_to_left, const Key& key) -> rbtree_node_base*
+    {
+        ExtractKey extractor;
+
+        if ((position.node != this->anchor_.right) && (position.node != &this->anchor_)) // if the user specified a specific insertion position...
+        {
+            iterator it_next(position.node);
+            
+            ++it_next;
+
+            const bool position_less_than_value = this->comparer_(extractor(*position), key);
+
+            if (position_less_than_value) // If (value > *position)...
+            {
+                const bool value_less_than_next = this->comparer_(key, extractor(*it_next));
+
+                if (value_less_than_next) // If value < *it_next...
+                {
+                    if (position.node->right)
+                    {
+                        force_to_left = true; // specifically insert in front of (to the left of) it_next (and thus after 'position').
+
+                        return it_next.node;
+                    }
+
+                    force_to_left = false;
+
+                    return position.node;
+                }
+            }
+
+            force_to_left = false;
+            
+            return nullptr;  // the above specified hint was not useful, then we do a regular insertion.
+        }
+
+        if (this->size_ != 0u && this->comparer_(extractor(reinterpret_cast<rbtree_node<Value>*>(this->anchor_.right)->value), key))
+        {
+            force_to_left = false;
+
+            return this->anchor_.right;
+        }
+
+        force_to_left = false;
+
+        return nullptr; // the caller can do a default insert.
+    }
+
+    template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::get_key_insertion_position_non_unique_keys_hint(const_iterator position, bool& force_to_left, const Key& key) -> rbtree_node_base*
+    {
+        ExtractKey extractor;
+
+        if ((position.node != this->anchor_.right) && (position.node != &this->anchor_)) // if the user specified a specific insertion position...
+        {
+            iterator it_next(position.node);
+
+            ++it_next;
+
+            if (!this->comparer_(key, extractor(*position)) && !this->comparer_(extractor(*it_next), key))
+            {
+                if (position.node->right) // if there are any nodes to the right... [this expression will always be true as long as we aren't at the end()]
+                {
+                    force_to_left = true; // specifically insert in front of (to the left of) it_next (and thus after 'position').
+
+                    return it_next.node;
+                }
+
+                force_to_left = false;
+
+                return position.node;
+            }
+
+            force_to_left = false;
+
+            return nullptr; // the above specified hint was not useful, then we do a regular insertion.
+        }
+
+        // this pathway shouldn't be commonly executed, as the user shouldn't be calling 
+        // this hinted version of insert if the user isn't providing a useful hint.
+
+        if (this->size_ != 0u && !this->comparer_(key, extractor(reinterpret_cast<rbtree_node<Value>*>(this->anchor_.right)->value)))
+        {
+            force_to_left = false;
+
+            return this->anchor_.right;
+        }
+
+        force_to_left = false;
+
+        return nullptr;
+    }
 
     template <typename K, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<K, Value, C, A, E, MI, UK>::allocate_node() -> rbtree_node<Value>*
     {
@@ -605,8 +1122,6 @@ namespace hyper
 #endif
         return node;
     }
-
-
 
     template <typename K, typename V, typename C, typename A, typename E, bool MI, bool UK> void eastl::rbtree<K, V, C, A, E, MI, UK>::reset_lose_memory()
     {
@@ -720,6 +1235,34 @@ namespace hyper
             other = temp;
         }
     }
+
+
+
+    template <typename Key, typename Value, typename Comparer, typename Allocator> auto eastl::map<Key, Value, Comparer, Allocator>::operator[](const Key& key) -> Value&
+    {
+        auto it = this->lower_bound(key);
+
+        if ((it == this->end()) || this->comparer_(key, (*it).first))
+        {
+            it = this->insert_key(std::true_type(), it, key);
+        }
+
+        return it->second;
+    }
+
+    template <typename Key, typename Value, typename Comparer, typename Allocator> auto eastl::map<Key, Value, Comparer, Allocator>::at(const Key& key) -> Value*
+    {
+        auto it = this->lower_bound(key);
+
+        if ((it == this->end()) || this->comparer_(key, (*it).first))
+        {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+
 
     ASSERT_SIZE(eastl::rbtree_node_base, 0x10);
 }

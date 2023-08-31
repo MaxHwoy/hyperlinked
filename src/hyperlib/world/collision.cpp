@@ -10,6 +10,16 @@ namespace hyper
         return call_function<bool(__thiscall*)(collision::manager*, const vector3*, float*, vector3*)>(0x00816DF0)(this, &point, &height, normal);
     }
 
+    void collision::assets::ctor(assets& ref)
+    {
+        new (&ref) assets();
+    }
+
+    void collision::assets::dtor(assets& ref)
+    {
+        ref.~assets();
+    }
+
     collision::assets::assets() :
         waiting_add_trigger_list(),
         static_instances(),
@@ -43,7 +53,6 @@ namespace hyper
 
         this->managed_objects = object_map;
         this->managed_objects_index = 0x8000;
-
 #if defined(_DEBUG)
         pack::packs = reinterpret_cast<pack**>(memory::malloc_debug(sizeof(pack*) * game_provider::maximum_sections(), 0x00u, __FILE__, __LINE__));
 #else
@@ -54,12 +63,20 @@ namespace hyper
             pack::pack_count = game_provider::maximum_sections();
 
             ::memset(pack::packs, 0, sizeof(pack*) * pack::pack_count);
-
-            // set other stuff here
         }
         else
         {
             pack::pack_count = 0u;
+        }
+
+        for (const uintptr_t address :
+        {
+            0x00812879u, // WCollisionMgr::GetInstanceListGuts
+            0x00812B89u, // WCollisionMgr::GetInstanceListGuts
+            0x00812E69u, // WCollisionMgr::GetObjectListGuts
+        })
+        {
+            hook::set<std::uint16_t>(address, pack::pack_count);
         }
     }
 
@@ -100,6 +117,37 @@ namespace hyper
         pack::packs = nullptr;
         pack::pack_count = 0u;
 
+        for (const uintptr_t address :
+        {
+            0x00812879u, // WCollisionMgr::GetInstanceListGuts
+            0x00812B89u, // WCollisionMgr::GetInstanceListGuts
+            0x00812E69u, // WCollisionMgr::GetObjectListGuts
+        })
+        {
+            hook::set<std::uint16_t>(address, 0u);
+        }
 
+        if (this->managed_instances != nullptr)
+        {
+            this->managed_instances->~managed_instance_map();
+
+            memory::free(this->managed_instances);
+
+            this->managed_instances = nullptr;
+        }
+
+        if (this->managed_objects != nullptr)
+        {
+            for (auto i = this->managed_objects->begin(); i != this->managed_objects->end(); ++i)
+            {
+                call_function<void(__cdecl*)(void*)>(0x006A1590)(i->second); // ::free
+            }
+
+            this->managed_objects->~object_map();
+
+            memory::free(this->managed_objects);
+
+            this->managed_objects = nullptr;
+        }
     }
 }

@@ -8,6 +8,7 @@
 #include <hyperlinked/patches/culling.hpp>
 #include <hyperlinked/patches/drawing.hpp>
 #include <hyperlinked/patches/streamer.hpp>
+#include <hyperlinked/patches/collision.hpp>
 
 namespace hyper
 {
@@ -21,5 +22,6 @@ namespace hyper
         culling_patches::init();
         drawing_patches::init();
         streamer_patches::init();
+        collision_patches::init();
     }
 }

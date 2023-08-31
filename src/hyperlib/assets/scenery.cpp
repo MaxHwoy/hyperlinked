@@ -176,4 +176,95 @@ namespace hyper
 
         props::sync_overrides();
     }
+
+    bool scenery::loader(chunk* block)
+    {
+        switch (block->id())
+        {
+            case block_id::scenery_section:
+                return scenery::loader_scenery_section(block);
+
+            case block_id::scenery_override_infos:
+                return scenery::loader_override_infos(block);
+
+            case block_id::model_hierarchy_tree:
+                return scenery::loader_model_hierarchy(block);
+
+            default:
+                return false;
+        }
+    }
+
+    bool scenery::unloader(chunk* block)
+    {
+        switch (block->id())
+        {
+            case block_id::scenery_section:
+                return scenery::unloader_scenery_section(block);
+        
+            case block_id::scenery_override_infos:
+                return scenery::unloader_override_infos(block);
+        
+            case block_id::model_hierarchy_tree:
+                return scenery::unloader_model_hierarchy(block);
+        
+            default:
+                return false;
+        }
+    }
+
+    bool scenery::loader_scenery_section(chunk* block)
+    {
+        
+        
+
+        
+
+        return true;
+    }
+
+    bool scenery::loader_override_infos(chunk* block)
+    {
+        scenery::override_info* ptr = reinterpret_cast<scenery::override_info*>(block->data());
+
+        size_t length = block->size() / sizeof(scenery::override_info);
+
+        scenery::override_info::table = span<scenery::override_info>(ptr, length);
+
+        return true;
+    }
+
+    bool scenery::loader_model_hierarchy(chunk* block)
+    {
+        for (chunk* i = block; i != block->end(); i = i->end())
+        {
+            if (i->id() == block_id::model_hierarchy_instance)
+            {
+
+            }
+        }
+
+        return true;
+    }
+
+    bool scenery::unloader_scenery_section(chunk* block)
+    {
+
+
+        return true;
+    }
+
+    bool scenery::unloader_override_infos(chunk* block)
+    {
+
+
+        return true;
+    }
+
+    bool scenery::unloader_model_hierarchy(chunk* block)
+    {
+
+
+        return true;
+    }
 }

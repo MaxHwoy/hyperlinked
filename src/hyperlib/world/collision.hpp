@@ -291,11 +291,15 @@ namespace hyper
         public:
             static inline pack**& packs = *reinterpret_cast<pack***>(0x00B77EB0);
 
-            static inline std::uint32_t pack_count = 0u;
+            static inline std::uint16_t pack_count = 0u;
         };
 
         struct assets
         {
+        public:
+            static void ctor(assets& ref);
+            static void dtor(assets& ref);
+
         public:
             assets();
             ~assets();
