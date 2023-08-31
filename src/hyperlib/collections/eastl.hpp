@@ -330,6 +330,8 @@ namespace hyper
             auto operator[](const Key& key) -> Value&;
 
             auto at(const Key& key) -> Value*;
+
+            bool remove(const Key& key);
         };
 
         static auto rbtree_increment(const rbtree_node_base* node) -> rbtree_node_base*;
@@ -374,7 +376,7 @@ namespace hyper
 
     template <typename T, typename Pointer, typename Reference> Reference eastl::rbtree_iterator<T, Pointer, Reference>::operator*() const
     {
-        return static_cast<rbtree_node<T>*>(this->node)->value;
+        return static_cast<rbtree_node<T>*>(this->node_)->value;
     }
 
     template <typename T, typename Pointer, typename Reference> Pointer eastl::rbtree_iterator<T, Pointer, Reference>::operator->() const
@@ -652,7 +654,7 @@ namespace hyper
 
         if (it != this->end())
         {
-            return this->erase(const_iterator(it.node));
+            return this->erase(const_iterator(it.node_));
         }
 
         return it;
@@ -660,17 +662,17 @@ namespace hyper
 
     template <typename Key, typename Value, typename C, typename A, typename E, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, E, MI, UK>::erase(const_iterator position) -> iterator
     {
-        const iterator ierase(position.node);
+        const iterator ierase(position.node_);
         
         --this->size_;
         
         ++position;
 
-        eastl::rbtree_erase(ierase.node, &this->anchor_);
+        eastl::rbtree_erase(ierase.node_, &this->anchor_);
 
-        this->free_node(reinterpret_cast<rbtree_node<Value>*>(ierase.node));
+        this->free_node(reinterpret_cast<rbtree_node<Value>*>(ierase.node_));
         
-        return iterator(position.node);
+        return iterator(position.node_);
     }
 
     template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value(std::true_type, Value&& value) -> std::pair<iterator, bool>
@@ -805,11 +807,11 @@ namespace hyper
     {
         bool force_to_left;
 
-        rbtree_node_base* position = this->get_key_insertion_position_unique_keys_hint(position, force_to_left, key);
+        rbtree_node_base* reposition = this->get_key_insertion_position_unique_keys_hint(position, force_to_left, key);
 
-        if (position != nullptr)
+        if (reposition != nullptr)
         {
-            return this->insert_key_impl(position, force_to_left, key);
+            return this->insert_key_impl(reposition, force_to_left, key);
         }
         else
         {
@@ -821,11 +823,11 @@ namespace hyper
     {
         bool force_to_left;
 
-        rbtree_node_base* position = this->get_key_insertion_position_non_unique_keys_hint(position, force_to_left, key);
+        rbtree_node_base* reposition = this->get_key_insertion_position_non_unique_keys_hint(position, force_to_left, key);
 
-        if (position != nullptr)
+        if (reposition != nullptr)
         {
-            return this->insert_key_impl(position, force_to_left, key);
+            return this->insert_key_impl(reposition, force_to_left, key);
         }
         else
         {
@@ -851,7 +853,7 @@ namespace hyper
 
         eastl::rbtree_insert(new_node, parent, &this->anchor_, side);
         
-        ++this->size_++;
+        this->size_++;
 
         return iterator(new_node);
     }
@@ -951,9 +953,9 @@ namespace hyper
     {
         ExtractKey extractor;
 
-        if ((position.node != this->anchor_.right) && (position.node != &this->anchor_)) // if the user specified a specific insertion position...
+        if ((position.node_ != this->anchor_.right) && (position.node_ != &this->anchor_)) // if the user specified a specific insertion position...
         {
-            iterator it_next(position.node);
+            iterator it_next(position.node_);
             
             ++it_next;
 
@@ -965,16 +967,16 @@ namespace hyper
 
                 if (value_less_than_next) // If value < *it_next...
                 {
-                    if (position.node->right)
+                    if (position.node_->right)
                     {
                         force_to_left = true; // specifically insert in front of (to the left of) it_next (and thus after 'position').
 
-                        return it_next.node;
+                        return it_next.node_;
                     }
 
                     force_to_left = false;
 
-                    return position.node;
+                    return position.node_;
                 }
             }
 
@@ -999,24 +1001,24 @@ namespace hyper
     {
         ExtractKey extractor;
 
-        if ((position.node != this->anchor_.right) && (position.node != &this->anchor_)) // if the user specified a specific insertion position...
+        if ((position.node_ != this->anchor_.right) && (position.node_ != &this->anchor_)) // if the user specified a specific insertion position...
         {
-            iterator it_next(position.node);
+            iterator it_next(position.node_);
 
             ++it_next;
 
             if (!this->comparer_(key, extractor(*position)) && !this->comparer_(extractor(*it_next), key))
             {
-                if (position.node->right) // if there are any nodes to the right... [this expression will always be true as long as we aren't at the end()]
+                if (position.node_->right) // if there are any nodes to the right... [this expression will always be true as long as we aren't at the end()]
                 {
                     force_to_left = true; // specifically insert in front of (to the left of) it_next (and thus after 'position').
 
-                    return it_next.node;
+                    return it_next.node_;
                 }
 
                 force_to_left = false;
 
-                return position.node;
+                return position.node_;
             }
 
             force_to_left = false;
@@ -1260,6 +1262,20 @@ namespace hyper
         }
 
         return &it->second;
+    }
+
+    template <typename Key, typename Value, typename Comparer, typename Allocator> bool eastl::map<Key, Value, Comparer, Allocator>::remove(const Key& key)
+    {
+        const auto it = this->find(key);
+
+        if (it != this->end())
+        {
+            this->erase(key);
+
+            return true;
+        }
+
+        return false;
     }
 
 

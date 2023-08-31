@@ -236,11 +236,29 @@ namespace hyper
 
     bool scenery::loader_model_hierarchy(chunk* block)
     {
-        for (chunk* i = block; i != block->end(); i = i->end())
+        for (chunk* curr = reinterpret_cast<chunk*>(block->data()); curr != block->end(); curr = curr->end())
         {
-            if (i->id() == block_id::model_hierarchy_instance)
+            if (curr->id() == block_id::model_hierarchy_instance)
             {
+                geometry::hierarchy* hierarchy = reinterpret_cast<geometry::hierarchy*>(curr->data());
 
+                hierarchy->flag |= geometry::hierarchy::flags::endian_swapped;
+
+                geometry::hierarchy::map::instance[hierarchy->key] = hierarchy;
+
+                for (std::uint32_t i = 0u; i < hierarchy->node_count; ++i)
+                {
+                    geometry::hierarchy::node& node = hierarchy->nodes[i];
+
+                    geometry::model* model = nullptr;
+
+                    if (node.solid_key != 0u)
+                    {
+                        model = geometry::model::pool->construct(node.solid_key);
+                    }
+
+                    node.model = model;
+                }
             }
         }
 
@@ -256,14 +274,32 @@ namespace hyper
 
     bool scenery::unloader_override_infos(chunk* block)
     {
-
+        scenery::override_info::table = span<scenery::override_info>();
 
         return true;
     }
 
     bool scenery::unloader_model_hierarchy(chunk* block)
     {
+        for (chunk* curr = reinterpret_cast<chunk*>(block->data()); curr != block->end(); curr = curr->end())
+        {
+            if (curr->id() == block_id::model_hierarchy_instance)
+            {
+                geometry::hierarchy* hierarchy = reinterpret_cast<geometry::hierarchy*>(curr->data());
 
+                for (std::uint32_t i = 0u; i < hierarchy->node_count; ++i)
+                {
+                    geometry::hierarchy::node& node = hierarchy->nodes[i];
+
+                    if (node.model != nullptr)
+                    {
+                        geometry::model::pool->destruct(node.model);
+                    }
+                }
+
+                geometry::hierarchy::map::instance.remove(hierarchy->key);
+            }
+        }
 
         return true;
     }

@@ -294,7 +294,15 @@ namespace hyper
         struct model : public linked_node<model>
         {
         public:
+            model();
+
+            model(std::uint32_t key);
+
+            ~model();
+
             void init(std::uint32_t hash_key);
+
+            void uninit();
 
             void connect(solid* solid_to_connect);
 
@@ -353,6 +361,7 @@ namespace hyper
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);
+    CREATE_ENUM_FLAG_OPERATORS(geometry::hierarchy::flags);
 
     ASSERT_SIZE(light_material::instance, 0xEC);
     ASSERT_SIZE(geometry::texture_entry, 0x08);
@@ -370,7 +379,7 @@ namespace hyper
     ASSERT_SIZE(geometry::solid, 0xE0);
     ASSERT_SIZE(geometry::list_header, 0x90);
     ASSERT_SIZE(geometry::model, 0x18);
-    ASSERT_SIZE(geometry::hierarchy, 0x18);
+    ASSERT_SIZE(geometry::hierarchy, 0x08 + sizeof(geometry::hierarchy::nodes));
     ASSERT_SIZE(geometry::hierarchy::map, 0x1C);
     ASSERT_SIZE(geometry::hierarchy::node, 0x10);
 }
