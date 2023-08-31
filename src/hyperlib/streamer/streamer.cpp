@@ -214,7 +214,7 @@ namespace hyper
 #else
                     section->memory = memory::malloc(section->size, params);
 #endif
-                    assert(section->memory);
+                    ASSERT(section->memory);
 
                     section->status = section::status_type::allocated;
 
@@ -554,7 +554,7 @@ namespace hyper
 
     void streamer::disc_bundle_loaded_callback(disc_bundle* disc)
     {
-        assert(disc != nullptr);
+        ASSERT(disc != nullptr);
 
         this->loading_section_count += disc->member_count - 1u;
 
@@ -1337,7 +1337,7 @@ namespace hyper
 
     void streamer::section_loaded_callback(streamer::section* section)
     {
-        assert(section != nullptr);
+        ASSERT(section != nullptr);
 
         section->loaded_size = section->size;
         section->status = section::status_type::loaded;
@@ -1764,21 +1764,21 @@ namespace hyper
 
     void streamer::disc_bundle_loaded_callback_static(void* param, bool failed)
     {
-        assert(!failed);
+        ASSERT(!failed);
 
         streamer::instance.disc_bundle_loaded_callback(reinterpret_cast<streamer::disc_bundle*>(param));
     }
 
     void streamer::section_loaded_callback_static(void* param, bool failed)
     {
-        assert(!failed);
+        ASSERT(!failed);
 
         streamer::instance.section_loaded_callback(reinterpret_cast<streamer::section*>(param));
     }
 
     void streamer::ready_to_make_space_in_pool_bridge(void* param)
     {
-        assert(param != nullptr);
+        ASSERT(param != nullptr);
 
         streamer& stream = *reinterpret_cast<streamer*>(param);
 

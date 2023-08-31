@@ -1,4 +1,3 @@
-#include <cassert>
 #include <hyperlib/shared.hpp>
 #include <hyperlib/memory/frame_pool.hpp>
 
@@ -39,7 +38,7 @@ namespace hyper
 
     void frame_pool::init(alloc_size_t length)
     {
-        assert(this->current_ == nullptr);
+        ASSERT(this->current_ == nullptr);
 
         length = math::align_pow_2(length, frame_pool::alignment);
 

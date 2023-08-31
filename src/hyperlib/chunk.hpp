@@ -20,7 +20,7 @@ namespace hyper
         scenery_preculler_infos     = 0x00034107,
         scenery_override_infos      = 0x00034108,
         scenery_groups              = 0x00034109,
-
+        scenery_ngbbs               = 0x0003410A,
         model_hierarchy_instance    = 0x0003410C,
         light_texture_collections   = 0x0003410D,
         vectorized_cull_infos       = 0x0003410E,

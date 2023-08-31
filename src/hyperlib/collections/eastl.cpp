@@ -1,4 +1,3 @@
-#include <cassert>
 #include <hyperlib/collections/eastl.hpp>
 
 namespace hyper
@@ -326,7 +325,7 @@ namespace hyper
 
                 if (node->right && child != nullptr)
                 {
-                    assert(child != nullptr); // logically child should always be valid.
+                    ASSERT(child != nullptr); // logically child should always be valid.
 
                     leftmost_ref = eastl::rbtree_get_min_child(child);
                 }
@@ -343,7 +342,7 @@ namespace hyper
 
                 if (node->left && child != nullptr)
                 {
-                    assert(child != nullptr); // logically child should always be valid.
+                    ASSERT(child != nullptr); // logically child should always be valid.
 
                     rightmost_ref = eastl::rbtree_get_max_child(child);
                 }

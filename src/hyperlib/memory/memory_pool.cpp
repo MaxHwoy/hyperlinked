@@ -1,4 +1,3 @@
-#include <cassert>
 #include <hyperlib/math.hpp>
 #include <hyperlib/memory/memory_pool.hpp>
 #include <hyperlib/memory/memory.hpp>
@@ -169,7 +168,7 @@ namespace hyper
             {
                 this->print_allocations_internal();
 
-                assert(false);
+                ASSERT_WITH_MESSAGE(false, "Closing memory pool when it has non-freed allocations!");
             }
 
             for (buffer_block* i = this->buffer_block_list_.begin(); i != this->buffer_block_list_.end(); /* empty */)
@@ -325,18 +324,18 @@ namespace hyper
     {
         for (const free_block* i = this->free_block_list_.begin(); i != this->free_block_list_.end(); i = i->next())
         {
-            assert(!::IsBadReadPtr((void*)i, 1u));
-            assert(!::IsBadReadPtr((void*)i->next(), 1u));
-            assert(!::IsBadReadPtr((void*)i->next(), 1u));
-            assert(i->magic_number == memory_pool::free_magic);
+            ASSERT(!::IsBadReadPtr((void*)i, 1u));
+            ASSERT(!::IsBadReadPtr((void*)i->next(), 1u));
+            ASSERT(!::IsBadReadPtr((void*)i->next(), 1u));
+            ASSERT(i->magic_number == memory_pool::free_magic);
         }
 
         for (const alloc_block* i = this->alloc_block_list_.begin(); i != this->alloc_block_list_.end(); i = i->next())
         {
-            assert(!::IsBadReadPtr((void*)i, 1u));
-            assert(!::IsBadReadPtr((void*)i->next(), 1u));
-            assert(!::IsBadReadPtr((void*)i->next(), 1u));
-            assert(i->magic_number == memory_pool::alloc_magic);
+            ASSERT(!::IsBadReadPtr((void*)i, 1u));
+            ASSERT(!::IsBadReadPtr((void*)i->next(), 1u));
+            ASSERT(!::IsBadReadPtr((void*)i->next(), 1u));
+            ASSERT(i->magic_number == memory_pool::alloc_magic);
         }
 
         if (verify_free_pattern && this->debug_fill_enabled_)
@@ -347,7 +346,7 @@ namespace hyper
 
                 for (const std::uint32_t* ptr = reinterpret_cast<const std::uint32_t*>(i + 1); ptr < endptr; ++ptr)
                 {
-                    assert(*ptr == memory_pool::debug_free_fill);
+                    ASSERT(*ptr == memory_pool::debug_free_fill);
                 }
             }
         }

@@ -299,7 +299,7 @@ namespace hyper
 
                     if (index < 0)
                     {
-                        assert(top < max_stack);
+                        ASSERT(top < max_stack);
 
                         stack[top] = static_cast<std::uint16_t>(-index);
                         state[top] = visible;

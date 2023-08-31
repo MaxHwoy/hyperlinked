@@ -27,9 +27,7 @@ namespace hyper
     {
         if (++depth > 10u)
         {
-            ::printf("Chunks are internally corrupted! Exceeding maximum recursive depth!");
-
-            NFSU360IFY();
+            ASSERT_WITH_MESSAGE(false, "Chunks are internally corrupted! Exceeding maximum recursive depth!");
         }
 
         const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);
@@ -64,9 +62,9 @@ namespace hyper
             std::uint32_t chunkid = static_cast<std::uint32_t>(curr->id());
             std::uint32_t chunksz = static_cast<std::uint32_t>(curr->size());
 
-            ::printf("Warning: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)\n", address, chunkid, chunksz);
+            PRINT_FATAL("Warning: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)", address, chunkid, chunksz);
 
-            NFSU360IFY();
+            ASSERT_WITH_MESSAGE(false, "Loaded chunks are corrupted");
         }
     }
 
@@ -74,9 +72,7 @@ namespace hyper
     {
         if (++depth > 10u)
         {
-            ::printf("Chunks are internally corrupted! Exceeding maximum recursive depth!");
-
-            NFSU360IFY();
+            ASSERT_WITH_MESSAGE(false, "Chunks are internally corrupted! Exceeding maximum recursive depth!");
         }
 
         const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);
@@ -165,8 +161,8 @@ namespace hyper
 
     bool loader::load_temp_perm_chunks(void** memory, size_t* size, std::uint32_t alloc_params, const char* debug_name)
     {
-        assert(memory != nullptr);
-        assert(size != nullptr);
+        ASSERT(memory != nullptr);
+        ASSERT(size != nullptr);
 
         if (*memory == nullptr || *size == 0u)
         {

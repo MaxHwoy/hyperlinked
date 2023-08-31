@@ -2,6 +2,8 @@
 #include <hyperlib/assets/props.hpp>
 #include <hyperlib/streamer/sections.hpp>
 
+#pragma warning (disable : 6011)
+
 namespace hyper
 {
     const scenery::group* scenery::group::scenery_group_door_(nullptr);
@@ -215,8 +217,100 @@ namespace hyper
 
     bool scenery::loader_scenery_section(chunk* block)
     {
-        
-        
+        return true;
+
+        scenery::pack* pack = nullptr;
+
+        for (chunk* curr = reinterpret_cast<chunk*>(block->data()); curr != block->end(); curr = curr->end())
+        {
+            if (curr->id() == block_id::scenery_header)
+            {
+                pack = reinterpret_cast<scenery::pack*>(curr->aligned_data(0x10u));
+
+                visible_section::manager::instance.allocate_user_info(pack->section_number).scenery = pack;
+
+                if (pack->section_number == game_provider::shared_scenery_section)
+                {
+                    scenery::pack::list.add_before(pack, scenery::pack::list.begin());
+                }
+                else
+                {
+                    scenery::pack::list.add(pack);
+                }
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_infos)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Info array is being loaded without scenery section header!");
+
+                pack->infos = span<scenery::info>(reinterpret_cast<scenery::info*>(curr->data()), curr->size() / sizeof(scenery::info));
+
+                for (std::uint32_t i = 0u; i < pack->infos.length(); ++i)
+                {
+                    scenery::info& info = pack->infos[i];
+
+                    if (info.hierarchy_key != 0u)
+                    {
+                        geometry::hierarchy** hierarchy = geometry::hierarchy::map::instance.at(info.hierarchy_key);
+
+                        info.hierarchy = hierarchy == nullptr ? nullptr : *hierarchy;
+                    }
+                }
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_instances)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Instance array is being loaded without scenery section header!");
+
+                pack->instances = span<scenery::instance>(reinterpret_cast<scenery::instance*>(curr->aligned_data(0x10u)), curr->aligned_size(0x10u) / sizeof(scenery::instance));
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_tree_nodes)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Tree Node array is being loaded without scenery section header!");
+
+                pack->tree_nodes = span<scenery::tree_node>(reinterpret_cast<scenery::tree_node*>(curr->aligned_data(0x10u)), curr->aligned_size(0x10u) / sizeof(scenery::tree_node));
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_override_hooks)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Override Hook array is being loaded without scenery section header!");
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_preculler_infos)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Preculler Info array is being loaded without scenery section header!");
+
+                continue;
+            }
+
+            if (curr->id() == block_id::scenery_ngbbs)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery NGBB array is being loaded without scenery section header!");
+
+                continue;
+            }
+
+            if (curr->id() == block_id::light_texture_collections)
+            {
+                ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Light Texture array is being loaded without scenery section header!");
+
+                continue;
+            }
+#if defined(_DEBUG)
+            ::printf("Unknown chunk 0x%08X at scenery section %d\n", static_cast<std::uint32_t>(curr->id()), pack == nullptr ? 0u : pack->section_number);
+#endif
+        }
 
         
 

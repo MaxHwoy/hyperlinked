@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 
 #pragma warning (disable : 33011)
 

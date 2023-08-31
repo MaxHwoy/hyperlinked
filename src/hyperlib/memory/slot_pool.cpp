@@ -70,7 +70,7 @@ namespace hyper
         {
             if ((this->flags_ & flags::warn_if_overflow) != 0)
             {
-                ::printf("Warning: trying to allocate a slot at pool \"%s\" which is out of free entries!", this->name_);
+                PRINT_WARNING("Warning: trying to allocate a slot at pool \"%s\" which is out of free entries!", this->name_);
             }
 
             if ((this->flags_ & flags::overflow_if_full) != 0)
@@ -79,7 +79,9 @@ namespace hyper
             }
             else
             {
-                assert(false);
+                PRINT_FATAL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
+
+                ASSERT_WITH_MESSAGE(false, "Slot pool ran out of slot entries");
             }
         }
 
@@ -113,7 +115,7 @@ namespace hyper
         {
             if ((this->flags_ & flags::warn_if_overflow) != 0)
             {
-                ::printf("Warning: trying to allocate a slot at pool \"%s\" which is out of free entries!", this->name_);
+                PRINT_WARNING("Warning: trying to allocate a slot at pool \"%s\" which is out of free entries!", this->name_);
             }
 
             if ((this->flags_ & flags::overflow_if_full) != 0)
@@ -122,7 +124,9 @@ namespace hyper
             }
             else
             {
-                assert(false);
+                PRINT_FATAL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
+
+                ASSERT_WITH_MESSAGE(false, "Slot pool ran out of slot entries");
             }
         }
 
@@ -176,7 +180,7 @@ namespace hyper
 
     void slot_pool::free(void* ptr)
     {
-        assert(this->get_slot_number(ptr) < this->slot_total_);
+        ASSERT(this->get_slot_number(ptr) < this->slot_total_);
 
         this->alloc_count_--;
 
@@ -418,7 +422,7 @@ namespace hyper
         {
             if ((pool->get_flags() & slot_pool::flags::warn_if_nonempty_delete) != 0 && pool->alloc_slots() > 0u)
             {
-                ::printf("Warning: deleting slot pool \"%s\" when it has 1 or more allocated slots!", pool->name());
+                PRINT_WARNING("Warning: deleting slot pool \"%s\" when it has 1 or more allocated slots!", pool->name());
             }
 
             do

@@ -708,7 +708,7 @@ namespace hyper
 
     template <typename Key, typename Value, typename C, typename A, typename ExtractKey, bool MI, bool UK> auto eastl::rbtree<Key, Value, C, A, ExtractKey, MI, UK>::insert_value_impl(rbtree_node_base* parent, bool force_to_left, const Key& key, rbtree_node<Value>* new_node) -> iterator
     {
-        assert(new_node != nullptr);
+        ASSERT(new_node != nullptr);
 
         rbtree_side side;
         ExtractKey extractor;
@@ -1045,7 +1045,7 @@ namespace hyper
     {
         rbtree_node<Value>* node = reinterpret_cast<rbtree_node<Value>*>(this->allocator_.allocate(sizeof(rbtree_node<Value>), 0u));
 
-        assert(node != nullptr);
+        ASSERT(node != nullptr);
 
         return node;
     }

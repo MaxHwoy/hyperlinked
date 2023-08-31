@@ -1,4 +1,3 @@
-#include <cassert>
 #include <algorithm>
 #include <hyperlib/math.hpp>
 #include <hyperlib/memory/memory.hpp>
@@ -8,7 +7,7 @@ namespace hyper
 {
     ts_memory_pool::ts_memory_pool(void* buffer, alloc_size_t size, const char* debug_name, char pool_number) : heap_list_(), free_list_(), used_list_()
     {
-        assert(buffer == nullptr || (buffer != nullptr && size >= 0x80u));
+        ASSERT(buffer == nullptr || (buffer != nullptr && size >= 0x80u));
 
         this->debug_name_ = debug_name;
         this->super_buffer_ = buffer;
@@ -172,7 +171,7 @@ namespace hyper
             std::uint32_t buffer_params = memory::create_allocation_params(memory::pool_type::main, true, true, 0x80u, 0x00u);
 
 #if defined(_DEBUG)
-            ::printf("Warning!!! TSMemoryPool ran out of basic memory. Allocating additional heap buffer...\n");
+            PRINT_INFO("TSMemoryPool ran out of basic memory. Allocating additional heap buffer...");
 
             heap_buffer* buffer = reinterpret_cast<heap_buffer*>(memory::malloc_debug(sizeof(heap_buffer), 0u, __FILE__, __LINE__));
 

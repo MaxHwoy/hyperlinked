@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cassert>
 #include <hyperlib/math.hpp>
 #include <hyperlib/bench.hpp>
 #include <hyperlib/memory/memory.hpp>
@@ -64,7 +63,7 @@ namespace hyper
     {
         std::int32_t persistent = memory::get_free_memory_pool_number();
 
-        assert(persistent >= 0);
+        ASSERT(persistent >= 0);
 
 #if defined(_DEBUG)
         void* buffer = memory::malloc_debug(size, 0u, __FILE__, __LINE__);
@@ -399,9 +398,9 @@ namespace hyper
             alignment = pool_info->default_alignment;
         }
 
-        assert(math::is_pow_2(alignment));
+        ASSERT(math::is_pow_2(alignment));
 
-        assert(memory::is_memory_pool_initialized(pool_number));
+        ASSERT(memory::is_memory_pool_initialized(pool_number));
 
         memory_pool& pool = memory::pools_[static_cast<std::uint32_t>(pool_number)];
         
@@ -419,9 +418,9 @@ namespace hyper
 
             const char* name = pool.pool_name();
 
-            ::printf("ERROR:  Out of memory in pool %s allocating %s (size = %d).  Largest possible = %d  Total = %d\n", name, debug_text, size, largest, amount_free);
+            PRINT_FATAL("ERROR:  Out of memory in pool %s allocating %s (size = %d).  Largest possible = %d  Total = %d", name, debug_text, size, largest, amount_free);
 
-            assert(false);
+            ASSERT_WITH_MESSAGE(false, "Memory pool ran out of memory!");
         }
 
         memory::total_allocations_++;
@@ -460,13 +459,13 @@ namespace hyper
             {
                 const memory_pool::override_info* override_info = memory::pool_infos_[memory_pool::allocation_pool(ptr)].override_info;
 
-                assert(override_info != nullptr);
+                ASSERT(override_info != nullptr);
 
                 override_info->release_memory(ptr);
             }
             else
             {
-                assert(false);
+                ASSERT_WITH_MESSAGE(false, "Attempting to free memory that was not allocated with any memory pool, or was already freed, or the memory heap is corrupted");
             }
         }
     }
