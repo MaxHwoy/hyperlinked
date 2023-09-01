@@ -1,5 +1,6 @@
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/assets/props.hpp>
+#include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/streamer/sections.hpp>
 
 #pragma warning (disable : 6011)
@@ -217,8 +218,6 @@ namespace hyper
 
     bool scenery::loader_scenery_section(chunk* block)
     {
-        return true;
-
         scenery::pack* pack = nullptr;
 
         for (chunk* curr = reinterpret_cast<chunk*>(block->data()); curr != block->end(); curr = curr->end())
@@ -284,12 +283,30 @@ namespace hyper
             {
                 ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Override Hook array is being loaded without scenery section header!");
 
+                scenery::override_info_hookup* table = reinterpret_cast<scenery::override_info_hookup*>(curr->data());
+
+                std::uint32_t count = curr->size() / sizeof(scenery::override_info_hookup);
+
+                for (std::uint32_t i = 0u; i < count; ++i)
+                {
+                    scenery::override_info_hookup& hookup = table[i];
+
+                    scenery::override_info& info = scenery::override_info::table[hookup.override_info_number];
+
+                    if (pack->section_number == info.section_number && hookup.instance_number == info.instance_number)
+                    {
+                        info.assign_overrides(*pack);
+                    }
+                }
+
                 continue;
             }
 
             if (curr->id() == block_id::scenery_preculler_infos)
             {
                 ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Preculler Info array is being loaded without scenery section header!");
+
+                pack->preculler_infos = span<scenery::preculler_info>(reinterpret_cast<scenery::preculler_info*>(curr->data()), curr->size() / sizeof(scenery::preculler_info));
 
                 continue;
             }
@@ -298,6 +315,8 @@ namespace hyper
             {
                 ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery NGBB array is being loaded without scenery section header!");
 
+                pack->ngbbs = reinterpret_cast<scenery::section_box*>(curr->aligned_data(0x10u));
+
                 continue;
             }
 
@@ -305,14 +324,90 @@ namespace hyper
             {
                 ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery Light Texture array is being loaded without scenery section header!");
 
+                pack->light_tex_list = reinterpret_cast<scenery::light_texture_collection*>(curr->data());
+
+                std::uint32_t count = curr->size() / sizeof(scenery::light_texture_collection);
+
+                ASSERT_WITH_MESSAGE(pack->instances.length() == count, "Light Texture array length should be the same as Scenery Instance array length!");
+
+                for (std::uint32_t i = 0u; i < count; ++i)
+                {
+                    pack->instances[i].light_tex_collection = pack->light_tex_list + i;
+                }
+
                 continue;
             }
-#if defined(_DEBUG)
-            ::printf("Unknown chunk 0x%08X at scenery section %d\n", static_cast<std::uint32_t>(curr->id()), pack == nullptr ? 0u : pack->section_number);
-#endif
+
+            PRINT_WARNING("Unknown chunk 0x%08X at scenery section %d", static_cast<std::uint32_t>(curr->id()), pack == nullptr ? 0u : pack->section_number);
         }
 
-        
+        ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery section does not have a header!");
+
+        if (loader::chunk_movement_offset == 0u)
+        {
+            size_t info_count = pack->infos.length();
+
+            for (size_t i = 0u; i < info_count; ++i)
+            {
+                scenery::info& info = pack->infos[i];
+
+                for (size_t j = 0u; j < std::size(info.models); ++j)
+                {
+                    std::uint32_t key = info.solid_keys[j];
+
+                    if (key != 0u && key != hashing::bin_const("SKYDOME") && key != hashing::bin_const("SKY_SPECULAR"))
+                    {
+                        geometry::model* model = nullptr;
+
+                        for (size_t k = 0u; k < j; ++k)
+                        {
+                            geometry::model* compare = info.models[k];
+
+                            if (compare != nullptr && key == compare->key)
+                            {
+                                model = compare;
+
+                                break;
+                            }
+                        }
+
+                        if (model == nullptr)
+                        {
+                            model = geometry::model::pool->construct(key);
+
+                            if (model != nullptr)
+                            {
+                                model->lod_level = static_cast<std::int16_t>(j);
+
+                                if (scenery::model_connection_callback != nullptr)
+                                {
+                                    scenery::model_connection_callback(*pack, info, *model);
+                                }
+                            }
+                        }
+
+                        info.models[j] = model;
+                    }
+                }
+
+                if (info.models[static_cast<std::uint32_t>(model_lod::c)] == nullptr)
+                {
+                    info.models[static_cast<std::uint32_t>(model_lod::c)] = info.models[static_cast<std::uint32_t>(model_lod::b)];
+                }
+
+                if (info.models[static_cast<std::uint32_t>(model_lod::a)] == nullptr)
+                {
+                    info.models[static_cast<std::uint32_t>(model_lod::a)] = info.models[static_cast<std::uint32_t>(model_lod::b)];
+                }
+            }
+
+            if (scenery::section_connection_callback != nullptr)
+            {
+                scenery::section_connection_callback(*pack);
+            }
+        }
+
+        pack->chunks_loaded = true;
 
         return true;
     }
@@ -361,7 +456,65 @@ namespace hyper
 
     bool scenery::unloader_scenery_section(chunk* block)
     {
+        scenery::pack* pack = nullptr;
 
+        for (chunk* curr = reinterpret_cast<chunk*>(block->data()); curr != block->end(); curr = curr->end())
+        {
+            if (curr->id() == block_id::scenery_header)
+            {
+                pack = reinterpret_cast<scenery::pack*>(curr->aligned_data(0x10u));
+
+                break;
+            }
+        }
+
+        ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery section does not have a header!");
+
+        visible_section::manager::instance.unallocate_user_info(pack->section_number);
+
+        scenery::pack::list.remove(pack);
+
+        if (loader::chunk_movement_offset == 0u)
+        {
+            size_t info_count = pack->infos.length();
+
+            for (size_t i = 0u; i < info_count; ++i)
+            {
+                scenery::info& info = pack->infos[i];
+
+                for (size_t j = 0u; j < std::size(info.models); ++j)
+                {
+                    geometry::model* model = info.models[j];
+
+                    if (model != nullptr)
+                    {
+                        for (size_t k = j + 1; k < std::size(info.models); ++k)
+                        {
+                            if (model == info.models[k])
+                            {
+                                info.models[k] = nullptr;
+                            }
+                        }
+
+                        if (scenery::model_disconnection_callback != nullptr)
+                        {
+                            scenery::model_disconnection_callback(*pack, info, *model);
+                        }
+
+                        geometry::model::pool->destruct(model);
+
+                        info.models[j] = nullptr;
+                    }
+                }
+            }
+
+            if (scenery::section_disconnection_callback != nullptr)
+            {
+                scenery::section_disconnection_callback(*pack);
+            }
+        }
+
+        pack->chunks_loaded = false;
 
         return true;
     }

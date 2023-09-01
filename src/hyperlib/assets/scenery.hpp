@@ -197,6 +197,15 @@ namespace hyper
             static inline linked_list<pack>& list = *reinterpret_cast<linked_list<pack>*>(0x00B70640);
         };
 
+    public:
+        using model_connection_delegate = void(*)(scenery::pack& pack, scenery::info& info, geometry::model& model);
+
+        using model_disconnection_delegate = void(*)(scenery::pack& pack, scenery::info& info, geometry::model& model);
+
+        using section_connection_delegate = void(*)(scenery::pack& pack);
+
+        using section_disconnection_delegate = void(*)(scenery::pack& pack);
+
     private:
         static bool loader_scenery_section(chunk* block);
 
@@ -214,6 +223,15 @@ namespace hyper
         static bool loader(chunk* block);
 
         static bool unloader(chunk* block);
+
+    public:
+        static inline model_connection_delegate& model_connection_callback = *reinterpret_cast<model_connection_delegate*>(0x00B69BC0);
+
+        static inline model_disconnection_delegate& model_disconnection_callback = *reinterpret_cast<model_disconnection_delegate*>(0x00B69BC4);
+
+        static inline section_connection_delegate& section_connection_callback = *reinterpret_cast<section_connection_delegate*>(0x00B69BC8);
+
+        static inline section_disconnection_delegate& section_disconnection_callback = *reinterpret_cast<section_disconnection_delegate*>(0x00B69BCC);
     };
 
     ASSERT_SIZE(scenery::info, 0x48);

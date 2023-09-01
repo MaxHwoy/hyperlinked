@@ -73,6 +73,8 @@ namespace hyper
         static inline bool& split_vram_data = *reinterpret_cast<bool*>(0x00A62B74);
 
         static inline bool& post_load_fixup_disabled = *reinterpret_cast<bool*>(0x00A995F8);
+
+        static inline size_t& chunk_movement_offset = *reinterpret_cast<size_t*>(0x00A995E8);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(loader::streaming_entry::flags);
