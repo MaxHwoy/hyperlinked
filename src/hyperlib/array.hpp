@@ -36,14 +36,14 @@ namespace hyper
         {
         }
 
-        template <typename Index> auto operator[](Index index) -> T&
+        template <typename Index> inline auto operator[](Index index) -> T&
         {
             assert(static_cast<size_t>(index) < this->length_);
 
             return this->ptr_[static_cast<size_t>(index)];
         }
 
-        template <typename Index> auto operator[](Index index) const -> const T&
+        template <typename Index> inline auto operator[](Index index) const -> const T&
         {
             assert(static_cast<size_t>(index) < this->length_);
 
