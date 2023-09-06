@@ -1974,7 +1974,6 @@ namespace hyper
 
         // BELOW ARE PATCHES THAT REPLACE THE TRACK STREAMER POINTERS
 
-#if defined(USE_HYPER_STREAMER)
         // CAnimPlayer::Load
         hook::set(0x004590A0, &streamer::instance);
 
@@ -2457,6 +2456,5 @@ namespace hyper
 
         // VisibleSectionManager::Loader
         hook::set(0x007A8A46, &streamer::instance.memory_heap);
-#endif
     }
 }

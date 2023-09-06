@@ -12,12 +12,10 @@
 
 namespace hyper
 {
-#if defined(USE_HYPER_STREAMER)
     streamer streamer::instance = streamer();
-#endif
 
     streamer::streamer() :
-        current_section_table(streamer::section_table_memory_.pointer(), streamer::section_table_memory_.length()),
+        current_section_table(streamer::section_table_memory_, sizeof(streamer::section_table_memory_)),
         sections(nullptr),
         section_count(0u),
         discs(nullptr),
@@ -502,9 +500,9 @@ namespace hyper
 
         std::uint32_t sections_to_load_count = 3u;
 
-        sections_to_load[0] = game_provider::shared_texture_section;
-        sections_to_load[1] = game_provider::shared_solid_section;
-        sections_to_load[2] = game_provider::shared_scenery_section;
+        sections_to_load[0] = game_provider::shared_texture_section();
+        sections_to_load[1] = game_provider::shared_solid_section();
+        sections_to_load[2] = game_provider::shared_scenery_section();
 
         for (std::uint32_t i = 0u; i < std::size(this->keep_section_table); ++i)
         {
@@ -574,23 +572,7 @@ namespace hyper
 
     auto streamer::find_section(std::uint16_t section_number) -> section*
     {
-        BENCHMARK();
-
-#if defined(USE_HYPER_STREAMER)
         return reinterpret_cast<section*>(utils::scan_hash_table_key16(section_number, this->sections, this->section_count, offsetof(section, number), sizeof(section)));
-#else
-        for (std::uint32_t i = 0u; i < this->section_count; ++i)
-        {
-            streamer::section* section = this->sections + i;
-
-            if (section->number == section_number)
-            {
-                return section;
-            }
-        }
-
-        return nullptr;
-#endif
     }
 
     void streamer::finished_loading()
@@ -1182,9 +1164,7 @@ namespace hyper
                 case block_id::track_streaming_sections:
                     this->sections = reinterpret_cast<section*>(block->data());
                     this->section_count = block->size() / sizeof(section);
-#if defined(USE_HYPER_STREAMER)
                     utils::sort(this->sections, this->section_count, [](const section& lhs, const section& rhs) -> bool { return lhs.number < rhs.number; });
-#endif
                     return true;
 
                 case block_id::track_streaming_infos:

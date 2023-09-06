@@ -505,7 +505,6 @@ namespace hyper
 
         // BELOW ARE PATCHES THAT REPLACE THE VISIBLE SECTION MANAGER POINTERS
 
-#if defined(USE_HYPER_VISIBILITY)
         // CAnimScene::Init
         hook::set(0x0045F3DF, &visible_section::manager::instance);
 
@@ -724,6 +723,5 @@ namespace hyper
 
         // TrackLoader::CloseTopologyAndSceneryGroups
         hook::set(0x006A8ABC, std::size(visible_section::manager::instance.enabled_groups));
-#endif
     }
 }

@@ -246,7 +246,7 @@ namespace hyper
 
         std::uint32_t count = 1u;
 
-        sections[0] = game_provider::shared_scenery_section;
+        sections[0] = game_provider::shared_scenery_section();
 
         if (drivable != nullptr)
         {

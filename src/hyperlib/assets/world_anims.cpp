@@ -65,7 +65,7 @@ namespace hyper
             {
                 world_anim::header& header = world_anim::temp_header_ = *reinterpret_cast<world_anim::header*>(block->aligned_data(0x10u));
 
-                if (header.section_number == game_provider::shared_solid_section && world_anim::library_ == nullptr)
+                if (header.section_number == game_provider::shared_solid_section() && world_anim::library_ == nullptr)
                 {
                     alloc_size_t total_size = static_cast<alloc_size_t>((sizeof(world_anim::library) - sizeof(world_anim::tree)) + header.tree_count * sizeof(world_anim::tree));
 #if defined(_DEBUG)
@@ -85,7 +85,7 @@ namespace hyper
 
                 world_anim::tree* tree = nullptr;
 
-                if (world_anim::temp_header_.section_number == game_provider::shared_solid_section)
+                if (world_anim::temp_header_.section_number == game_provider::shared_solid_section())
                 {
                     tree = &world_anim::library_->trees[world_anim::library_->tree_index++];
                 }
@@ -122,7 +122,7 @@ namespace hyper
                     }
                 }
 
-                if (world_anim::temp_header_.section_number != game_provider::shared_solid_section)
+                if (world_anim::temp_header_.section_number != game_provider::shared_solid_section())
                 {
                     for (std::uint32_t i = 0u; i < node_count; ++i)
                     {
@@ -186,7 +186,7 @@ namespace hyper
             {
                 world_anim::header* header = reinterpret_cast<world_anim::header*>(block->aligned_data(0x10u));
 
-                if (header->section_number == game_provider::shared_solid_section)
+                if (header->section_number == game_provider::shared_solid_section())
                 {
                     if (world_anim::library_ != nullptr)
                     {

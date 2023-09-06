@@ -98,6 +98,8 @@ namespace hyper
     {
         if (block->id() == block_id::scenery_groups)
         {
+            std::uint32_t override_size = game_provider::are_sections_extended() ? sizeof(std::uint32_t) : sizeof(std::uint16_t);
+
             uintptr_t current = reinterpret_cast<uintptr_t>(block->data());
             uintptr_t endaddr = reinterpret_cast<uintptr_t>(block->end());
 
@@ -109,7 +111,7 @@ namespace hyper
 
                 current += sizeof(scenery::group) - sizeof(group->overrides);
 
-                current += group->override_count * sizeof(group->overrides[0]);
+                current += group->override_count * override_size;
 
                 current += sizeof(void*) - (current & 0x03u);
 
@@ -155,9 +157,19 @@ namespace hyper
             ? static_cast<std::uint16_t>(instance_flags::artwork_flipped)
             : static_cast<std::uint16_t>(0u);
 
-        for (std::uint16_t i = 0u; i < this->override_count; ++i)
+        if (game_provider::are_sections_extended())
         {
-            override_info::table[this->overrides[i]].set_exclude_flags(mask, flag);
+            for (std::uint16_t i = 0u; i < this->override_count; ++i)
+            {
+                override_info::table[this->overrides.extended[i]].set_exclude_flags(mask, flag);
+            }
+        }
+        else
+        {
+            for (std::uint16_t i = 0u; i < this->override_count; ++i)
+            {
+                override_info::table[this->overrides.vanilla[i]].set_exclude_flags(mask, flag);
+            }
         }
 
         props::sync_overrides();
@@ -172,9 +184,19 @@ namespace hyper
             instance_flags::exclude_group_disable
         );
 
-        for (std::uint16_t i = 0u; i < this->override_count; ++i)
+        if (game_provider::are_sections_extended())
         {
-            override_info::table[this->overrides[i]].set_exclude_flags(mask, flag);
+            for (std::uint16_t i = 0u; i < this->override_count; ++i)
+            {
+                override_info::table[this->overrides.extended[i]].set_exclude_flags(mask, flag);
+            }
+        }
+        else
+        {
+            for (std::uint16_t i = 0u; i < this->override_count; ++i)
+            {
+                override_info::table[this->overrides.vanilla[i]].set_exclude_flags(mask, flag);
+            }
         }
 
         props::sync_overrides();
@@ -228,7 +250,7 @@ namespace hyper
 
                 visible_section::manager::instance.allocate_user_info(pack->section_number).scenery = pack;
 
-                if (pack->section_number == game_provider::shared_scenery_section)
+                if (pack->section_number == game_provider::shared_scenery_section())
                 {
                     scenery::pack::list.add_before(pack, scenery::pack::list.begin());
                 }
@@ -287,15 +309,18 @@ namespace hyper
 
                 std::uint32_t count = curr->size() / sizeof(scenery::override_info_hookup);
 
-                for (std::uint32_t i = 0u; i < count; ++i)
+                if (game_provider::are_sections_extended())
                 {
-                    scenery::override_info_hookup& hookup = table[i];
-
-                    scenery::override_info& info = scenery::override_info::table[hookup.override_info_number];
-
-                    if (pack->section_number == info.section_number && hookup.instance_number == info.instance_number)
+                    for (std::uint32_t i = 0u; i < count; ++i)
                     {
-                        info.assign_overrides(*pack);
+                        scenery::override_info::table[table[i].info.extended.override_number].assign_overrides(*pack);
+                    }
+                }
+                else
+                {
+                    for (std::uint32_t i = 0u; i < count; ++i)
+                    {
+                        scenery::override_info::table[table[i].info.vanilla.override_number].assign_overrides(*pack);
                     }
                 }
 

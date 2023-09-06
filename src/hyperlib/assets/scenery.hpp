@@ -92,8 +92,15 @@ namespace hyper
 
         struct override_info_hookup
         {
-            std::uint16_t override_info_number;
-            std::uint16_t instance_number;
+            union {
+                struct {
+                    std::uint32_t override_number;
+                } extended;
+                struct {
+                    std::uint16_t override_number;
+                    std::uint16_t instance_number;
+                } vanilla;
+            } info;
         };
 
         struct preculler_info
@@ -126,7 +133,10 @@ namespace hyper
             std::uint8_t barrier_flag;
             std::uint8_t drive_through_barrier_flag;
             std::uint16_t race_specific_section_number;
-            std::uint16_t overrides[0x02];
+            union {
+                std::uint32_t extended[0x01];
+                std::uint16_t vanilla[0x02];
+            } overrides;
 
         public:
             static inline bool& print_groups = *reinterpret_cast<bool*>(0x00A99630);

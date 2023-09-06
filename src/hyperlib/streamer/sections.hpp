@@ -12,60 +12,61 @@ namespace hyper
     class game_provider final
     {
     public:
-        constexpr inline static std::uint16_t shared_solid_section = 2400u;
-        constexpr inline static std::uint16_t shared_texture_section = 2500u;
-        constexpr inline static std::uint16_t shared_scenery_section = 2600u;
-
-        constexpr inline static auto maximum_sections() -> std::uint16_t
+        inline static auto maximum_sections() -> std::uint16_t
         {
-            return 2700u;
+            return 27u * game_provider::section_factor_;
         }
 
-        constexpr inline static auto get_drivable_from_lod_number(std::uint16_t section_number, std::uint32_t lod) -> std::uint16_t
+        inline static auto get_drivable_from_lod_number(std::uint16_t section_number, std::uint32_t lod) -> std::uint16_t
         {
             return static_cast<std::uint16_t>(section_number - lod);
         }
 
-        constexpr inline static auto get_lod_from_drivable_number(std::uint16_t section_number, std::uint32_t lod) -> std::uint16_t
+        inline static auto get_lod_from_drivable_number(std::uint16_t section_number, std::uint32_t lod) -> std::uint16_t
         {
             return static_cast<std::uint16_t>(section_number + lod);
         }
 
-        constexpr inline static bool is_scenery_section_drivable(std::uint16_t section_number, std::uint32_t lod)
+        inline static bool is_scenery_section_drivable(std::uint16_t section_number, std::uint32_t lod)
         {
-            std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - 100u * c;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
 
             return c >= 1u && c <= 20u && i >= 1u && i < lod;
         }
 
-        constexpr inline static bool is_lod_scenery_section_number(std::uint16_t section_number, std::uint32_t lod)
+        inline static bool is_lod_scenery_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
-            std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - 100u * c;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
 
             return c >= 1u && c <= 20u && i >= lod && i < (lod << 1);
         }
 
-        constexpr inline static bool is_panorama_section_number(std::uint16_t section_number, std::uint32_t lod)
+        inline static bool is_panorama_section_number(std::uint16_t section_number, std::uint32_t lod)
         {
-            std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - 100u * c;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
 
             return c >= 1u && c <= 20u && i > (lod << 1);
         }
 
-        constexpr inline static bool is_regular_section_number(std::uint16_t section_number)
+        inline static bool is_regular_section_number(std::uint16_t section_number)
         {
-            std::uint32_t c = section_number / 100u;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
 
             return c >= 1u && c <= 20u;
         }
 
-        constexpr inline static bool is_raw_asset_section_number(std::uint16_t section_number)
+        inline static bool is_raw_asset_section_number(std::uint16_t section_number)
         {
-            std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - c * 100u;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
 
             if (c < 21u || c > 26u)
             {
@@ -80,37 +81,74 @@ namespace hyper
             return true;
         }
 
-        constexpr inline static bool is_textures_asset_section(std::uint16_t section_number)
+        inline static bool is_textures_asset_section(std::uint16_t section_number)
         {
-            std::uint32_t c = section_number / 100u;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
 
             return c == 25u || c == 23u;
         }
 
-        constexpr inline static bool is_geometry_asset_section(std::uint16_t section_number)
+        inline static bool is_geometry_asset_section(std::uint16_t section_number)
         {
-            std::uint32_t c = section_number / 100u;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
 
             return c == 24u || c == 21u;
         }
 
-        constexpr inline static bool is_island_section_number(std::uint16_t section_number)
+        inline static bool is_island_section_number(std::uint16_t section_number)
         {
-            return (section_number / 100u) == 25u && (section_number % 100u) >= 90u; // #TODO THIS IS STUPID AF WHERE IS USAGE OF LOD OFFSET???
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
+
+            return c == 25u && i >= ((f * 10u - f) / 10u); // wowie
         }
 
-        constexpr inline static bool is_shared_section_number(std::uint16_t section_number)
+        inline static bool is_shared_section_number(std::uint16_t section_number)
         {
-            return section_number == shared_solid_section || section_number == shared_texture_section || section_number == shared_scenery_section;
+            return section_number == game_provider::shared_solid_section() || 
+                   section_number == game_provider::shared_texture_section() || 
+                   section_number == game_provider::shared_scenery_section();
         }
 
         inline static void get_section_name_from_number(std::uint16_t section_number, char* buffer)
         {
-            std::uint32_t c = section_number / 100u;
-            std::uint32_t i = section_number - 100u * c;
+            const std::uint16_t f = game_provider::section_factor_;
+            const std::uint32_t c = section_number / f;
+            const std::uint32_t i = section_number - f * c;
 
             ::sprintf(buffer, "%c%d", static_cast<char>(c) + 'A', i);
         }
+
+        inline static bool are_sections_extended()
+        {
+            return !!(game_provider::section_factor_ - 100u);
+        }
+
+        inline static void set_extended_sections(bool extended)
+        {
+            game_provider::section_factor_ = extended ? 1000u : 100u;
+        }
+
+        inline static auto shared_solid_section() -> std::uint16_t
+        {
+            return 24u * game_provider::section_factor_;
+        }
+
+        inline static auto shared_texture_section() -> std::uint16_t
+        {
+            return 25u * game_provider::section_factor_;
+        }
+
+        inline static auto shared_scenery_section() -> std::uint16_t
+        {
+            return 26u * game_provider::section_factor_;
+        }
+
+    private:
+        static std::uint16_t section_factor_;
     };
 
     class visible_section final
@@ -118,7 +156,8 @@ namespace hyper
     public:
         struct pack
         {
-            std::uint32_t lod_offset;
+            std::uint16_t lod_offset;
+            bool use_extended_sections;
             std::uint32_t section_count;
             std::uint16_t sections[1];
         };
@@ -316,19 +355,15 @@ namespace hyper
             elev_poly* elev_polies;
             overlay* active_overlay;
             overlay* undo_overlay;
-            user_info* user_infos[2800];
+            user_info* user_infos[27000];
             std::uint32_t allocated_user_info_count;
             user_info user_info_storage_table[0x200];
             linked_list<unallocated_user_info> unallocated_user_info_list;
             bit_table* bit_tables;
-            std::uint32_t enabled_groups[0x100];
+            std::uint32_t enabled_groups[0x200];
 
         public:
-#if defined(USE_HYPER_VISIBILITY)
             static manager instance;
-#else
-            static inline manager& instance = *reinterpret_cast<manager*>(0x00B69CD0);
-#endif
 
             static inline std::uint32_t& section_lod_offset = *reinterpret_cast<std::uint32_t*>(0x00A72C2C);
 
@@ -353,5 +388,4 @@ namespace hyper
     ASSERT_SIZE(visible_section::user_info, 0x1C);
     ASSERT_SIZE(visible_section::unallocated_user_info, 0x08);
     ASSERT_SIZE(visible_section::group_info, 0x08);
-    ASSERT_SIZE(visible_section::manager, 0x683C);
 }

@@ -4,9 +4,9 @@
 
 namespace hyper
 {
-#if defined(USE_HYPER_VISIBILITY)
+    std::uint16_t game_provider::section_factor_ = 10u;
+
     visible_section::manager visible_section::manager::instance = visible_section::manager();
-#endif
 
     visible_section::manager::manager() :
         drivable_boundary_list(),
@@ -372,6 +372,10 @@ namespace hyper
             this->pack = nullptr;
             this->boundary_chunks = nullptr;
 
+            visible_section::manager::section_lod_offset = 10u;
+
+            game_provider::set_extended_sections(false);
+
             return true;
         }
 
@@ -390,6 +394,8 @@ namespace hyper
         this->pack = reinterpret_cast<visible_section::pack*>(block->data());
 
         visible_section::manager::section_lod_offset = this->pack->lod_offset;
+
+        game_provider::set_extended_sections(this->pack->use_extended_sections);
     }
 
     void visible_section::manager::loader_boundaries(chunk* block)
