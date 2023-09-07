@@ -396,6 +396,8 @@ namespace hyper
         visible_section::manager::section_lod_offset = this->pack->lod_offset;
 
         game_provider::set_extended_sections(this->pack->use_extended_sections);
+
+        this->pack->use_extended_sections = false;
     }
 
     void visible_section::manager::loader_boundaries(chunk* block)
