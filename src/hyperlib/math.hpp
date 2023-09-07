@@ -864,14 +864,14 @@ namespace hyper
             return from + (to - from) * t;
         }
 
+        constexpr inline static auto to_uint16_degrees(float degrees) -> std::uint16_t
+        {
+            return static_cast<std::uint16_t>(static_cast<std::int32_t>(degrees * 65536.0f) / 360);
+        }
+
         inline static void flip_sign(float& value)
         {
             *reinterpret_cast<std::uint32_t*>(&value) ^= 0x80000000;
-        }
-
-        inline static auto to_uint16_degrees(float degrees) -> std::uint16_t
-        {
-            return static_cast<std::uint16_t>(static_cast<std::int32_t>(degrees * 65536.0f) / 360);
         }
 
         static auto sin(std::uint16_t angle) -> float;

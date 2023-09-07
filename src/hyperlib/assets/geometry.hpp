@@ -4,6 +4,7 @@
 #include <hyperlib/memory/slot_pool.hpp>
 #include <hyperlib/assets/loader.hpp>
 #include <hyperlib/assets/textures.hpp>
+#include <hyperlib/collections/eastl.hpp>
 
 namespace hyper
 {
@@ -263,6 +264,7 @@ namespace hyper
 
         struct list_header : public linked_node<list_header>
         {
+        public:
             std::uint32_t version;
             std::uint32_t solid_count;
             std::uint8_t filename[0x38];
@@ -277,6 +279,9 @@ namespace hyper
             std::uint16_t default_texture_count;
             linked_list<texture::pack> texture_pack_list;
             linked_list<texture::pack> default_texture_list;
+
+        public:
+            static inline linked_list<list_header>& list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
         };
 
         struct replacement_texture_table
@@ -289,7 +294,15 @@ namespace hyper
         struct model : public linked_node<model>
         {
         public:
+            model();
+
+            model(std::uint32_t key);
+
+            ~model();
+
             void init(std::uint32_t hash_key);
+
+            void uninit();
 
             void connect(solid* solid_to_connect);
 
@@ -308,6 +321,11 @@ namespace hyper
 
         struct hierarchy
         {
+            struct map : eastl::map<std::uint32_t, hierarchy*>
+            {
+                static inline map& instance = *reinterpret_cast<map*>(0x00B70E5C);
+            };
+
             enum class flags : std::uint8_t
             {
                 internal = 0x01,
@@ -340,11 +358,10 @@ namespace hyper
         static inline float& total_find_time = *reinterpret_cast<float*>(0x00A8FFA8);
 
         static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A901A8);
-
-        static inline linked_list<list_header>& list_header_list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
     };
 
     CREATE_ENUM_FLAG_OPERATORS(geometry::solid::flags);
+    CREATE_ENUM_FLAG_OPERATORS(geometry::hierarchy::flags);
 
     ASSERT_SIZE(light_material::instance, 0xEC);
     ASSERT_SIZE(geometry::texture_entry, 0x08);
@@ -362,6 +379,7 @@ namespace hyper
     ASSERT_SIZE(geometry::solid, 0xE0);
     ASSERT_SIZE(geometry::list_header, 0x90);
     ASSERT_SIZE(geometry::model, 0x18);
-    ASSERT_SIZE(geometry::hierarchy, 0x18);
+    ASSERT_SIZE(geometry::hierarchy, 0x08 + sizeof(geometry::hierarchy::nodes));
+    ASSERT_SIZE(geometry::hierarchy::map, 0x1C);
     ASSERT_SIZE(geometry::hierarchy::node, 0x10);
 }

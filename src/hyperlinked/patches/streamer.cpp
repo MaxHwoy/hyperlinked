@@ -1974,7 +1974,6 @@ namespace hyper
 
         // BELOW ARE PATCHES THAT REPLACE THE TRACK STREAMER POINTERS
 
-#if defined(USE_HYPER_STREAMER)
         // CAnimPlayer::Load
         hook::set(0x004590A0, &streamer::instance);
 
@@ -2383,9 +2382,6 @@ namespace hyper
         // FECarClassSelectStateManager::HandleScreenTick
         hook::set(0x00847AEA, &streamer::instance);
 
-        // .text:009BA1F0
-        hook::set(0x009BA1F1, &streamer::instance);
-
         // BeginGameFlowUnloadingFrontend
         hook::set(0x006BC142, &streamer::instance.perm_file_loading);
 
@@ -2457,6 +2453,5 @@ namespace hyper
 
         // VisibleSectionManager::Loader
         hook::set(0x007A8A46, &streamer::instance.memory_heap);
-#endif
     }
 }

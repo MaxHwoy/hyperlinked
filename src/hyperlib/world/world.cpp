@@ -11,12 +11,7 @@ namespace hyper
     {
         if (boundary_model == nullptr && geometry::model::pool != nullptr)
         {
-            boundary_model = geometry::model::pool->allocate();
-
-            if (boundary_model != nullptr)
-            {
-                boundary_model->init(hashing::bin_const("MARKER_BOUNDARY"));
-            }
+            boundary_model = geometry::model::pool->construct(hashing::bin_const("MARKER_BOUNDARY"));
         }
     }
 

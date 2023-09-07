@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 
 #pragma warning (disable : 33011)
 
@@ -35,14 +36,14 @@ namespace hyper
         {
         }
 
-        template <typename Index> auto operator[](Index index) -> T&
+        template <typename Index> inline auto operator[](Index index) -> T&
         {
             assert(static_cast<size_t>(index) < this->length_);
 
             return this->ptr_[static_cast<size_t>(index)];
         }
 
-        template <typename Index> auto operator[](Index index) const -> const T&
+        template <typename Index> inline auto operator[](Index index) const -> const T&
         {
             assert(static_cast<size_t>(index) < this->length_);
 
@@ -107,6 +108,11 @@ namespace hyper
         inline auto pointer() const -> const T*
         {
             return this->ptr_;
+        }
+
+        inline void clear()
+        {
+            ::memset(this->ptr_, 0, Length * sizeof(T));
         }
 
         template <typename Index> auto operator[](Index index) -> T&

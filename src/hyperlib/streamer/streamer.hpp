@@ -310,14 +310,10 @@ namespace hyper
         bool make_space_in_pool_force_defrag;
 
     public:
-#if defined(USE_HYPER_STREAMER)
         static streamer instance;
-#else
-        static inline streamer& instance = *reinterpret_cast<streamer*>(0x00B70650);
-#endif
 
     private:
-        static inline array<std::uint8_t, 2800u / CHAR_BIT> section_table_memory_ = array<std::uint8_t, 2800u / CHAR_BIT>(0x00B68F68);
+        static inline std::uint8_t section_table_memory_[27000u / CHAR_BIT]{};
     };
 
     CREATE_ENUM_EXPR_OPERATORS(streamer::loading_phase);

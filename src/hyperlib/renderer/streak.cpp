@@ -61,7 +61,7 @@ namespace hyper
     {
         HRESULT result = this->vertex_buffer->Lock(0u, 0u, reinterpret_cast<void**>(&this->polies), D3DLOCK_DISCARD);
 
-        assert(SUCCEEDED(result));
+        ASSERT(SUCCEEDED(result));
 
         this->streak_count = 0u;
         this->_0x18 = true;

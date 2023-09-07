@@ -3,6 +3,20 @@
 
 namespace hyper
 {
+    geometry::model::model() : key(0u), solid(nullptr), replacement_textures(nullptr), replacement_texture_count(0u), lod_level(-1)
+    {
+    }
+
+    geometry::model::model(std::uint32_t key) : solid(nullptr)
+    {
+        this->init(key);
+    }
+
+    geometry::model::~model()
+    {
+        this->uninit();
+    }
+
     void geometry::model::init(std::uint32_t hash_key)
     {
         this->key = hash_key;
@@ -23,6 +37,25 @@ namespace hyper
                 this->connect(found);
             }
         }
+    }
+
+    void geometry::model::uninit()
+    {
+        if (this->key != 0u || this->solid != nullptr)
+        {
+            this->disconnect();
+        }
+
+        if (this->replacement_textures != nullptr)
+        {
+            call_function<void(__cdecl*)(geometry::replacement_texture_table*)>(0x005587D0)(this->replacement_textures); // #TODO
+        }
+
+        this->key = 0u;
+        this->solid = nullptr;
+        this->replacement_textures = nullptr;
+        this->replacement_texture_count = 0u;
+        this->lod_level = -1;
     }
 
     void geometry::model::connect(geometry::solid* solid_to_connect)
@@ -62,7 +95,7 @@ namespace hyper
 
         if (header == nullptr)
         {
-            for (list_header* i = geometry::list_header_list.begin(); i != geometry::list_header_list.end(); i = i->next())
+            for (list_header* i = geometry::list_header::list.begin(); i != geometry::list_header::list.end(); i = i->next())
             {
                 void* ptr = utils::scan_hash_table_key32(key, i->solid_index_entry_table, i->solid_count, offsetof(index_entry, key), sizeof(index_entry));
 
@@ -72,7 +105,7 @@ namespace hyper
                 {
                     result = entry->solid;
 
-                    geometry::list_header_list.move_front(i);
+                    geometry::list_header::list.move_front(i);
 
                     break;
                 }

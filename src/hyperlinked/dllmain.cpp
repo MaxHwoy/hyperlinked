@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <iostream>
 
+#include <hyperlib/utils/logging.hpp>
 #include <hyperlib/hook.hpp>
 #include <hyperlinked/patches.hpp>
 
@@ -28,26 +29,16 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
         if (entry == MAIN_ENTRY_POINT)
         {
 #if defined(RUN_TESTS) && defined(CONSOLEON)
-            ::AllocConsole();
-
-            ::freopen("CONIN$", "r", stdin);
-            ::freopen("CONOUT$", "w", stdout);
-            ::freopen("CONOUT$", "w", stderr);
-
-            int temp;
-
-            std::cin >> temp;
+            hyper::logging::init(nullptr, true);
 #endif
-
             hyper::patches::init();
-
 #if defined(RUN_TESTS)
             hyper::tests::init();
 #endif
         }
         else
         {
-            MessageBoxA(NULL, "This .exe is not supported!", "hyperlink", MB_ICONERROR);
+            ::MessageBoxA(NULL, "This .exe is not supported!", PRODUCT_NAME, MB_ICONERROR);
 
             return FALSE;
         }

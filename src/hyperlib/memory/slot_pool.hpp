@@ -131,15 +131,14 @@ namespace hyper
         {
         }
 
-        inline auto allocate() -> T*
-        {
-            return reinterpret_cast<T*>(this->malloc());
-        }
-
         inline auto get_allocated_instance(alloc_size_t index) -> T*
         {
             return reinterpret_cast<T*>(this->get_allocated_slot(index));
         }
+
+        template <typename... Args> auto construct(Args&&... args) -> T*;
+
+        void destruct(T* instance);
     };
 
     class slot_pool_manager final
@@ -212,6 +211,25 @@ namespace hyper
     public:
         static inline slot_pool_manager& instance = *reinterpret_cast<slot_pool_manager*>(0x00A87C68);
     };
+
+    template <typename T> template <typename... Args> auto instance_pool<T>::construct(Args&&... args) -> T*
+    {
+        void* ptr = this->malloc();
+        
+        if (ptr != nullptr)
+        {
+            return new (ptr) T(std::forward<Args>(args)...);
+        }
+
+        return nullptr;
+    }
+
+    template <typename T> void instance_pool<T>::destruct(T* instance)
+    {
+        instance->~T();
+
+        this->free(instance);
+    }
 
     CREATE_ENUM_FLAG_OPERATORS(slot_pool::flags);
 
