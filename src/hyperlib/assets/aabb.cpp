@@ -36,7 +36,6 @@ namespace hyper
     {
         BENCHMARK();
 
-#if defined(HYPER_AABB_QUERY_NONRECURSIVE)
         if (this->nodes != nullptr)
         {
             const aabb_node* stack[0x100];
@@ -65,16 +64,7 @@ namespace hyper
                 }
             }
         }
-#else
-        const aabb_node* root = this->nodes;
 
-        if (root != nullptr && root->contains(position))
-        {
-            return root->child_count > 0
-                ? this->query_leaf_internal(*root, position)
-                : root;
-        }
-#endif
         return nullptr;
     }
 }

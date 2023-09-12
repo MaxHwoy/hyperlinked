@@ -270,18 +270,18 @@ namespace hyper
         context.local_direction.m24 = normal_directions[3].y;
         context.local_direction.m34 = normal_directions[3].z;
 
-        context.local_color.m11 = colors[0].r;
-        context.local_color.m12 = colors[0].g;
-        context.local_color.m13 = colors[0].b;
-        context.local_color.m21 = colors[1].r;
-        context.local_color.m22 = colors[1].g;
-        context.local_color.m23 = colors[1].b;
-        context.local_color.m31 = colors[2].r;
-        context.local_color.m32 = colors[2].g;
-        context.local_color.m33 = colors[2].b;
-        context.local_color.m41 = colors[3].r;
-        context.local_color.m42 = colors[3].g;
-        context.local_color.m43 = colors[3].b;
+        context.local_color.m11 = colors[0].r + query.ambience.r;
+        context.local_color.m12 = colors[0].g + query.ambience.g;
+        context.local_color.m13 = colors[0].b + query.ambience.b;
+        context.local_color.m21 = colors[1].r + query.ambience.r;
+        context.local_color.m22 = colors[1].g + query.ambience.g;
+        context.local_color.m23 = colors[1].b + query.ambience.b;
+        context.local_color.m31 = colors[2].r + query.ambience.r;
+        context.local_color.m32 = colors[2].g + query.ambience.g;
+        context.local_color.m33 = colors[2].b + query.ambience.b;
+        context.local_color.m41 = colors[3].r + query.ambience.r;
+        context.local_color.m42 = colors[3].g + query.ambience.g;
+        context.local_color.m43 = colors[3].b + query.ambience.b;
 
         ::memset(context.harmonics, 0, sizeof(context.harmonics));
 
