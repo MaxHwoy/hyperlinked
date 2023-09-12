@@ -36,7 +36,7 @@ namespace hyper
     {
         BENCHMARK();
 
-#if defined(HYPER_AABB_QUERY_NONRECURSIVE)
+#if defined(USE_HYPER_AABB_NONRECURSIVE)
         if (this->nodes != nullptr)
         {
             const aabb_node* stack[0x100];
