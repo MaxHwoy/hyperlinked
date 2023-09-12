@@ -64,6 +64,7 @@ namespace hyper
 
         struct pack : linked_node<pack>
         {
+        public:
             std::uint16_t version;
             bool endian_swapped;
             __declspec(align(0x04)) std::uint16_t section_number;
@@ -71,6 +72,9 @@ namespace hyper
             std::uint32_t node_count;
             instance* lights;
             std::uint32_t light_count;
+
+        public:
+            static inline linked_list<pack>& list = *reinterpret_cast<linked_list<pack>*>(0x00B479D4);
         };
     };
 

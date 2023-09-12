@@ -96,9 +96,13 @@ namespace hyper
 
         struct dynamic_light_pack : linked_node<dynamic_light_pack>
         {
+        public:
             char name[0x20];
             bool enabled;
-            linked_list<dynamic_light> dynamic_light_list;
+            linked_list<dynamic_light> lights;
+
+        public:
+            static inline linked_list<dynamic_light_pack>& list = *reinterpret_cast<linked_list<dynamic_light_pack>*>(0x00B4CF20);
         };
 
         struct context
@@ -134,7 +138,7 @@ namespace hyper
 
         struct query
         {
-            light::instance* lights[0x18];
+            const light::instance* lights[0x18];
             float influences[0x18];
             color ambience;
         };
@@ -142,9 +146,9 @@ namespace hyper
         struct __declspec(align(0x08)) query_helper
         {
             color ambient_colors[11];
-            vector4* root_ambient_colour;
-            vector4* current_ambient_colour;
-            vector4* ambient_sentinel;
+            color* root_ambient_colour;
+            color* current_ambient_colour;
+            color* ambient_sentinel;
             float total_ambient_influence;
             float smallest_root_ambient_distance;
             float total_light_influence;
@@ -153,7 +157,7 @@ namespace hyper
 
         struct irradiance
         {
-            color coeffs[10];
+            float coeffs[10][4];
         };
 
     private:
@@ -171,7 +175,19 @@ namespace hyper
 
         static void make_light_direction_from_sun(vector3& direction, const vector3& sun);
 
+        static void query_light_internal(query& query, query_helper& helper, const light::instance& light, const vector3& position);
+
+        static void update_irradiance(irradiance& radiance, const vector3& direction, const color& light_color);
+
+        static void update_irradiance(irradiance& radiance, const color& light_color, float scale, const vector3& direction);
+
+        static void normalize_irradiance(irradiance& radiance, bool normalize_rgb, float scale_rgb, bool normalize_alpha, float scale_alpha);
+
+        static void transform_irradiance(irradiance& radiance, const matrix4x4& rotation);
+
     public:
+        static void reset_light_context(dynamic_context& context);
+
         static bool setup_light_context(dynamic_context& context, const shaper_light_rigorous& shaper, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base);
 
         static bool clone_light_context(dynamic_context& dst, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base, const dynamic_context& src);
@@ -181,6 +197,21 @@ namespace hyper
         static bool setup_envmap(dynamic_context& context, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center);
 
         static void setup_lights(dynamic_context& context, const shaper_light_rigorous& shaper, const vector3& inst_pos, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const view::base* base);
+
+        static auto query_light_database(query& query, const vector3& position) -> std::uint32_t;
+
+    private:
+        static inline bool& light_query_ignore_distance = *reinterpret_cast<bool*>(0x00B42EE0);
+
+        static inline bool& enable_echo_irradiance = *reinterpret_cast<bool*>(0x00B42EE4);
+
+        static inline bool& normalize_rgb_irradiance = *reinterpret_cast<bool*>(0x00B42EC0);
+
+        static inline bool& normalize_alpha_irradiance = *reinterpret_cast<bool*>(0x00A6B918);
+
+        static inline float& scale_rgb_irradiance = *reinterpret_cast<float*>(0x00A6B914);
+
+        static inline float& scale_alpha_irradiance = *reinterpret_cast<float*>(0x00A6B91C);
     };
 
     ASSERT_SIZE(lighting::time_of_day, 0x170);
@@ -196,4 +227,6 @@ namespace hyper
     ASSERT_SIZE(lighting::query, 0xD0);
     ASSERT_SIZE(lighting::query_helper, 0xD0);
     ASSERT_SIZE(lighting::irradiance, 0xA0);
+
+    static_assert(sizeof(lighting::irradiance) == sizeof(lighting::dynamic_context::harmonics));
 }

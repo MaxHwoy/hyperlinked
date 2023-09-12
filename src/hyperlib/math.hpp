@@ -43,18 +43,24 @@ namespace hyper
         {
             this->x += other.x;
             this->y += other.y;
+
+            return *this;
         }
 
         inline auto operator-=(const vector2& other) -> vector2&
         {
             this->x -= other.x;
             this->y -= other.y;
+
+            return *this;
         }
 
         inline auto operator*=(float value) -> vector2&
         {
             this->x *= value;
             this->y *= value;
+
+            return *this;
         }
 
         inline auto operator+(const vector2& other) const -> vector2
@@ -168,6 +174,8 @@ namespace hyper
             this->x += other.x;
             this->y += other.y;
             this->z += other.z;
+
+            return *this;
         }
 
         inline auto operator-=(const vector3& other) -> vector3&
@@ -175,6 +183,8 @@ namespace hyper
             this->x -= other.x;
             this->y -= other.y;
             this->z -= other.z;
+
+            return *this;
         }
 
         inline auto operator*=(float value) -> vector3&
@@ -182,6 +192,8 @@ namespace hyper
             this->x *= value;
             this->y *= value;
             this->z *= value;
+
+            return *this;
         }
 
         inline auto operator+(const vector3& other) const -> vector3
@@ -338,6 +350,8 @@ namespace hyper
             this->y += other.y;
             this->z += other.z;
             this->w += other.w;
+
+            return *this;
         }
 
         inline auto operator-=(const vector4& other) -> vector4&
@@ -346,6 +360,8 @@ namespace hyper
             this->y -= other.y;
             this->z -= other.z;
             this->w -= other.w;
+
+            return *this;
         }
 
         inline auto operator*=(float value) -> vector4&
@@ -354,6 +370,8 @@ namespace hyper
             this->y *= value;
             this->z *= value;
             this->w *= value;
+
+            return *this;
         }
 
         inline auto operator+(const vector4& other) const -> vector4
@@ -423,6 +441,109 @@ namespace hyper
         float g;
         float b;
         float a;
+
+        inline color(float r, float g, float b) : r(r), g(g), b(b), a(1.0f)
+        {
+        }
+
+        inline color(float r, float g, float b, float a) : r(r), g(g), b(b), a(a)
+        {
+        }
+
+        inline color() = default;
+
+        inline color(const color& other) = default;
+
+        inline color(color&& other) noexcept = default;
+
+        inline color& operator=(const color& other) = default;
+
+        inline color& operator=(color&& other) noexcept = default;
+
+        inline auto operator+=(const color& other) -> color&
+        {
+            this->r += other.r;
+            this->g += other.g;
+            this->b += other.b;
+            this->a += other.a;
+
+            return *this;
+        }
+
+        inline auto operator-=(const color& other) -> color&
+        {
+            this->r -= other.r;
+            this->g -= other.g;
+            this->b -= other.b;
+            this->a -= other.a;
+
+            return *this;
+        }
+
+        inline auto operator*=(float value) -> color&
+        {
+            this->r *= value;
+            this->g *= value;
+            this->b *= value;
+            this->a *= value;
+
+            return *this;
+        }
+
+        inline auto operator+(const color& other) const -> color
+        {
+            return { this->r + other.r, this->g + other.g, this->b + other.b, this->a + other.a };
+        }
+
+        inline auto operator-(const color& other) const -> color
+        {
+            return { this->r - other.r, this->g - other.g, this->b - other.b, this->a - other.a };
+        }
+
+        inline auto operator*(float value) const -> color
+        {
+            return { this->r * value, this->g * value, this->b * value, this->a * value };
+        }
+
+        inline bool operator==(const color& other) const
+        {
+            return this->r == other.r && this->g == other.g && this->b == other.b && this->a == other.a;
+        }
+
+        inline bool operator!=(const color& other) const
+        {
+            return this->r != other.r || this->g != other.g || this->b != other.b || this->a != other.a;
+        }
+
+        inline auto operator[](std::uint32_t index) -> float&
+        {
+            return reinterpret_cast<float*>(this)[index];
+        }
+
+        inline auto operator[](std::uint32_t index) const -> const float&
+        {
+            return reinterpret_cast<const float*>(this)[index];
+        }
+
+        inline static auto clear() -> const color&
+        {
+            return color::clear_;
+        }
+
+        inline static auto black() -> const color&
+        {
+            return color::black_;
+        }
+
+        inline static auto white() -> const color&
+        {
+            return color::white_;
+        }
+
+    private:
+        static color clear_;
+        static color black_;
+        static color white_;
     };
 
     struct color32
@@ -431,6 +552,10 @@ namespace hyper
         std::uint8_t g;
         std::uint8_t b;
         std::uint8_t a;
+
+        inline color32(std::uint8_t r, std::uint8_t g, std::uint8_t b) : r(r), g(g), b(b), a(std::numeric_limits<std::uint8_t>::max())
+        {
+        }
 
         inline color32(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) : r(r), g(g), b(b), a(a)
         {
@@ -625,6 +750,13 @@ namespace hyper
             this->extent.z += amount;
         }
 
+        inline bool contains(const vector3& point) const
+        {
+            return (::fabs(point.x - this->center.x) < this->extent.x) &&
+                   (::fabs(point.y - this->center.y) < this->extent.y) &&
+                   (::fabs(point.z - this->center.z) < this->extent.z);
+        }
+
         inline void set_min_max(const vector3& min, const vector3& max)
         {
             this->extent = (max - min) * 0.5f;
@@ -784,13 +916,6 @@ namespace hyper
 
     class math final
     {
-    private:
-        struct a_sin_table_entry
-        {
-            std::uint16_t angle;
-            float slope;
-        };
-
     public:
         constexpr inline static float epsilon = 1.17549435e-38f;
 
@@ -862,6 +987,11 @@ namespace hyper
         template <typename T> constexpr inline static auto lerp(T from, T to, float t) -> T
         {
             return from + (to - from) * t;
+        }
+
+        template <typename T> constexpr inline static auto square(T value) -> T
+        {
+            return value * value;
         }
 
         constexpr inline static auto to_uint16_degrees(float degrees) -> std::uint16_t
@@ -943,6 +1073,6 @@ namespace hyper
     private:
         static std::uint16_t a_tan_table_[258];
 
-        static a_sin_table_entry a_sin_table_[209];
+        static std::pair<std::uint16_t, float> a_sin_table_[209];
     };
 }

@@ -8,6 +8,7 @@
 #include <hyperlinked/patches/sections.hpp>
 #include <hyperlinked/patches/culling.hpp>
 #include <hyperlinked/patches/drawing.hpp>
+#include <hyperlinked/patches/lighting.hpp>
 #include <hyperlinked/patches/streamer.hpp>
 #include <hyperlinked/patches/collision.hpp>
 
@@ -23,6 +24,7 @@ namespace hyper
         section_patches::init();
         culling_patches::init();
         drawing_patches::init();
+        lighting_patches::init();
         streamer_patches::init();
         collision_patches::init();
     }
