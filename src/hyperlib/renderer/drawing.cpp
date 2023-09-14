@@ -12,8 +12,6 @@
 
 namespace hyper
 {
-    array<rendering_model, 4096u> renderer::rendering_models(0x00AB2780);
-
     bool renderer::flare_pool_inited_ = false;
 
     std::uint32_t renderer::active_flare_count_ = 0u;
@@ -52,6 +50,92 @@ namespace hyper
         static_cast<size_t>(view_id::env_y_pos),
         static_cast<size_t>(view_id::env_y_neg),
     });
+
+    void renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca)
+    {
+        BENCHMARK();
+
+        if (renderer::rendering_model_count_ < renderer::rendering_models_.length())
+        {
+            rendering_model& model = renderer::rendering_models_[renderer::rendering_model_count_];
+
+            model.base_texture_info = textures[0];
+            model.diffuse_texture_info = textures[0];
+            model.normal_texture_info = textures[1];
+            model.height_texture_info = textures[2];
+            model.specular_texture_info = textures[3];
+            model.opacity_texture_info = textures[4];
+            model.d3d9_diffuse_texture = model.diffuse_texture_info->pinfo->texture;
+            model.d3d9_normal_texture = model.normal_texture_info->pinfo->texture;
+            model.d3d9_height_texture = model.height_texture_info->pinfo->texture;
+            model.d3d9_specular_texture = model.specular_texture_info->pinfo->texture;
+            model.d3d9_opacity_texture = model.opacity_texture_info->pinfo->texture;
+            model.render_bits = model.base_texture_info->pinfo->state;
+            model.light_context = context;
+            model.light_material = material;
+            model.solid = solid;
+            model.mesh_entry = entry;
+            model.blending_matrices = blend_trs;
+            model.local_to_world = trs;
+            model.is_tri_stripped = false;
+            model.flags = flags;
+            model.effect = effect;
+            model.null = nullptr;
+            model.negative_one = -1.0f;
+            model.blend_data = pca;
+            model.use_low_lod = effect->has_low_lod_technique() && (flags & draw_flags::use_low_lod) != 0u;
+            model.render_bits.wants_auxiliary_textures = true;
+
+            renderer::compute_sort_key(model);
+
+            rendering_order& order = renderer::rendering_orders_[renderer::rendering_model_count_];
+
+            order.model_index = renderer::rendering_model_count_++;
+            order.sort_flags = model.sort_flags;
+        }
+    }
+
+    void renderer::compute_sort_key(rendering_model& model)
+    {
+        if (model.is_tri_stripped)
+        {
+            model.sort_flags = 0u;
+        }
+        else
+        {
+            constexpr std::int32_t super_sort_flag = std::numeric_limits<std::int32_t>::min();
+
+            const geometry::mesh_entry* entry = model.mesh_entry;
+
+            if (model.base_texture_info->apply_alpha_sorting != 0u)
+            {
+                const view::instance& view = hyper::view::instance::views[render_target::current->view_id];
+
+                float depth = view.get_screen_depth(entry->bbox_min, entry->bbox_max, model.local_to_world);
+
+                model.sort_flags = static_cast<std::int32_t>(math::float_bits(depth)) | super_sort_flag;
+            }
+            else
+            {
+                std::uint8_t rendering_order = model.base_texture_info->rendering_order;
+
+                if (rendering_order == 0u)
+                {
+                    std::int32_t flags = static_cast<std::int32_t>((static_cast<std::uint32_t>(model.flags) ^ entry->material_key)) & 0xFFFFFF;
+
+                    flags |= model.render_bits.sub_sort_key << 24;
+
+                    flags |= static_cast<std::uint32_t>(model.use_low_lod) << 25;
+
+                    model.sort_flags = flags | ((model.effect->id() & 0x1Fu) << 26);
+                }
+                else
+                {
+                    model.sort_flags = rendering_order | super_sort_flag;
+                }
+            }
+        }
+    }
 
     auto renderer::create_flare_view_mask(view_id id) -> std::uint32_t
     {

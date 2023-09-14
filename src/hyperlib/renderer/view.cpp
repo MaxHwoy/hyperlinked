@@ -169,4 +169,23 @@ namespace hyper
 	{
 		return call_function<camera_mover*(__thiscall*)(const hyper::view::instance*)>(0x00412260)(this);
 	}
+
+	auto view::instance::get_screen_depth(const vector3& point, const matrix4x4* trs) const -> float
+	{
+		vector4 local(point);
+
+		if (trs != nullptr)
+		{
+			math::transform_point(*trs, local);
+		}
+
+		math::transform_point(this->pinfo->view_projection_matrix, local);
+
+		return (this->camera->current_key.far_clip - local.z) * 100.0f;
+	}
+
+	auto view::instance::get_screen_depth(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> float
+	{
+		return this->get_screen_depth((bbox_min + bbox_max) * 0.5f, trs);
+	}
 }

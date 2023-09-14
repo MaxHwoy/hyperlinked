@@ -8,6 +8,7 @@
 #include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/lighting.hpp>
+#include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
 {
@@ -76,17 +77,21 @@ namespace hyper
         count,
     };
 
-    struct render_target
+    class render_target
     {
+    public:
         render_target_id target_id;
         view_id view_id;
-        IDirect3DSurface9* d3d_target;
-        IDirect3DSurface9* d3d_depth_stencil;
+        ::IDirect3DSurface9* d3d_target;
+        ::IDirect3DSurface9* d3d_depth_stencil;
         bool active;
         __declspec(align(0x04)) std::uint32_t resolution_x;
         __declspec(align(0x04)) std::uint32_t resolution_y;
 
+    public:
         static inline auto targets = array<render_target, static_cast<size_t>(render_target_id::count)>(0x00AB04D0);
+
+        static inline render_target*& current = *reinterpret_cast<render_target**>(0x00AB08F4);
     };
 
     struct __declspec(align(0x10)) render_view
@@ -94,8 +99,8 @@ namespace hyper
         view_id id;
         bool has_camera;
         bool is_shadow_projection_view;
-        IDirect3DSurface9* d3d_render_target;
-        IDirect3DSurface9* d3d_depth_stencil_surface;
+        ::IDirect3DSurface9* d3d_render_target;
+        ::IDirect3DSurface9* d3d_depth_stencil_surface;
         __declspec(align(0x10)) vector3 camera_direction;
         __declspec(align(0x10)) vector3 camera_up_vector;
         __declspec(align(0x10)) vector3 camera_previous_direction;
@@ -352,35 +357,45 @@ namespace hyper
     {
         texture::render_state render_bits;
         texture::info* base_texture_info;
-        IDirect3DTexture9* d3d9_diffuse_texture;
-        IDirect3DTexture9* d3d9_normal_texture;
-        IDirect3DTexture9* d3d9_height_texture;
-        IDirect3DTexture9* d3d9_specular_texture;
-        IDirect3DTexture9* d3d9_opacity_texture;
+        ::IDirect3DTexture9* d3d9_diffuse_texture;
+        ::IDirect3DTexture9* d3d9_normal_texture;
+        ::IDirect3DTexture9* d3d9_height_texture;
+        ::IDirect3DTexture9* d3d9_specular_texture;
+        ::IDirect3DTexture9* d3d9_opacity_texture;
         geometry::mesh_entry* mesh_entry;
         bool is_tri_stripped;
         geometry::solid* solid;
-        std::uint32_t flags;
-        struct effect* effect;
-        lighting::dynamic_context* light_context;
-        light_material::instance* light_material;
-        matrix4x4* local_to_world;
-        matrix4x4* blending_matrices;
-        texture::info* diffuse_texture_info;
-        texture::info* normal_texture_info;
-        texture::info* height_texture_info;
-        texture::info* specular_texture_info;
-        texture::info* opacity_texture_info;
-        std::uint32_t z_sort_flags;
+        draw_flags flags;
+        effect* effect;
+        const lighting::dynamic_context* light_context;
+        const light_material::instance* light_material;
+        const matrix4x4* local_to_world;
+        const matrix4x4* blending_matrices;
+        const texture::info* diffuse_texture_info;
+        const texture::info* normal_texture_info;
+        const texture::info* height_texture_info;
+        const texture::info* specular_texture_info;
+        const texture::info* opacity_texture_info;
+        std::int32_t sort_flags;
         void* null;
         float negative_one;
-        struct pca_blend_data* pca_blend_data;
-        std::uint32_t technique_flags;
+        geometry::pca_blend_data* blend_data;
+        bool use_low_lod;
+    };
+
+    struct rendering_order
+    {
+        std::uint32_t model_index;
+        std::int32_t sort_flags;
     };
 
     class renderer final
     {
     public:
+        static void create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca);
+
+        static void compute_sort_key(rendering_model& model);
+
         static auto create_flare_view_mask(view_id id) -> std::uint32_t;
 
         static bool can_render_flares_in_view(view_id id);
@@ -418,11 +433,13 @@ namespace hyper
 
         static inline bool& draw_light_flares = *reinterpret_cast<bool*>(0x00A6C088);
 
-        static inline std::uint32_t& rendering_model_count = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
-
-        static array<rendering_model, 4096u> rendering_models;
-
     private:
+        static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);
+
+        static inline rendering_order*& rendering_orders_ = *reinterpret_cast<rendering_order**>(0x00B1DB90);
+
+        static inline std::uint32_t& rendering_model_count_ = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
+
         static bool flare_pool_inited_;
 
         static std::uint32_t active_flare_count_;

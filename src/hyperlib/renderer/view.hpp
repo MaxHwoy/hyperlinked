@@ -68,7 +68,7 @@ namespace hyper
             struct camera* camera;
             linked_list<struct camera_mover> camera_mover_list;
             struct dynamic_light_context* world_light_context;
-            struct render_target* attached_target;
+            class render_target* attached_target;
             char pad0C[0x0C];
         };
 
@@ -80,6 +80,10 @@ namespace hyper
             bool is_in_a_tunnel(bool check_overpass) const;
 
             auto get_camera_mover() const -> struct camera_mover*;
+
+            auto get_screen_depth(const vector3& point, const matrix4x4* trs) const -> float;
+
+            auto get_screen_depth(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> float;
 
         public:
             std::uint32_t num_cops_in_view;

@@ -70,6 +70,26 @@ namespace hyper
             std::fill_n(this->ptr_, this->length_, value);
         }
 
+        inline auto begin() -> T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto begin() const -> const T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto end() -> T*
+        {
+            return this->ptr_ + this->length_;
+        }
+
+        inline auto end() const -> const T*
+        {
+            return this->ptr_ + this->length_;
+        }
+
     private:
         T* ptr_;
         size_t length_;
@@ -113,6 +133,26 @@ namespace hyper
         inline void clear()
         {
             ::memset(this->ptr_, 0, Length * sizeof(T));
+        }
+
+        inline auto begin() -> T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto begin() const -> const T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto end() -> T*
+        {
+            return this->ptr_ + Length;
+        }
+
+        inline auto end() const -> const T*
+        {
+            return this->ptr_ + Length;
         }
 
         template <typename Index> auto operator[](Index index) -> T&

@@ -39,8 +39,8 @@ namespace hyper
             void commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle);
 
         public:
-            IDirect3DVertexBuffer9* vertex_buffer;
-            IDirect3DIndexBuffer9* index_buffer;
+            ::IDirect3DVertexBuffer9* vertex_buffer;
+            ::IDirect3DIndexBuffer9* index_buffer;
             std::uint32_t vertex_count;
             std::uint32_t max_streaks;
             std::uint32_t streak_count;

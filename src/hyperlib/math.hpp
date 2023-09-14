@@ -283,6 +283,11 @@ namespace hyper
             return { lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x };
         }
 
+        inline static auto scale_add(const vector3& origin, const vector3& direction, float scale) -> vector3
+        {
+            return { origin.x + direction.x * scale, origin.y + direction.y * scale, origin.z + direction.z * scale };
+        }
+
     private:
         static vector3 zero_;
         static vector3 one_;
@@ -997,6 +1002,11 @@ namespace hyper
         constexpr inline static auto to_uint16_degrees(float degrees) -> std::uint16_t
         {
             return static_cast<std::uint16_t>(static_cast<std::int32_t>(degrees * 65536.0f) / 360);
+        }
+
+        inline static auto float_bits(float value) -> std::uint32_t
+        {
+            return *reinterpret_cast<std::uint32_t*>(&value);
         }
 
         inline static void flip_sign(float& value)

@@ -90,4 +90,14 @@ namespace hyper
         env_y_neg,
         count,
     };
+
+    enum class draw_flags : std::uint32_t
+    {
+
+
+
+        use_low_lod = 0x0C00,
+    };
+
+    CREATE_ENUM_FLAG_OPERATORS(draw_flags);
 }

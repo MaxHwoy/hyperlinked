@@ -17,8 +17,8 @@ namespace hyper
         this->polies = nullptr;
         this->locked = false;
 
-        directx::device()->CreateVertexBuffer(sizeof(poly) * streaks, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0u, D3DPOOL_DEFAULT, &this->vertex_buffer, nullptr);
-        directx::device()->CreateIndexBuffer(sizeof(std::uint16_t) * 6u * streaks, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &this->index_buffer, nullptr);
+        directx::device()->CreateVertexBuffer(sizeof(poly) * streaks, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0u, ::D3DPOOL_DEFAULT, &this->vertex_buffer, nullptr);
+        directx::device()->CreateIndexBuffer(sizeof(std::uint16_t) * 6u * streaks, D3DUSAGE_WRITEONLY, ::D3DFMT_INDEX16, ::D3DPOOL_MANAGED, &this->index_buffer, nullptr);
 
         std::uint16_t* indexer;
 
