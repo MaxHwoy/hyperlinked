@@ -13,31 +13,6 @@
 
 namespace hyper
 {
-    enum class camera_mover_types : std::uint32_t
-    {
-        none,
-        drive_cubic,
-        debug_world,
-        road_editor,
-        orbit_car,
-        rear_view_mirror,
-        track_car,
-        max,
-        select_car,
-        still,
-        race_start,
-        zone_freeze,
-        zone_preview,
-        auto_pilot,
-        ice,
-        animation_controller,
-        cop_view,
-        animation_entity,
-        showcase,
-        pip,
-        count,
-    };
-
     enum class anchor_car_class : std::uint32_t
     {
         regular,
@@ -76,59 +51,6 @@ namespace hyper
         point,
         vector,
         count,
-    };
-
-    class render_target
-    {
-    public:
-        render_target_id target_id;
-        view_id view_id;
-        ::IDirect3DSurface9* d3d_target;
-        ::IDirect3DSurface9* d3d_depth_stencil;
-        bool active;
-        __declspec(align(0x04)) std::uint32_t resolution_x;
-        __declspec(align(0x04)) std::uint32_t resolution_y;
-
-    public:
-        static inline auto targets = array<render_target, static_cast<size_t>(render_target_id::count)>(0x00AB04D0);
-
-        static inline render_target*& current = *reinterpret_cast<render_target**>(0x00AB08F4);
-    };
-
-    struct __declspec(align(0x10)) render_view
-    {
-    public:
-        void update(const view::instance& view);
-
-    public:
-        view_id id;
-        bool has_camera;
-        bool is_shadow_projection_view;
-        ::IDirect3DSurface9* d3d_render_target;
-        ::IDirect3DSurface9* d3d_depth_stencil_surface;
-        __declspec(align(0x10)) vector3 camera_forward;
-        __declspec(align(0x10)) vector3 camera_up;
-        __declspec(align(0x10)) vector3 camera_prev_forward;
-        __declspec(align(0x10)) vector3 camera_position;
-        __declspec(align(0x10)) vector3 camera_velocity;
-        __declspec(align(0x10)) matrix4x4 camera_view_matrix;
-        float camera_focal_distance;
-        float camera_depth_of_field;
-        float camera_dof_falloff;
-        float camera_dof_max_intensity;
-        bool has_outside_view;
-        camera_mover_types camera_mover_type;
-        bool is_hood_render_view;
-        std::int32_t something_0xBC;
-        matrix4x4 projection_matrix;
-        matrix4x4 view_matrix;
-        matrix4x4 view_projection_matrix;
-        vector4 vector4_0x180;
-        matrix4x4 non_jittered_projection_matrix;
-        render_target* target;
-
-    public:
-        static inline auto views = array<render_view, static_cast<size_t>(view_id::count)>(0x00B47A90);
     };
 
     struct __declspec(align(0x10)) poly
@@ -190,14 +112,20 @@ namespace hyper
         virtual void update() = 0;
         virtual void render() = 0;
         virtual auto get_anchor() -> camera_anchor* = 0;
-        virtual void set_anchor() = 0;
-        virtual void set_look_back() = 0;
-        virtual void set_look_back_speed() = 0;
+        virtual void set_look_back(bool) = 0;
+        virtual void set_look_back_speed(float) = 0;
         virtual void set_disable_lag() = 0;
         virtual void set_pov_type() = 0;
         virtual void get_pov_type() const = 0;
         virtual bool is_hood_camera() const = 0;
-        virtual void outside_pov() = 0;
+        virtual auto outside_pov() const -> std::uint32_t = 0;
+        virtual void render_car_pov() = 0;
+        virtual auto min_dist_to_wall() -> float = 0;
+        virtual auto get_lookback_angle() -> float = 0;
+        virtual void reset_state() = 0;
+        virtual void enable_camera_mover() = 0;
+        virtual void disable_camera_mover() = 0;
+        virtual auto get_target() -> void* = 0;
 
     public:
         inline auto vtable_fix() -> camera_mover*
@@ -379,24 +307,6 @@ namespace hyper
 
         static void compute_sort_key(rendering_model& model);
 
-        static auto create_flare_view_mask(view_id id) -> std::uint32_t;
-
-        static bool can_render_flares_in_view(view_id id);
-
-        static bool is_friend_flare_view_already_committed(view_id id);
-
-        static auto get_next_light_flare_in_pool(std::uint32_t mask) -> flare::instance*;
-
-        static void remove_current_light_flare_in_pool();
-
-        static void init_light_flare_pool();
-
-        static void reset_light_flare_pool();
-
-        static void render_light_flare_pool(const view::instance* view);
-
-        static void render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
-
         static void init_render_targets();
 
         static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
@@ -420,49 +330,16 @@ namespace hyper
 
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
 
-        static inline bool& flare_pool_off = *reinterpret_cast<bool*>(0x00B42F1C);
-
-        static inline bool& draw_light_flares = *reinterpret_cast<bool*>(0x00A6C088);
-
     private:
         static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);
 
         static inline rendering_order*& rendering_orders_ = *reinterpret_cast<rendering_order**>(0x00B1DB90);
 
         static inline std::uint32_t& rendering_model_count_ = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
-
-        static bool flare_pool_inited_;
-
-        static std::uint32_t active_flare_count_;
-
-        static bool active_flare_types_[4]; // red, amber, green, generic
-
-        static float active_flare_times_[4]; // red, amber, green, generic
-
-        static float active_flare_blink_[4]; // red, amber, green, generic
-
-        static std::uint32_t flare_texture_keys_[5];
-
-        static texture::e_texture flare_texture_infos_[5];
-
-        static bitset<static_cast<size_t>(view_id::count)> flare_mask_;
-
-        static bitset<static_cast<size_t>(view_id::count)> view_to_flare_;
-
-        static array<flare::params*, static_cast<size_t>(flare::type::count) * 2u> flare_params_;
-
-        static inline flare::instance flare_pool_[1000]{};
-
-        static inline std::uint32_t flare_bits_[1000]{};
     };
 
-    CREATE_ENUM_EXPR_OPERATORS(model_lod);
-    CREATE_ENUM_EXPR_OPERATORS(render_target_id);
-    CREATE_ENUM_EXPR_OPERATORS(view_id);
     CREATE_ENUM_FLAG_OPERATORS(poly_flags);
 
-    ASSERT_SIZE(render_target, 0x1C);
-    ASSERT_SIZE(render_view, 0x1E0);
     ASSERT_SIZE(poly, 0xA0);
     ASSERT_SIZE(camera_anchor, 0xF0);
     ASSERT_SIZE(camera_mover, 0x8C);

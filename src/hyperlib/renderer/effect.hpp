@@ -309,7 +309,7 @@ namespace hyper
 
         void connect_parameters();
 
-        void free_effect();
+        void lose_device();
 
         inline auto id() const -> std::uint32_t
         {
@@ -840,7 +840,7 @@ namespace hyper
 
         static auto find_param_index(std::uint32_t key) -> const effect::param_index_pair*;
 
-        static void free_effects();
+        static void lose_device();
 
         inline static auto get_shader_name(shader_type type) -> const char*
         {

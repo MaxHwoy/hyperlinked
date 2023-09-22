@@ -2,6 +2,7 @@
 #include <hyperlib/memory/frame_pool.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/view.hpp>
+#include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/drawing.hpp>
 
 namespace hyper

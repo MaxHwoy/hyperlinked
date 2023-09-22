@@ -55,6 +55,8 @@ namespace hyper
 
         static inline bool& vsync_on = *reinterpret_cast<bool*>(0x00A65390);
 
+        static inline bool& visual_treatment = *reinterpret_cast<bool*>(0x00A65394);
+
         static inline array<texture::info*, 5u> last_textures_used = array<texture::info*, 5u>(0x00AB0BC8);
 
         static inline std::uint32_t& dword_00AB0AEC = *reinterpret_cast<std::uint32_t*>(0x00AB0AEC);

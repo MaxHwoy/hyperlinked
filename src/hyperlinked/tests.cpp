@@ -13,8 +13,8 @@ namespace hyper
 {
     void tests::init()
     {
-        // always raining
-        // hook::set<std::uint32_t>(0x00B74D20, 1u);
+        // Always Raining
+        hook::set<std::uint32_t>(0x00B74D20, 1u);
 
         // Silverton Barriers
         hook::set<std::uint8_t>(0x0061817C, 0xEB);

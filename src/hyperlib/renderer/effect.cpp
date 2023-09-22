@@ -38,7 +38,7 @@ namespace hyper
         }
     }
 
-    void effect::free_effect()
+    void effect::lose_device()
     {
         this->effect_->OnLostDevice();
     }
@@ -83,11 +83,11 @@ namespace hyper
         return nullptr;
     }
 
-    void shader_lib::free_effects()
+    void shader_lib::lose_device()
     {
         for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
         {
-            shader_lib::effects_[i]->free_effect();
+            shader_lib::effects_[i]->lose_device();
         }
     }
 }

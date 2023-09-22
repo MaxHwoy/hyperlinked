@@ -13,6 +13,7 @@
 #include <hyperlinked/patches/renderer/directx.hpp>
 #include <hyperlinked/patches/renderer/drawing.hpp>
 #include <hyperlinked/patches/renderer/effect.hpp>
+#include <hyperlinked/patches/renderer/flare_pool.hpp>
 #include <hyperlinked/patches/renderer/lighting.hpp>
 #include <hyperlinked/patches/renderer/view.hpp>
 
@@ -38,6 +39,7 @@ namespace hyper
         directx_patches::init();
         drawing_patches::init();
         effect_patches::init();
+        flare_pool_patches::init();
         lighting_patches::init();
         view_patches::init();
         

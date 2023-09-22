@@ -93,13 +93,46 @@ namespace hyper
         first = 0u,
     };
 
+    enum class camera_mover_types : std::uint32_t
+    {
+        none,
+        drive_cubic,
+        debug_world,
+        road_editor,
+        orbit_car,
+        rear_view_mirror,
+        track_car,
+        max,
+        select_car,
+        still,
+        race_start,
+        zone_freeze,
+        zone_preview,
+        auto_pilot,
+        ice,
+        animation_controller,
+        cop_view,
+        animation_entity,
+        showcase,
+        pip,
+        count,
+    };
+
     enum class draw_flags : std::uint32_t
     {
         full_visible = 1u << 2,
 
 
         use_low_lod = 0x0C00,
+
+
+        use_ghost_shader         = 1u << 25,
+
+        has_replacement_textures = 1u << 31,
     };
 
+    CREATE_ENUM_EXPR_OPERATORS(model_lod);
+    CREATE_ENUM_EXPR_OPERATORS(view_id);
+    CREATE_ENUM_EXPR_OPERATORS(render_target_id);
     CREATE_ENUM_FLAG_OPERATORS(draw_flags);
 }
