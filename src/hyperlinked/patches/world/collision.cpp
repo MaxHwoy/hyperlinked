@@ -1,5 +1,5 @@
 #include <hyperlib/world/collision.hpp>
-#include <hyperlinked/patches/collision.hpp>
+#include <hyperlinked/patches/world/collision.hpp>
 
 namespace hyper
 {

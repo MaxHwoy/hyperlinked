@@ -51,6 +51,51 @@ namespace hyper
         static_cast<size_t>(view_id::env_y_neg),
     });
 
+    void render_view::update(const view::instance& view)
+    {
+        const camera* camera = view.camera;
+
+        if (camera != nullptr)
+        {
+            this->has_camera = true;
+
+            camera->get_forward_vector(this->camera_forward);
+            camera->get_up_vector(this->camera_up);
+
+            this->camera_position = camera->current_key.position.as_vector3();
+            this->camera_prev_forward = camera->previous_key.direction.as_vector3();
+            this->camera_velocity = camera->velocity_key.position.as_vector3();
+            this->camera_view_matrix = camera->current_key.view_matrix;
+            this->camera_focal_distance = camera->current_key.focal_distance;
+            this->camera_depth_of_field = camera->current_key.depth_of_field;
+            this->camera_dof_falloff = camera->current_key.dof_falloff;
+            this->camera_dof_max_intensity = camera->current_key.dof_max_intensity;
+        }
+        else
+        {
+            this->has_camera = false;
+        }
+
+        if (view.camera_mover_list.empty())
+        {
+            this->has_outside_view = false;
+        }
+        else
+        {
+            this->has_outside_view = true;
+            this->camera_mover_type = view.camera_mover_list.begin()->vtable_fix()->type;
+            this->is_hood_render_view = view.camera_mover_list.begin()->vtable_fix()->is_hood_camera();
+        }
+
+        if (view.pinfo != nullptr)
+        {
+            this->view_matrix = view.pinfo->view_matrix;
+            this->projection_matrix = view.pinfo->projection_matrix;
+            this->view_projection_matrix = view.pinfo->view_projection_matrix;
+            this->non_jittered_projection_matrix = view.pinfo->non_jittered_projection_matrix;
+        }
+    }
+
     void renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca)
     {
         BENCHMARK();
@@ -487,14 +532,14 @@ namespace hyper
 
                         float mul_1st = (dot_product - rain_in_headlights) / (1.0f - rain_in_headlights);
 
-                        float mul_2nd = math::max(vector3::dot(camera->current_key.direction, anchor->rotation.row(0u).as_vector3()), 0.0f);
+                        float mul_2nd = math::max(vector3::dot(camera->current_key.direction.as_vector3(), anchor->rotation.row(0u).as_vector3()), 0.0f);
 
                         intensity_scale = mul_1st * mul_2nd;
                     }
                 }
             }
 
-            vector3 to_camera_dir = (camera->current_key.position - position);
+            vector3 to_camera_dir = (camera->current_key.position.as_vector3() - position);
 
             float to_camera_dist2 = to_camera_dir.sqr_magnitude();
 
@@ -546,7 +591,7 @@ namespace hyper
 
                 vector3 world_pos(position);
 
-                const matrix4x4& camera_trs = camera->current_key.matrix;
+                const matrix4x4& camera_trs = camera->current_key.view_matrix;
 
                 math::transform_point(camera_trs, world_pos);
 
@@ -687,5 +732,51 @@ namespace hyper
                 }
             }
         }
+    }
+
+    void renderer::set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color)
+    {
+        renderer::sort_models_and_draw_world();
+
+        directx::device()->SetRenderTarget(0u, target.d3d_target);
+        directx::device()->SetDepthStencilSurface(target.d3d_depth_stencil);
+
+        if (clear)
+        {
+            if (target.target_id == render_target_id::flailer)
+            {
+                directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET, clear_color, 1.0f, 0u);
+            }
+            else
+            {
+                directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL, clear_color, 1.0f, 0u);
+            }
+        }
+
+        ::D3DVIEWPORT9 viewport;
+
+        viewport.Width = target.resolution_x;
+        viewport.Height = target.resolution_y;
+        viewport.X = 0u;
+        viewport.Y = 0u;
+        viewport.MinZ = 0.0f;
+        viewport.MaxZ = 1.0f;
+
+        directx::device()->SetViewport(&viewport);
+
+        render_target::current = &target;
+    }
+
+    void renderer::update_render_views()
+    {
+        for (view_id i = view_id::first; i < view_id::count; ++i)
+        {
+            render_view::views[i].update(view::instance::views[i]);
+        }
+    }
+
+    void renderer::sort_models_and_draw_world()
+    {
+        call_function<void(__cdecl*)()>(0x0072C9B0)();
     }
 }

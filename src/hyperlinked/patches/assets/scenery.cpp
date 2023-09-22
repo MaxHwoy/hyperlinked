@@ -1,5 +1,5 @@
 #include <hyperlib/assets/scenery.hpp>
-#include <hyperlinked/patches/scenery.hpp>
+#include <hyperlinked/patches/assets/scenery.hpp>
 
 namespace hyper
 {

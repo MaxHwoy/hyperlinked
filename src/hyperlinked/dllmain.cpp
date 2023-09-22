@@ -29,7 +29,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
         if (entry == MAIN_ENTRY_POINT)
         {
 #if defined(RUN_TESTS) && defined(CONSOLEON)
-            hyper::logging::init(nullptr, true);
+            hyper::logging::init(nullptr, true, true);
 #endif
             hyper::patches::init();
 #if defined(RUN_TESTS)

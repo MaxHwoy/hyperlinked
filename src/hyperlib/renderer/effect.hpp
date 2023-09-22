@@ -96,7 +96,7 @@ namespace hyper
         {
             char name[0x20];
             std::uint32_t key;
-            std::uint32_t handle;
+            ::D3DXHANDLE handle;
         };
 
         struct technique
@@ -293,6 +293,9 @@ namespace hyper
             std::uint32_t unknown;
         };
 
+    private:
+        void store_param_by_key(::LPCSTR name, ::D3DXHANDLE handle);
+
     public:
         virtual ~effect() = 0;
         virtual void handle_material_data(std::uint32_t*, std::uint32_t) = 0;
@@ -304,6 +307,10 @@ namespace hyper
 
         effect(shader_type type, effect::flags flags, std::uint32_t last_param_key, const effect::input* input);
 
+        void connect_parameters();
+
+        void free_effect();
+
         inline auto id() const -> std::uint32_t
         {
             return this->id_;
@@ -312,6 +319,16 @@ namespace hyper
         inline bool has_low_lod_technique() const
         {
             return this->low_lod_technique_number_ > 0u;
+        }
+
+        inline void set_int(parameter_type type, std::int32_t value)
+        {
+            this->effect_->SetInt(this->params_[static_cast<std::uint32_t>(type)].handle, value);
+        }
+
+        inline void set_float(parameter_type type, float value)
+        {
+            this->effect_->SetFloat(this->params_[static_cast<std::uint32_t>(type)].handle, value);
         }
 
         constexpr static inline auto get_parameter_name(parameter_type type) -> const char*
@@ -345,7 +362,7 @@ namespace hyper
         const char* name_;
         flags flags_;
         bool has_annotations_;
-        std::uint32_t low_lod_technique_number_;
+        std::int32_t low_lod_technique_number_;
         std::int32_t has_zero_offset_scale_;
         std::int32_t has_fog_disabled_;
         const light_material::instance* last_used_light_material_;
@@ -821,6 +838,10 @@ namespace hyper
 
         static auto find_input(const char* name) -> const effect::input*;
 
+        static auto find_param_index(std::uint32_t key) -> const effect::param_index_pair*;
+
+        static void free_effects();
+
         inline static auto get_shader_name(shader_type type) -> const char*
         {
             return shader_lib::type_names_[static_cast<std::uint32_t>(type)];
@@ -832,7 +853,7 @@ namespace hyper
     private:
         static inline bool& initilaized_ = *reinterpret_cast<bool*>(0x00B4302C);
 
-        static inline auto effects_ = array<effect, static_cast<size_t>(shader_type::count)>(0x00B1F660);
+        static inline auto effects_ = array<effect*, static_cast<size_t>(shader_type::count)>(0x00B1F660);
 
         static inline auto inputs_ = array<effect::input, static_cast<size_t>(shader_type::count)>(0x00A64008);
 

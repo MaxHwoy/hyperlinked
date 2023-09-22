@@ -82,12 +82,16 @@ namespace hyper
 
         struct __declspec(align(0x10)) shaper_light_rigorous
         {
+        public:
             std::uint32_t key;
             shaper_light lights[4];
             vector3 padv3;
             vector3 position;
             std::uint32_t padi4;
             std::uint32_t override_slot_count;
+
+        public:
+            static inline shaper_light_rigorous& world = *reinterpret_cast<shaper_light_rigorous*>(0x00A6C4A0);
         };
 
         struct dynamic_light : public linked_node<dynamic_light>, public light::instance

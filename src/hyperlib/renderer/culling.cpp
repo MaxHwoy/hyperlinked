@@ -153,8 +153,8 @@ namespace hyper
         {
             scenery_cull_info& cull_info = this->scenery_cull_infos[i];
 
-            cull_info.position = cull_info.view->camera->current_key.position;
-            cull_info.direction = cull_info.view->camera->current_key.direction;
+            cull_info.position = cull_info.view->camera->current_key.position.as_vector3();
+            cull_info.direction = cull_info.view->camera->current_key.direction.as_vector3();
             cull_info.pixelation = cull_info.view->pixelation;
             cull_info.preculler_section_number = -1;
         }
@@ -223,7 +223,7 @@ namespace hyper
         {
             id = static_cast<view_id>(static_cast<std::uint32_t>(id) - static_cast<std::uint32_t>(view_id::player1_shadowmap) + static_cast<std::uint32_t>(view_id::player1));
 
-            const vector3& position = view::instance::views[id].camera->current_key.position;
+            const vector3& position = view::instance::views[id].camera->current_key.position.as_vector3();
 
             drivable = visible_section::manager::instance.get_drivable_section(position);
         }

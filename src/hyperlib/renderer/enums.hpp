@@ -15,9 +15,9 @@ namespace hyper
 
     enum class visible_state : std::uint8_t
     {
-        outside = 0x0,
-        partial = 0x1,
-        inside = 0x2,
+        outside,
+        partial,
+        inside,
     };
 
     enum class poly_flags : std::uint8_t
@@ -56,6 +56,7 @@ namespace hyper
         env_z_pos,
         env_z_neg,
         count,
+        first = 0u,
     };
 
     enum class view_id : std::uint32_t
@@ -89,11 +90,12 @@ namespace hyper
         env_y_pos,
         env_y_neg,
         count,
+        first = 0u,
     };
 
     enum class draw_flags : std::uint32_t
     {
-
+        full_visible = 1u << 2,
 
 
         use_low_lod = 0x0C00,

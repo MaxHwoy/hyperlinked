@@ -50,7 +50,7 @@ namespace hyper
 
     constexpr auto hashing::vlt_internal(const char* string, std::uint32_t prefix) -> std::uint32_t
     {
-        std::uint32_t length = string::length(string);
+        std::uint32_t length = static_cast<std::uint32_t>(string::length(string));
         std::uint32_t koffs = 0u;
         std::uint32_t loffs = length;
         std::uint32_t a = 0x9E3779B9u;

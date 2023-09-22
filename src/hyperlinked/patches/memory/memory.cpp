@@ -2,11 +2,12 @@
 #include <hyperlib/math.hpp>
 #include <hyperlib/memory/memory.hpp>
 #include <hyperlib/memory/slot_pool.hpp>
+#include <hyperlib/memory/frame_pool.hpp>
 #include <hyperlib/memory/ts_memory_pool.hpp>
+#include <hyperlib/cars/car_loader.hpp>
 #include <hyperlib/streamer/streamer.hpp>
 
-#include <hyperlinked/patches/memory.hpp>
-#include <hyperlinked/car_loader.hpp>
+#include <hyperlinked/patches/memory/memory.hpp>
 
 namespace hyper
 {
@@ -32,6 +33,13 @@ namespace hyper
         memory::set_memory_pool_top_direction(type, true);
 
         *reinterpret_cast<memory::pool_type*>(0x00A7974C) = type;
+    }
+
+    void reset_frame_pool()
+    {
+        frame_pool::instance.reset();
+
+        frame_pool::reset_buffers();
     }
 
     __declspec(naked) void detour_b_memory_init()
@@ -1591,6 +1599,31 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_reset_frame_heap_allocator()
+    {
+        __asm
+        {
+            push eax; // save register on stack
+            push ebx; // save register on stack
+            push ecx; // save register on stack
+            push edx; // save register on stack
+            push esi; // save register on stack
+            push edi; // save register on stack
+
+            call reset_frame_pool; // call custom resetter
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            push 0x007314D4;
+            retn; // return
+        }
+    }
+
     void memory_patches::init()
     {
         // bMemoryInit
@@ -1730,5 +1763,15 @@ namespace hyper
 
         // TrackStreamer::InitMemoryPool
         hook::jump(0x007A42E0, &detour_track_streamer_init_memory_pool);
+
+
+
+        // TEMPORARY : initialize frame pool and make it resettable at the end of frame
+
+        // eAllocateFrameMallocBuffers
+        frame_pool::instance.init(0x100000); // 1 MB initial size
+
+        // RenderPlat::Frame::Render
+        hook::jump(0x007314CF, &detour_reset_frame_heap_allocator);
     }
 }

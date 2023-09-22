@@ -13,7 +13,16 @@ namespace hyper
 	class logging final
 	{
 	public:
-		static void init(const char* path, bool allocate_console);
+		enum class ptr_type
+		{
+			console_out,
+			console_in,
+			file_out,
+			count,
+		};
+
+	public:
+		static void init(const char* path, bool allocate_console, bool pause);
 		static void free();
 
 		static void log(const char* message, ...);
@@ -21,7 +30,7 @@ namespace hyper
 	private:
 		static inline std::mutex mutex_;
 
-		static inline ::FILE* pointers_[2];
+		static inline ::FILE* pointers_[static_cast<size_t>(ptr_type::count)];
 		static inline char buffer_[1024 + 1];
 
 #if defined(PLATFORM_WINDOWS)

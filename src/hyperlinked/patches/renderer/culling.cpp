@@ -1,6 +1,6 @@
 #include <hyperlib/hook.hpp>
 #include <hyperlib/renderer/culling.hpp>
-#include <hyperlinked/patches/culling.hpp>
+#include <hyperlinked/patches/renderer/culling.hpp>
 
 namespace hyper
 {

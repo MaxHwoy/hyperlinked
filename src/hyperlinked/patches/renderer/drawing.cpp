@@ -1,10 +1,46 @@
 #include <hyperlib/hook.hpp>
 #include <hyperlib/renderer/streak.hpp>
 #include <hyperlib/renderer/drawing.hpp>
-#include <hyperlinked/patches/drawing.hpp>
+#include <hyperlinked/patches/renderer/drawing.hpp>
 
 namespace hyper
 {
+    __declspec(naked) void detour_e_render_view_update()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'view'
+            // ecx contains pointer to render_view
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'view' is now at [esp + 0x08]
+            push ebx; // 'view' is now at [esp + 0x0C]
+            push ecx; // 'view' is now at [esp + 0x10]
+            push edx; // 'view' is now at [esp + 0x14]
+            push esi; // 'view' is now at [esp + 0x18]
+            push edi; // 'view' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'view'
+
+            call render_view::update; // call custom update
+
+            // no need to restore esp since 'update' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to eRenderView::Update; note that this is a __thiscall
+        }
+    }
+
+
     __declspec(naked) void detour_create_rendering_model()
     {
         __asm
@@ -201,6 +237,75 @@ namespace hyper
         }
     }
 
+
+    __declspec(naked) void detour_set_current_render_target()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'target'
+            // [esp + 0x08] is 'clear'
+            // [esp + 0x0C] is 'clear_color'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'clear_color' is now at [esp + 0x10]
+            push ebx; // 'clear_color' is now at [esp + 0x14]
+            push ecx; // 'clear_color' is now at [esp + 0x18]
+            push edx; // 'clear_color' is now at [esp + 0x1C]
+            push esi; // 'clear_color' is now at [esp + 0x20]
+            push edi; // 'clear_color' is now at [esp + 0x24]
+
+            push [esp + 0x24]; // repush 'clear_color'
+            push [esp + 0x24]; // repush 'clear'
+            push [esp + 0x24]; // repush 'target'
+
+            call renderer::set_render_target; // call custom set_render_target
+
+            add esp, 0x0C; // since we repushed all arguments
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to SetCurrentRenderTarget
+        }
+    }
+
+    __declspec(naked) void detour_update_render_views()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call renderer::update_render_views; // call custom update_render_views
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to UpdateRenderViews
+        }
+    }
+
+
     __declspec(naked) void detour_streak_manager_initialize()
     {
         __asm
@@ -333,6 +438,10 @@ namespace hyper
 
     void drawing_patches::init()
     {
+        // eRenderView::Update
+        hook::jump(0x007498F0, &detour_e_render_view_update);
+
+
         // CreateRenderingModel
         hook::jump(0x00727930, &detour_create_rendering_model);
 
@@ -347,6 +456,14 @@ namespace hyper
 
         // eResetLightFlarePool
         hook::jump(0x0073A1F0, &detour_reset_light_flare_pool);
+
+
+        // SetCurrentRenderTarget
+        hook::jump(0x0070DD30, &detour_set_current_render_target);
+
+        // UpdateRenderViews
+        hook::jump(0x0074EB90, &detour_update_render_views);
+
 
         // StreakManager::Initialize
         hook::jump(0x00749C10, &detour_streak_manager_initialize);

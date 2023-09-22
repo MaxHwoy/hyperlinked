@@ -30,7 +30,7 @@ namespace hyper
         call_function<void(__cdecl*)(std::uint32_t)>(0x0046D0E0)(ms);
     }
 
-    auto utils::scan_hash_table_key16(std::uint16_t key, void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*
+    auto utils::scan_hash_table_key16(std::uint16_t key, const void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*
     {
         if (table_ptr == nullptr || table_size == 0u || (key_offset + sizeof(std::uint32_t) > entry_size))
         {
@@ -80,7 +80,7 @@ namespace hyper
         return nullptr;
     }
 
-    auto utils::scan_hash_table_key32(std::uint32_t key, void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*
+    auto utils::scan_hash_table_key32(std::uint32_t key, const void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*
     {
         if (table_ptr == nullptr || table_size == 0u || (key_offset + sizeof(std::uint32_t) > entry_size))
         {

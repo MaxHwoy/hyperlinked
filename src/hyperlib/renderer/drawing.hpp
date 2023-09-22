@@ -6,6 +6,7 @@
 #include <hyperlib/assets/flares.hpp>
 #include <hyperlib/world/collision.hpp>
 #include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
@@ -96,17 +97,21 @@ namespace hyper
 
     struct __declspec(align(0x10)) render_view
     {
+    public:
+        void update(const view::instance& view);
+
+    public:
         view_id id;
         bool has_camera;
         bool is_shadow_projection_view;
         ::IDirect3DSurface9* d3d_render_target;
         ::IDirect3DSurface9* d3d_depth_stencil_surface;
-        __declspec(align(0x10)) vector3 camera_direction;
-        __declspec(align(0x10)) vector3 camera_up_vector;
-        __declspec(align(0x10)) vector3 camera_previous_direction;
+        __declspec(align(0x10)) vector3 camera_forward;
+        __declspec(align(0x10)) vector3 camera_up;
+        __declspec(align(0x10)) vector3 camera_prev_forward;
         __declspec(align(0x10)) vector3 camera_position;
         __declspec(align(0x10)) vector3 camera_velocity;
-        __declspec(align(0x10)) matrix4x4 camera_matrix;
+        __declspec(align(0x10)) matrix4x4 camera_view_matrix;
         float camera_focal_distance;
         float camera_depth_of_field;
         float camera_dof_falloff;
@@ -122,6 +127,7 @@ namespace hyper
         matrix4x4 non_jittered_projection_matrix;
         render_target* target;
 
+    public:
         static inline auto views = array<render_view, static_cast<size_t>(view_id::count)>(0x00B47A90);
     };
 
@@ -133,29 +139,6 @@ namespace hyper
         color32 colors[4];
         poly_flags flags;
         char flailer;
-    };
-
-    struct __declspec(align(0x10)) camera_params
-    {
-        __declspec(align(0x10)) matrix4x4 matrix;
-        __declspec(align(0x10)) vector3 position;
-        __declspec(align(0x10)) vector3 direction;
-        __declspec(align(0x10)) vector3 target;
-        __declspec(align(0x10)) vector4 noise_frequency_1;
-        __declspec(align(0x10)) vector4 noise_amplitude_1;
-        __declspec(align(0x10)) vector4 noise_frequency_2;
-        __declspec(align(0x10)) vector4 noise_amplitude_2;
-        __declspec(align(0x10)) vector4 fade_color;
-        float target_distance;
-        float focal_distance;
-        float depth_of_field;
-        float dof_falloff;
-        float dof_max_intensity;
-        float near_clip;
-        float far_clip;
-        float lb_height;
-        float sim_time_multiplier;
-        std::uint16_t horizontal_fov;
     };
 
     struct camera_anchor
@@ -199,21 +182,9 @@ namespace hyper
         bool is_camera_frozen;
     };
 
-    struct __declspec(align(0x10)) camera
-    {
-        camera_params current_key;
-        camera_params previous_key;
-        camera_params velocity_key;
-        bool clear_velocity;
-        float elapsed_time;
-        float last_update_time;
-        float last_disparate_time;
-        bool render_dash;
-        float noise_intensity;
-    };
-
     hyper_interface camera_mover : public linked_node<camera_mover>
     {
+    public:
         virtual void on_w_collider() = 0;
         virtual ~camera_mover() = default;
         virtual void update() = 0;
@@ -224,10 +195,22 @@ namespace hyper
         virtual void set_look_back_speed() = 0;
         virtual void set_disable_lag() = 0;
         virtual void set_pov_type() = 0;
-        virtual void get_pov_type() = 0;
-        virtual bool is_hood_camera() = 0;
+        virtual void get_pov_type() const = 0;
+        virtual bool is_hood_camera() const = 0;
         virtual void outside_pov() = 0;
 
+    public:
+        inline auto vtable_fix() -> camera_mover*
+        {
+            return reinterpret_cast<camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
+        }
+
+        inline auto vtable_fix() const -> const camera_mover*
+        {
+            return reinterpret_cast<const camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
+        }
+
+    public:
         camera_mover_types type;
         view_id id;
         bool enabled;
@@ -414,6 +397,14 @@ namespace hyper
 
         static void render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
 
+        static void init_render_targets();
+
+        static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
+
+        static void update_render_views();
+
+        static void sort_models_and_draw_world();
+
     public:
         static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
 
@@ -473,9 +464,7 @@ namespace hyper
     ASSERT_SIZE(render_target, 0x1C);
     ASSERT_SIZE(render_view, 0x1E0);
     ASSERT_SIZE(poly, 0xA0);
-    ASSERT_SIZE(camera_params, 0xF0);
     ASSERT_SIZE(camera_anchor, 0xF0);
-    ASSERT_SIZE(camera, 0x2F0);
     ASSERT_SIZE(camera_mover, 0x8C);
     ASSERT_SIZE(screen_effect_inf, 0x0C);
     ASSERT_SIZE(screen_effect_def, 0x50);

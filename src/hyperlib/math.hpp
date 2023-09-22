@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <cmath>
 
+#if defined(USE_SIMD_VECTORIZATIONS)
+#include <xmmintrin.h>
+#endif
+
 namespace hyper
 {
     struct vector2
@@ -420,6 +424,33 @@ namespace hyper
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
         }
+
+        inline static auto negate(vector4& vector)
+        {
+            vector.x = -vector.x;
+            vector.y = -vector.y;
+            vector.z = -vector.z;
+        }
+
+        inline static auto add(const vector4& lhs, const vector4& rhs) -> vector4
+        {
+            return { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w };
+        }
+
+        inline static auto subtract(const vector4& lhs, const vector4& rhs) -> vector4
+        {
+            return { lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w };
+        }
+
+        inline static auto scale(const vector4& vector, float scalar) -> vector4
+        {
+            return { vector.x * scalar, vector.y * scalar, vector.z * scalar, vector.w };
+        }
+
+        inline static auto scale_add(const vector4& origin, const vector4& direction, float scale) -> vector4
+        {
+            return { origin.x + direction.x * scale, origin.y + direction.y * scale, origin.z + direction.z * scale, origin.w + direction.w * scale };
+        }
     };
 
     struct vector3pad
@@ -699,6 +730,18 @@ namespace hyper
 
     struct plane
     {
+    public:
+        inline auto as_vector4() -> vector4&
+        {
+            return *reinterpret_cast<vector4*>(this);
+        }
+
+        inline auto as_vector4() const -> const vector4&
+        {
+            return *reinterpret_cast<const vector4*>(this);
+        }
+
+    public:
         vector3 normal;
         float distance;
     };
@@ -1026,6 +1069,10 @@ namespace hyper
 
         static auto tan(float angle) -> float;
 
+        static auto cot(std::uint16_t angle) -> float;
+
+        static auto cot(float angle) -> float;
+
         static auto arc_sin(float value) -> std::uint16_t;
 
         static auto arc_cos(float value) -> std::uint16_t;
@@ -1065,6 +1112,10 @@ namespace hyper
         static auto distance_to_line(const vector2& point, const vector2& p1, const vector2& p2) -> float;
 
         static void create_axis_rotation_matrix(const vector3& axis, std::uint16_t angle, matrix4x4& result);
+
+        static void create_projection_matrix(float w, float h, float near_clip, float far_clip, matrix4x4& result);
+
+        static void create_look_at_matrix(const vector3& from, const vector3& to, const vector3& up, matrix4x4& result);
 
         static void create_rotation_x(std::uint16_t angle, matrix4x4& result);
 
