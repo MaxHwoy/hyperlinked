@@ -7,7 +7,7 @@
 
 namespace hyper
 {
-    template <typename T> class span
+    template <typename T> class span final
     {
     public:
         inline span() = default;
@@ -95,7 +95,67 @@ namespace hyper
         size_t length_;
     };
 
-    template <typename T, size_t Length> class array
+    template <typename T> class read_only_span final
+    {
+        inline read_only_span() = default;
+
+        inline read_only_span(const read_only_span& other) = default;
+
+        inline read_only_span(read_only_span&& other) = default;
+
+        inline read_only_span& operator=(const read_only_span& other) = default;
+
+        inline read_only_span& operator=(read_only_span&& other) = default;
+
+        inline read_only_span(const T* ptr, size_t length) : ptr_(ptr), length_(length)
+        {
+        }
+
+        inline read_only_span(intptr_t address, size_t length) : ptr_(reinterpret_cast<const T*>(address)), length_(length)
+        {
+        }
+
+        inline read_only_span(uintptr_t address, size_t length) : ptr_(reinterpret_cast<const T*>(address)), length_(length)
+        {
+        }
+
+        template <size_t Length> inline read_only_span(T(&array)[Length]) : ptr_(reinterpret_cast<const T*>(array)), length_(Length)
+        {
+        }
+
+        template <typename Index> inline auto operator[](Index index) const -> const T&
+        {
+            assert(static_cast<size_t>(index) < this->length_);
+
+            return this->ptr_[static_cast<size_t>(index)];
+        }
+
+        inline auto length() const -> size_t
+        {
+            return this->length_;
+        }
+
+        inline bool is_empty() const
+        {
+            return this->length_ == 0u;
+        }
+
+        inline auto begin() const -> const T*
+        {
+            return this->ptr_;
+        }
+
+        inline auto end() const -> const T*
+        {
+            return this->ptr_ + this->length_;
+        }
+
+    private:
+        const T* ptr_;
+        size_t length_;
+    };
+
+    template <typename T, size_t Length> class array final
     {
     public:
         inline array() = default;

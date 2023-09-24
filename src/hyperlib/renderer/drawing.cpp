@@ -87,7 +87,7 @@ namespace hyper
 
                     flags |= static_cast<std::uint32_t>(model.use_low_lod) << 25;
 
-                    model.sort_flags = flags | ((model.effect->id() & 0x1Fu) << 26);
+                    model.sort_flags = flags | ((static_cast<std::uint32_t>(model.effect->id()) & 0x1Fu) << 26);
                 }
                 else
                 {

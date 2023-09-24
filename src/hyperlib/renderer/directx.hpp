@@ -3,6 +3,9 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
 
+#define D3DCOLORWRITEENABLE_RGB D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE
+#define D3DCOLORWRITEENABLE_ALL D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_ALPHA
+
 namespace hyper
 {
     class directx final
@@ -13,12 +16,21 @@ namespace hyper
             return *reinterpret_cast<::IDirect3DDevice9**>(0x00AB0ABC);
         }
 
+        static auto get_mag_filter() -> ::D3DTEXTUREFILTERTYPE;
+
+        static auto get_min_filter() -> ::D3DTEXTUREFILTERTYPE;
+
+        static auto get_mip_filter() -> ::D3DTEXTUREFILTERTYPE;
+
+        static auto get_max_anisotropy() -> ::DWORD;
+
         static void recalculate_pixel_ratio(bool use_device_full_screen);
         
         static void create_d3d_present_params(std::uint32_t res_x, std::uint32_t res_y);
 
         static void reset_rendering_states();
 
+    public:
         static inline float pixel_aspect_ratio = 1.0f;
 
         static inline std::uint32_t screen_size_x = 0u;

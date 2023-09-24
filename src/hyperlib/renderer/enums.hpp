@@ -120,15 +120,29 @@ namespace hyper
 
     enum class draw_flags : std::uint32_t
     {
-        full_visible = 1u << 2,
+        fully_visible            = 1u << 2,
 
 
-        use_low_lod = 0x0C00,
 
+        always_facing            = 1u << 9,
+        render_ai_npc            = 1u << 10,
+        render_ai_racer          = 1u << 11,
+
+
+
+        cast_shadows             = 1u << 16,
+        sky_shade                = 1u << 17,
+        inverted_culling         = 1u << 18,
+        dynamic_placement        = 1u << 19,
+
+        high_quality             = 1u << 22,
+        dont_receive_shadows     = 1u << 23,
 
         use_ghost_shader         = 1u << 25,
 
         has_replacement_textures = 1u << 31,
+
+        use_low_lod              = render_ai_npc | render_ai_racer,
     };
 
     CREATE_ENUM_EXPR_OPERATORS(model_lod);

@@ -208,9 +208,8 @@ namespace hyper
             return params ^ 0x40u;
         }
 
-        static inline auto create_allocation_params(pool_type type, bool start_from_top, bool use_best_fit, std::uint32_t alignment, std::uint32_t offset)
+        static inline auto create_allocation_params(pool_type type, bool start_from_top, bool use_best_fit, std::uint32_t alignment, std::uint32_t offset) -> std::uint32_t
         {
-            // #TODO is there flag 0x20 or something?
             return (static_cast<std::uint32_t>(type) & 0x0F) |
                    (static_cast<std::uint32_t>(start_from_top) << 6) |
                    (static_cast<std::uint32_t>(use_best_fit) << 7) |

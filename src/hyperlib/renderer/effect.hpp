@@ -48,12 +48,10 @@ namespace hyper
         float3,
         float4,
         color,
-        half2,
-        half4,
-        dec4n,
-        short4n,
         ubyte4,
+        short4n,
         uint1,
+        none,
         count,
     };
 
@@ -61,14 +59,14 @@ namespace hyper
     {
         position,
         normal,
-        diffuse,
+        color,
         uv,
-        uv_ambient,
+        uv1,
+        uv2,
+        uv3,
         weight,
         index,
         tangent,
-        light_index,
-        pca_component0,
         pca_component1,
         pca_component2,
         pca_component3,
@@ -76,6 +74,11 @@ namespace hyper
         pca_component5,
         pca_component6,
         pca_component7,
+        pca_component8,
+        uv4,
+        uv5,
+        uv6,
+        uv7,
         count,
     };
 
@@ -99,22 +102,14 @@ namespace hyper
             ::D3DXHANDLE handle;
         };
 
-        struct technique
+        struct technique : public eastl::vector<char, bstl::allocator>
         {
-            const char* name_begin;
-            const char* name_end;
-            const void* true_end;
-            std::int32_t idk_0x0C;
-            std::int32_t number;
-            std::int32_t param_int;
+            std::int32_t technique_index;
+            std::int32_t shader_index;
         };
 
-        struct table
+        struct table : public eastl::vector<technique, bstl::allocator>
         {
-            technique* tech_begin;
-            technique* tech_end;
-            void* true_end;
-            std::uint32_t pad;
         };
 
         struct param_index_pair
@@ -278,16 +273,14 @@ namespace hyper
         
         struct stream_channel
         {
-            std::uint32_t stream;
-            vertex_component component;
             vertex_type type;
-            std::uint32_t usage_index;
+            vertex_component component;
         };
 
         struct input
         {
             const char* effect_name;
-            stream_channel channels[8];
+            stream_channel channels[0x10];
             const char* filename;
             const char* resource;
             std::uint32_t unknown;
@@ -305,13 +298,21 @@ namespace hyper
         virtual void preflight_draw() = 0;
         virtual void load_global_textures() = 0;
 
-        effect(shader_type type, effect::flags flags, std::uint32_t last_param_key, const effect::input* input);
+        effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input);
+
+        void initialize(const effect::input* input);
 
         void connect_parameters();
 
-        void lose_device();
+        void reset_filter_params();
 
-        inline auto id() const -> std::uint32_t
+        void load_effect_from_buffer(const effect::input* input);
+
+        auto find_techique(const char* name) -> technique*;
+
+        void set_technique(const char* name);
+
+        inline auto id() const -> shader_type
         {
             return this->id_;
         }
@@ -321,14 +322,45 @@ namespace hyper
             return this->low_lod_technique_number_ > 0u;
         }
 
+        inline void lose_device()
+        {
+            this->effect_->OnLostDevice();
+        }
+
+        inline void release_effect()
+        {
+            if (this->effect_ != nullptr)
+            {
+                this->effect_->Release();
+
+                this->effect_ = nullptr;
+            }
+        }
+
+        inline void end_effect_pass()
+        {
+            this->effect_->EndPass();
+        }
+
+        inline void end_effect()
+        {
+            this->effect_->End();
+        }
+
         inline void set_int(parameter_type type, std::int32_t value)
         {
-            this->effect_->SetInt(this->params_[static_cast<std::uint32_t>(type)].handle, value);
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetInt(handle, value);
+            }
         }
 
         inline void set_float(parameter_type type, float value)
         {
-            this->effect_->SetFloat(this->params_[static_cast<std::uint32_t>(type)].handle, value);
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetFloat(handle, value);
+            }
         }
 
         constexpr static inline auto get_parameter_name(parameter_type type) -> const char*
@@ -337,7 +369,7 @@ namespace hyper
         }
 
     private:
-        std::uint32_t id_;
+        shader_type id_;
         std::uint32_t stride_;
         std::uint32_t technique_count_;
         std::uint32_t technique_handle_;
@@ -356,7 +388,7 @@ namespace hyper
         ::ID3DXEffect* effect_;
         ::IDirect3DVertexDeclaration9* vertex_decl_;
         parameter params_[static_cast<std::uint32_t>(parameter_type::count)];
-        char data_36_[16];
+        void* vector_[4];
         table table_;
         param_index_pair* index_pairs_;
         const char* name_;
@@ -842,6 +874,8 @@ namespace hyper
 
         static void lose_device();
 
+        static void end_effect(effect& eff);
+
         inline static auto get_shader_name(shader_type type) -> const char*
         {
             return shader_lib::type_names_[static_cast<std::uint32_t>(type)];
@@ -850,6 +884,18 @@ namespace hyper
     public:
         static inline auto effect_param_list = array<effect::param_index_pair, static_cast<size_t>(effect::parameter_type::count)>(0x00B43150);
         
+        static inline effect*& current_effect = *reinterpret_cast<effect**>(0x00AB0BA4);
+
+        static inline auto vertex_decl_type_map = array<::D3DDECLTYPE, static_cast<size_t>(vertex_type::count)>(0x00A650EC);
+
+        static inline auto vertex_decl_usage_map = array<::D3DDECLUSAGE, static_cast<size_t>(vertex_component::count)>(0x00A65110);
+
+        static inline auto vertex_usage_index_map = array<::BYTE, static_cast<size_t>(vertex_component::count)>(0x00A65168);
+
+        static inline auto vertex_type_size_map = array<std::uint32_t, static_cast<size_t>(vertex_type::none)>(0x00A65180);
+
+        static inline ::ID3DXEffectPool*& effect_pool = *reinterpret_cast<::ID3DXEffectPool**>(0x00AB0B84);
+
     private:
         static inline bool& initilaized_ = *reinterpret_cast<bool*>(0x00B4302C);
 
@@ -897,7 +943,7 @@ namespace hyper
     ASSERT_SIZE(effect::technique, 0x18);
     ASSERT_SIZE(effect::table, 0x10);
     ASSERT_SIZE(effect::param_index_pair, 0x08);
-    ASSERT_SIZE(effect::stream_channel, 0x10);
+    ASSERT_SIZE(effect::stream_channel, 0x08);
     ASSERT_SIZE(effect::input, 0x90);
     ASSERT_SIZE(effect, 0x1788);
 }

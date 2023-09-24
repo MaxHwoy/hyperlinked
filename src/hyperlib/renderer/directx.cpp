@@ -5,6 +5,54 @@
 
 namespace hyper
 {
+    auto directx::get_mag_filter() -> ::D3DTEXTUREFILTERTYPE
+    {
+        if (directx::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
+        {
+            return ::D3DTEXF_ANISOTROPIC;
+        }
+        else
+        {
+            return ::D3DTEXF_LINEAR;
+        }
+    }
+
+    auto directx::get_min_filter() -> ::D3DTEXTUREFILTERTYPE
+    {
+        if (directx::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
+        {
+            return ::D3DTEXF_ANISOTROPIC;
+        }
+        else
+        {
+            return ::D3DTEXF_LINEAR;
+        }
+    }
+
+    auto directx::get_mip_filter() -> ::D3DTEXTUREFILTERTYPE
+    {
+        if (directx::texture_filtering != 0u)
+        {
+            return ::D3DTEXF_LINEAR;
+        }
+        else
+        {
+            return ::D3DTEXF_POINT;
+        }
+    }
+
+    auto directx::get_max_anisotropy() -> ::DWORD
+    {
+        if (directx::texture_filtering == 2u)
+        {
+            return directx::device_caps.MaxAnisotropy;
+        }
+        else
+        {
+            return 1u;
+        }
+    }
+
     void directx::recalculate_pixel_ratio(bool use_device_full_screen)
     {
         HDC dc = ::GetDC(directx::window);
@@ -43,7 +91,7 @@ namespace hyper
     {
         ::memset(&directx::present, 0, sizeof(directx::present));
 
-        if (directx::present.Windowed = directx::is_windowed)
+        if (directx::is_windowed)
         {
             ::GetWindowRect(directx::window, &directx::window_rect);
             ::GetClientRect(directx::window, &directx::client_rect);
@@ -51,6 +99,7 @@ namespace hyper
             directx::present.FullScreen_RefreshRateInHz = 0u;
         }
 
+        directx::present.Windowed = directx::is_windowed;
         directx::present.BackBufferWidth = res_x;
         directx::present.BackBufferHeight = res_y;
 
@@ -93,8 +142,6 @@ namespace hyper
 
         ::D3DCAPS9& caps = directx::device_caps;
 
-        ::DWORD color_mode = D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE;
-
         bool vendor_not_4139 = directx::adapter.VendorId != 4139u;
 
         xdevice->SetRenderState(::D3DRS_ZENABLE, ::D3DZB_TRUE);
@@ -104,7 +151,7 @@ namespace hyper
         xdevice->SetRenderState(::D3DRS_SPECULARENABLE, TRUE);
         xdevice->SetRenderState(::D3DRS_LIGHTING, FALSE);
         xdevice->SetRenderState(::D3DRS_FOGENABLE, FALSE);
-        xdevice->SetRenderState(::D3DRS_COLORWRITEENABLE, color_mode);
+        xdevice->SetRenderState(::D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGB);
 
         directx::default_cull = ::D3DCULL_CW;
 
@@ -166,7 +213,7 @@ namespace hyper
             xdevice->SetTextureStageState(i, ::D3DTSS_TEXCOORDINDEX, i);
         }
 
-        effect_world::instance->set_int(effect::parameter_type::ColorWriteMode, static_cast<std::int32_t>(color_mode));
+        effect_world::instance->set_int(effect::parameter_type::ColorWriteMode, D3DCOLORWRITEENABLE_RGB);
 
         directx::last_textures_used.clear();
     }
