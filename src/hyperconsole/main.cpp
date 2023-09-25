@@ -2,6 +2,8 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/collections/eastl.hpp>
+#include <hyperlib/collections/string.hpp>
+#include <hyperlib/memory/fast_mem.hpp>
 
 #include <immintrin.h>
 
@@ -60,49 +62,39 @@ struct test
     }
 };
 
+struct a
+{
+    ~a() { ::printf("A"); }
+};
+
+struct b : public a
+{
+    ~b() { ::printf("B"); }
+};
+
 void run()
 {
-    hyper::eastl::vector<test, allocator> v({});
+    hyper::vector_string s1{};
+    hyper::vector_string s2("Max");
+    hyper::vector_string s3 = s2;
+    hyper::vector_string s4(s1);
+    hyper::vector_string s5(s2);
 
-    test t(1.0f, "Hozy");
-    test s(2.0f, "Max");
-    test w(5.0f, "AAAAA");
-
-    v.push_back(t);
-    v.push_back(std::move(s));
-    v.push_back().s = "None";
-    v.emplace_back(3.0f, "rx");
-
-    ::printf("%s\n", v[1].s);
-    ::printf("%f\n", v.at(3).f);
-    ::printf("%s\n", v.front().s);
-
-    v.reserve(6u);
-
-    v.insert(&v[2], 2u, w);
-
-    ::printf("%s\n", v[2].s);
-    ::printf("%s\n", v[3].s);
-
-    v.pop_back();
-    v.pop_back();
-
-    ::printf("%f\n", v.back().f);
-
-    ::printf("%u\n", v.capacity());
-
-    v.shrink_to_fit();
-
-    ::printf("%u\n", v.capacity());
-
-    v.erase_no_ordering(v.begin());
-
-    ::printf("%s\n", v.begin()->s);
+    s2 = "AAAAA";
+    s3 = "";
 }
 
 int main()
 {
-    ::run();
+    //::run();
+
+    hyper::matrix4x4 matrix =
+    {
+        0.3f, 0.7f, 0.2f, 0.0f,
+        2.1f, 0.3f, 0.5f, 0.0f,
+        0.9f, 1.4f, 1.1f, 0.0f,
+        11.2f, -32.4f, 2.42f, 1.0f
+    };
 
     return 0;
 }

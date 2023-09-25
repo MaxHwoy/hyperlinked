@@ -28,7 +28,7 @@ namespace hyper
             float diffuse_clamp;
             float diffuse_flakes;
             float diffuse_vinyl_scale;
-            float diffusemin_scale;
+            float diffuse_min_scale;
             float diffuse_min_r;
             float diffuse_min_g;
             float diffuse_min_b;
@@ -71,6 +71,10 @@ namespace hyper
             std::uint8_t name[64];
             data material;
         };
+
+        static inline float envmap_scale = 0.5f;
+        static inline float& spec_scale = *reinterpret_cast<float*>(0x00A6B980);
+        static inline float& min_clamp = *reinterpret_cast<float*>(0x009E8FBC);
     };
 
     class geometry final

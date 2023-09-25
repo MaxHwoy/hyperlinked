@@ -1,10 +1,17 @@
 #include <hyperlib/utils/utils.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
+#include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/drawing.hpp>
 
 namespace hyper
 {
-    effect::effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input) : id_(type), index_pairs_(indices), table_{}
+    effect::effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input) : 
+        id_(type), 
+        index_pairs_(indices), 
+        unsupported_table_{}, 
+        supported_table_{}
     {
         for (size_t i = 0u; i < std::size(this->params_); ++i)
         {
@@ -14,11 +21,6 @@ namespace hyper
             param.key = 0u;
             param.handle = nullptr;
         }
-
-        this->vector_[0] = nullptr;
-        this->vector_[1] = nullptr;
-        this->vector_[2] = nullptr;
-        this->vector_[3] = nullptr;
 
         this->name_ = input->effect_name;
         this->flags_ = flags;
@@ -44,6 +46,374 @@ namespace hyper
         this->connect_parameters();
     }
 
+    effect::~effect()
+    {
+        if (this->effect_ != nullptr)
+        {
+            this->effect_->OnLostDevice();
+            this->effect_->Release();
+            this->effect_ = nullptr;
+        }
+
+        if (this->vertex_decl_ != nullptr)
+        {
+            this->vertex_decl_->Release();
+            this->vertex_decl_ = nullptr;
+        }
+    }
+
+    void effect::handle_material_data(const light_material::instance* material, draw_flags flags)
+    {
+        if (material != nullptr && this->has_parameter(parameter_type::cvDiffuseMin) && material != this->last_used_light_material_)
+        {
+            this->last_used_light_material_ = material;
+
+            const light_material::data& data = material->material;
+
+            float min_clamp = light_material::min_clamp;
+            float spec_scale = light_material::spec_scale;
+            float envmap_scale = light_material::envmap_scale;
+
+            color diffuse_min =
+            {
+                data.diffuse_min_r * data.diffuse_min_scale,
+                data.diffuse_min_g * data.diffuse_min_scale,
+                data.diffuse_min_b * data.diffuse_min_scale,
+                data.diffuse_min_a
+            };
+
+            color diffuse_range =
+            {
+                data.diffuse_max_r * data.diffuse_max_scale - diffuse_min.r,
+                data.diffuse_max_g * data.diffuse_max_scale - diffuse_min.g,
+                data.diffuse_max_b * data.diffuse_max_scale - diffuse_min.b,
+                data.diffuse_max_a - diffuse_min.a
+            };
+
+            color specular_min =
+            {
+                data.specular_min_r * data.specular_min_scale * spec_scale,
+                data.specular_min_g * data.specular_min_scale * spec_scale,
+                data.specular_min_b * data.specular_min_scale * spec_scale,
+                0.0f
+            };
+
+            color specular_range =
+            {
+                data.specular_max_r * data.specular_max_scale * spec_scale - specular_min.r,
+                data.specular_max_g * data.specular_max_scale * spec_scale - specular_min.g,
+                data.specular_max_b * data.specular_max_scale * spec_scale - specular_min.b,
+                0.0f
+            };
+
+            color envmap_min =
+            {
+                data.envmap_min_r * data.envmap_min_scale * envmap_scale,
+                data.envmap_min_g * data.envmap_min_scale * envmap_scale,
+                data.envmap_min_b * data.envmap_min_scale * envmap_scale,
+                0.0f
+            };
+
+            color envmap_range =
+            {
+                data.envmap_max_r * data.envmap_max_scale * envmap_scale - envmap_min.r,
+                data.envmap_max_g * data.envmap_max_scale * envmap_scale - envmap_min.g,
+                data.envmap_max_b * data.envmap_max_scale * envmap_scale - envmap_min.b,
+                0.0f
+            };
+
+            vector4 powers =
+            {
+                data.diffuse_power,
+                data.specular_power,
+                data.envmap_power,
+                0.0f
+            };
+
+            vector4 clamps =
+            {
+                data.diffuse_clamp,
+                data.envmap_clamp,
+                1.0f / math::max(data.diffuse_clamp, min_clamp),
+                1.0f / math::max(data.envmap_clamp, min_clamp)
+            };
+
+            vector4 flakes =
+            {
+                data.diffuse_flakes,
+                data.specular_flakes,
+                data.vinyl_luminance_min_scale,
+                data.vinyl_luminance_max_scale - data.vinyl_luminance_min_scale
+            };
+
+            vector4 vinyls =
+            {
+                data.diffuse_vinyl_scale,
+                data.specular_vinyl_scale,
+                data.envmap_vinyl_scale,
+                0.0f
+            };
+
+            this->set_vector(parameter_type::cvDiffuseMin, diffuse_min.as_vector4());
+            this->set_vector(parameter_type::cvDiffuseRange, diffuse_range.as_vector4());
+            this->set_vector(parameter_type::cvSpecularMin, specular_min.as_vector4());
+            this->set_vector(parameter_type::cvSpecularRange, specular_range.as_vector4());
+            this->set_vector(parameter_type::cvEnvmapMin, envmap_min.as_vector4());
+            this->set_vector(parameter_type::cvEnvmapRange, envmap_range.as_vector4());
+            this->set_vector(parameter_type::cvPowers, powers);
+            this->set_vector(parameter_type::cvClampAndScales, clamps);
+            this->set_vector(parameter_type::cvFlakes, flakes);
+            this->set_vector(parameter_type::cvVinylScales, vinyls);
+            this->set_float(parameter_type::cfSpecularPower, data.specular_power);
+        }
+    }
+
+    void effect::set_transforms(const matrix4x4& local_to_world, const render_view& view, bool use_nonjittered)
+    {
+        if (&local_to_world != effect::last_submitted_matrix_ || shader_lib::current_effect != effect::last_submitted_effect_ || view.id != effect::last_submitted_view_id_)
+        {
+            const matrix4x4* view_matrix = &view.view_matrix;
+            const matrix4x4* proj_matrix = &view.projection_matrix;
+            const matrix4x4* view_proj_matrix = use_nonjittered
+                ? &view.non_jittered_view_projection_matrix
+                : &view.view_projection_matrix;
+
+            if (view.id == effect::last_submitted_view_id_)
+            {
+                if (shader_lib::current_effect != effect::last_submitted_effect_ && !this->active_)
+                {
+                    directx::device()->SetTransform(::D3DTS_VIEW, reinterpret_cast<const ::D3DMATRIX*>(view_matrix));
+                    directx::device()->SetTransform(::D3DTS_PROJECTION, reinterpret_cast<const ::D3DMATRIX*>(proj_matrix));
+                }
+            }
+            else
+            {
+                if (!this->active_)
+                {
+                    directx::device()->SetTransform(::D3DTS_VIEW, reinterpret_cast<const ::D3DMATRIX*>(view_matrix));
+                    directx::device()->SetTransform(::D3DTS_PROJECTION, reinterpret_cast<const ::D3DMATRIX*>(proj_matrix));
+                }
+
+                effect::last_submitted_view_id_ = view.id;
+            }
+
+            effect::last_submitted_effect_ = shader_lib::current_effect;
+            effect::last_submitted_matrix_ = &local_to_world;
+
+            if (this->has_parameter(parameter_type::cmWorldMatTranspose))
+            {
+                matrix4x4 transpose;
+
+                transpose.row(0u).as_vector3() = local_to_world.row(0u).as_vector3().normalized();
+                transpose.row(1u).as_vector3() = local_to_world.row(1u).as_vector3().normalized();
+                transpose.row(2u).as_vector3() = vector3::cross(transpose.row(0u).as_vector3(), transpose.row(1u).as_vector3());
+
+                transpose.m14 = 0.0f;
+                transpose.m24 = 0.0f;
+                transpose.m34 = 0.0f;
+                transpose.m41 = 0.0f;
+                transpose.m42 = 0.0f;
+                transpose.m43 = 0.0f;
+                transpose.m44 = 0.0f;
+
+                math::transpose_matrix(transpose, transpose);
+
+                this->set_matrix_unchecked(parameter_type::cmWorldMatTranspose, transpose);
+            }
+
+            if (this->has_parameter(parameter_type::cmWorldView))
+            {
+                matrix4x4 world_view;
+
+                math::multiply_matrix(local_to_world, *view_matrix, world_view);
+
+                this->set_matrix_unchecked(parameter_type::cmWorldView, world_view);
+            }
+
+            this->set_matrix(parameter_type::cmWorldMat, local_to_world);
+
+            if (this->active_)
+            {
+                matrix4x4 world_view_proj;
+
+                math::multiply_matrix(local_to_world, *view_proj_matrix, world_view_proj);
+
+                this->set_matrix(parameter_type::WorldViewProj, world_view_proj);
+            }
+            else
+            {
+                directx::device()->SetTransform(D3DTS_WORLDMATRIX(0), reinterpret_cast<const ::D3DMATRIX*>(&local_to_world));
+            }
+
+            if (this->has_parameter(parameter_type::cvLocalEyePos) || this->has_parameter(parameter_type::cvLocalLightVec))
+            {
+                matrix4x4 inverted;
+
+                math::invert_transform(local_to_world, inverted);
+
+                if (this->has_parameter(parameter_type::cvLocalEyePos))
+                {
+                    vector4 sun_position(view.camera_position);
+
+                    math::transform_point(inverted, sun_position);
+
+                    this->set_vector_unchecked(parameter_type::cvLocalEyePos, sun_position);
+                }
+
+                if (this->has_parameter(parameter_type::cvLocalLightVec))
+                {
+                    vector4 sun_direction(lighting::time_of_day::instance->sun_direction);
+
+                    math::transform_point(inverted, sun_direction);
+
+                    this->set_vector_unchecked(parameter_type::cvLocalLightVec, sun_direction.normalized());
+                }
+            }
+
+            if (this->has_parameter(parameter_type::cmHeadlight1WVP))
+            {
+                if (this->supported_table_.front().detail_level == 1)
+                {
+                    const render_view& headlight = render_view::views[view_id::player1_headlight];
+
+                    matrix4x4 headlight_wvp;
+                    matrix4x4 headlight_trs =
+                    {
+                        0.5f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 0.5f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 0.5f, 0.0f,
+                        0.5f, 0.5f, 0.5f, 1.0f
+                    };
+
+                    math::multiply_matrix(local_to_world, headlight.view_projection_matrix, headlight_wvp);
+                    math::multiply_matrix(headlight_wvp, headlight_trs, headlight_wvp);
+
+                    this->set_matrix_unchecked(parameter_type::cmHeadlight1WVP, headlight_wvp);
+                }
+            }
+        }
+    }
+
+    void effect::start(::IDirect3DTexture9* texture, bool invert)
+    {
+        struct {
+            vector3 position;
+            color32 color;
+            vector2 uv;
+        } vertices[4];
+
+        directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
+
+        ::D3DSURFACE_DESC desc;
+
+        texture->GetLevelDesc(0u, &desc);
+
+        float w = static_cast<float>(desc.Width);
+        float h = static_cast<float>(desc.Height);
+
+        if ((desc.Width & 0x80000000) != 0)
+        {
+            w += 4.2949673e9f;
+        }
+
+        if ((desc.Height & 0x80000000) != 0)
+        {
+            h += 4.2949673e9f;
+        }
+
+        float inv_w = 0.5f / w;
+        float inv_h = 0.5f / h;
+
+        float uv00 = inv_w;
+        float uv10 = inv_w + 1.0f;
+        float uv20 = inv_w + 1.0f;
+        float uv30 = inv_w;
+
+        float uv11;
+        float uv31;
+        float uv21;
+        float uv01;
+
+        if (invert)
+        {
+            uv01 = inv_h + 1.0f;
+            uv11 = inv_h + 1.0f;
+            uv21 = inv_h;
+            uv31 = inv_h;
+        }
+        else
+        {
+            uv01 = inv_h;
+            uv11 = inv_h;
+            uv21 = inv_h + 1.0f;
+            uv31 = inv_h + 1.0f;
+        }
+
+        vertices[0].position.x = -1.0f;
+        vertices[0].position.y = +1.0f;
+        vertices[0].position.z = +0.0f;
+        vertices[0].color = color32::white();
+        vertices[0].uv[0] = uv00;
+        vertices[0].uv[1] = uv01;
+
+        vertices[1].position.x = +1.0f;
+        vertices[1].position.y = +1.0f;
+        vertices[1].position.z = +0.0f;
+        vertices[1].color = color32::white();
+        vertices[1].uv[0] = uv10;
+        vertices[1].uv[1] = uv11;
+
+        vertices[2].position.x = +1.0f;
+        vertices[2].position.y = -1.0f;
+        vertices[2].position.z = +0.0f;
+        vertices[2].color = color32::white();
+        vertices[2].uv[0] = uv20;
+        vertices[2].uv[1] = uv21;
+
+        vertices[3].position.x = -1.0f;
+        vertices[3].position.y = -1.0f;
+        vertices[3].position.z = +0.0f;
+        vertices[3].color = color32::white();
+        vertices[3].uv[0] = uv30;
+        vertices[3].uv[1] = uv31;
+
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+
+        this->effect_->CommitChanges();
+        
+        directx::device()->DrawPrimitiveUP(::D3DPT_TRIANGLEFAN, 2u, vertices, sizeof(vertices[0]));
+    }
+
+    void effect::end()
+    {
+        this->set_float(parameter_type::cfSpecularPower, renderer::default_spec_power);
+
+        if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
+        {
+            lighting::ingame_light_params.y = lighting::default_ingame_light_y;
+            lighting::ingame_light_params.w = lighting::default_ingame_light_w;
+
+            if (game_flow::manager::instance.current_state == game_flow::state::racing)
+            {
+                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params);
+            }
+            else
+            {
+                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params);
+            }
+        }
+    }
+
+    void effect::preflight_draw()
+    {
+        // nothing
+    }
+
+    void effect::load_global_textures()
+    {
+        // nothing
+    }
+    
     void effect::store_param_by_key(::LPCSTR name, ::D3DXHANDLE handle)
     {
         const param_index_pair* pair = shader_lib::find_param_index(hashing::bin(name));
@@ -165,9 +535,9 @@ namespace hyper
         {
             size_t length = string::length(name);
 
-            for (technique* i = this->table_.begin(); i != this->table_.end(); ++i)
+            for (technique* i = this->supported_table_.begin(); i != this->supported_table_.end(); ++i)
             {
-                if (length == i->size() && ::memcmp(name, i->begin(), length))
+                if (length == i->name.length() && ::memcmp(name, i->name, length))
                 {
                     return i;
                 }

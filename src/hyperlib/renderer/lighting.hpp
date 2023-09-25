@@ -216,6 +216,15 @@ namespace hyper
         static inline float& scale_rgb_irradiance = *reinterpret_cast<float*>(0x00A6B914);
 
         static inline float& scale_alpha_irradiance = *reinterpret_cast<float*>(0x00A6B91C);
+
+    public:
+        static inline float& default_ingame_light_y = *reinterpret_cast<float*>(0x00A650E0);
+
+        static inline float& default_ingame_light_w = *reinterpret_cast<float*>(0x007497CE);
+
+        static inline vector4& ingame_light_params = *reinterpret_cast<vector4*>(0x00A6C204);
+
+        static inline vector4& frontend_light_params = *reinterpret_cast<vector4*>(0x00A6C214);
     };
 
     ASSERT_SIZE(lighting::time_of_day, 0x170);

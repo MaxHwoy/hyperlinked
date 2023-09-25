@@ -1038,4 +1038,25 @@ namespace hyper
         dst.m43 = 0.0f;
         dst.m44 = 0.0f;
     }
+
+    void math::invert_transform(const matrix4x4& src, matrix4x4& dst)
+    {
+        matrix4x4 a =
+        {
+                1.0f,     0.0f,     0.0f, 0.0f,
+                0.0f,     1.0f,     0.0f, 0.0f,
+                0.0f,     0.0f,     1.0f, 0.0f,
+            -src.m41, -src.m42, -src.m43, 1.0f
+        };
+
+        matrix4x4 b =
+        {
+            src.m11, src.m21, src.m31, 0.0f,
+            src.m12, src.m22, src.m32, 0.0f,
+            src.m13, src.m23, src.m33, 0.0f,
+               0.0f,    0.0f,    0.0f, 1.0f
+        };
+
+        math::multiply_matrix(a, b, dst);
+    }
 }

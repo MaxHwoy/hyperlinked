@@ -551,6 +551,16 @@ namespace hyper
             return this->r != other.r || this->g != other.g || this->b != other.b || this->a != other.a;
         }
 
+        inline auto as_vector4() -> vector4&
+        {
+            return *reinterpret_cast<vector4*>(this);
+        }
+
+        inline auto as_vector4() const -> const vector4&
+        {
+            return *reinterpret_cast<const vector4*>(this);
+        }
+
         inline auto operator[](std::uint32_t index) -> float&
         {
             return reinterpret_cast<float*>(this)[index];
@@ -1130,6 +1140,8 @@ namespace hyper
         static void rotate_matrix_z(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
 
         static void invert_rotation(const matrix4x4& src, matrix4x4& dst);
+
+        static void invert_transform(const matrix4x4& src, matrix4x4& dst);
 
     private:
         static std::uint16_t a_tan_table_[258];

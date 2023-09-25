@@ -2,6 +2,8 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/geometry.hpp>
+#include <hyperlib/collections/string.hpp>
+#include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/lighting.hpp>
 
 namespace hyper
@@ -102,10 +104,11 @@ namespace hyper
             ::D3DXHANDLE handle;
         };
 
-        struct technique : public eastl::vector<char, bstl::allocator>
+        struct technique
         {
+            vector_string name;
             std::int32_t technique_index;
-            std::int32_t shader_index;
+            std::int32_t detail_level;
         };
 
         struct table : public eastl::vector<technique, bstl::allocator>
@@ -287,16 +290,22 @@ namespace hyper
         };
 
     private:
+        struct linked_technique : public linked_node<linked_technique>
+        {
+            technique tech;
+        };
+
+    private:
         void store_param_by_key(::LPCSTR name, ::D3DXHANDLE handle);
 
     public:
-        virtual ~effect() = 0;
-        virtual void handle_material_data(std::uint32_t*, std::uint32_t) = 0;
-        virtual void set_transforms(const matrix4x4*, class render_target*, bool) = 0;
-        virtual void start(::IDirect3DTexture9*, std::int32_t) = 0;
-        virtual void end() = 0;
-        virtual void preflight_draw() = 0;
-        virtual void load_global_textures() = 0;
+        virtual ~effect();
+        virtual void handle_material_data(const light_material::instance* material, draw_flags flags);
+        virtual void set_transforms(const matrix4x4& local_to_world, const struct render_view& view, bool use_nonjittered);
+        virtual void start(::IDirect3DTexture9* texture, bool invert);
+        virtual void end();
+        virtual void preflight_draw();
+        virtual void load_global_textures();
 
         effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input);
 
@@ -347,6 +356,11 @@ namespace hyper
             this->effect_->End();
         }
 
+        inline bool has_parameter(parameter_type type)
+        {
+            return this->params_[static_cast<std::uint32_t>(type)].handle != nullptr;
+        }
+
         inline void set_int(parameter_type type, std::int32_t value)
         {
             if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
@@ -355,11 +369,55 @@ namespace hyper
             }
         }
 
+        inline void set_int_unchecked(parameter_type type, std::int32_t value)
+        {
+            this->effect_->SetInt(this->params_[static_cast<std::uint32_t>(type)].handle, value);
+        }
+
         inline void set_float(parameter_type type, float value)
         {
             if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
             {
                 this->effect_->SetFloat(handle, value);
+            }
+        }
+
+        inline void set_float_unchecked(parameter_type type, float value)
+        {
+            this->effect_->SetFloat(this->params_[static_cast<std::uint32_t>(type)].handle, value);
+        }
+
+        inline void set_vector(parameter_type type, const vector4& vector)
+        {
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetVector(handle, reinterpret_cast<const ::D3DXVECTOR4*>(&vector));
+            }
+        }
+
+        inline void set_vector_unchecked(parameter_type type, const vector4& vector)
+        {
+            this->effect_->SetVector(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXVECTOR4*>(&vector));
+        }
+
+        inline void set_matrix(parameter_type type, const matrix4x4& matrix)
+        {
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetMatrix(handle, reinterpret_cast<const ::D3DXMATRIX*>(&matrix));
+            }
+        }
+
+        inline void set_matrix_unchecked(parameter_type type, const matrix4x4& matrix)
+        {
+            this->effect_->SetMatrix(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXMATRIX*>(&matrix));
+        }
+
+        inline void set_texture(parameter_type type, IDirect3DBaseTexture9* texture)
+        {
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetTexture(handle, texture);
             }
         }
 
@@ -372,7 +430,7 @@ namespace hyper
         shader_type id_;
         std::uint32_t stride_;
         std::uint32_t technique_count_;
-        std::uint32_t technique_handle_;
+        std::uint32_t annotation_count_;
         std::uint32_t pass_count_;
         std::int32_t __3__;
         std::int32_t __4__;
@@ -388,8 +446,8 @@ namespace hyper
         ::ID3DXEffect* effect_;
         ::IDirect3DVertexDeclaration9* vertex_decl_;
         parameter params_[static_cast<std::uint32_t>(parameter_type::count)];
-        void* vector_[4];
-        table table_;
+        table unsupported_table_;
+        table supported_table_;
         param_index_pair* index_pairs_;
         const char* name_;
         flags flags_;
@@ -401,6 +459,12 @@ namespace hyper
         const lighting::dynamic_context* last_used_light_context_;
 
     private:
+        static inline const effect*& last_submitted_effect_ = *reinterpret_cast<const effect**>(0x00B1F2E4);
+
+        static inline const matrix4x4* last_submitted_matrix_ = *reinterpret_cast<const matrix4x4**>(0x00B1F2E8);
+
+        static inline view_id& last_submitted_view_id_ = *reinterpret_cast<view_id*>(0x00A651A4);
+
         static inline const char* parameter_names_[static_cast<size_t>(parameter_type::count)] = {
             "AmbientCoeff",
             "AmbientColour",

@@ -529,7 +529,7 @@ namespace hyper
     {
         if (this->begin_ != nullptr)
         {
-            // EASTLFree(internalAllocator(), mpBegin, (internalCapacityPtr() - mpBegin) * sizeof(T)); // #TODO
+            this->allocator_.deallocate(this->begin_, (this->capacity_ - this->begin_) * sizeof(T));
         }
     }
 
@@ -603,7 +603,7 @@ namespace hyper
 
     template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(const vector<T, Allocator>& other) : vector_base<T, Allocator>(other.size(), other.allocator_)
     {
-        this->end_ = std::uninitialized_copy(other->begin_, other->end_, this->begin_);
+        this->end_ = std::uninitialized_copy(other.begin_, other.end_, this->begin_);
     }
 
     template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(const vector<T, Allocator>& other, const Allocator& allocator) : vector_base<T, Allocator>(other.size(), allocator)
