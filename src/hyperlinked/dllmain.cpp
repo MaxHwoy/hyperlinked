@@ -9,7 +9,7 @@
 #pragma warning (disable : 6031)
 
 #undef CONSOLEON
-#define RUN_TESTS
+#undef RUN_TESTS
 
 #if defined(RUN_TESTS)
 #include <hyperlinked/tests.hpp>
