@@ -430,7 +430,9 @@ namespace hyper
 
     auto memory::game_malloc(alloc_size_t size, const void* caller_address, std::uint32_t params) -> void*
     {
-        return memory::ware_malloc(size, reinterpret_cast<const char*>(caller_address), static_cast<std::uint32_t>(-1), params);
+        const auto result = memory::ware_malloc(size, reinterpret_cast<const char*>(caller_address), static_cast<std::uint32_t>(-1), params);
+
+        return result;
     }
 
     auto memory::malloc(alloc_size_t size, std::uint32_t params) -> void*
