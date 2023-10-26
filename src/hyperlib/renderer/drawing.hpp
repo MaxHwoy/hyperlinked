@@ -330,7 +330,7 @@ namespace hyper
 
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
 
-        static inline float& default_spec_power = *reinterpret_cast<float*>(0x00A6C224);
+        static inline bool& use_lowlod_pass = *reinterpret_cast<bool*>(0x00AB0B98);
 
     private:
         static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);

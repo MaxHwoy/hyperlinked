@@ -111,7 +111,7 @@ namespace hyper
         }
     }
 
-    __declspec(naked) void detour_e_effect_start()
+    __declspec(naked) void detour_e_effect_draw_full_screen_quad()
     {
         __asm
         {
@@ -133,9 +133,9 @@ namespace hyper
             push [esp + 0x20]; // repush 'invert'
             push [esp + 0x20]; // repush 'texture'
 
-            call effect::start; // call custom start
+            call effect::draw_full_screen_quad; // call custom draw_full_screen_quad
 
-            // no need to restore esp since 'start' is a __thiscall
+            // no need to restore esp since 'draw_full_screen_quad' is a __thiscall
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -144,11 +144,11 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn 8; // return immediately to caller function, not back to eEffect::Start; note that this is a __thiscall
+            retn 8; // return immediately to caller function, not back to eEffect::DrawFullScreenQuad; note that this is a __thiscall
         }
     }
 
-    __declspec(naked) void detour_e_effect_end()
+    __declspec(naked) void detour_e_effect_start()
     {
         __asm
         {
@@ -165,9 +165,9 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call effect::end; // call custom end
+            call effect::start; // call custom start
 
-            // no need to restore esp since 'end' is a __thiscall
+            // no need to restore esp since 'start' is a __thiscall
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -176,7 +176,7 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn; // return immediately to caller function, not back to eEffect::End; note that this is a __thiscall
+            retn; // return immediately to caller function, not back to eEffect::Start; note that this is a __thiscall
         }
     }
 
@@ -244,6 +244,77 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_e_effect_recompute_techniques_by_detail()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'detail_level'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'detail_level' is now at [esp + 0x08]
+            push ebx; // 'detail_level' is now at [esp + 0x0C]
+            push ecx; // 'detail_level' is now at [esp + 0x10]
+            push edx; // 'detail_level' is now at [esp + 0x14]
+            push esi; // 'detail_level' is now at [esp + 0x18]
+            push edi; // 'detail_level' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'detail_level'
+
+            call effect::recompute_techniques_by_detail; // call custom recompute_techniques_by_detail
+
+            // no need to restore esp since 'recompute_techniques_by_detail' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to eEffect::RecomputeTechniquesByDetail; note that this is a __thiscall
+        }
+    }
+
+
+    
+    __declspec(naked) void detour_shader_lib_recompute_techniques_by_detail()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'detail_level'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'detail_level' is now at [esp + 0x08]
+            push ebx; // 'detail_level' is now at [esp + 0x0C]
+            push ecx; // 'detail_level' is now at [esp + 0x10]
+            push edx; // 'detail_level' is now at [esp + 0x14]
+            push esi; // 'detail_level' is now at [esp + 0x18]
+            push edi; // 'detail_level' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'detail_level'
+
+            call shader_lib::recompute_techniques_by_detail; // call custom recompute_techniques_by_detail
+
+            add esp, 0x04; // since we repushed all arguments
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to ShaderLib::RecomputeTechniquesByDetail
+        }
+    }
+
     void effect_patches::init()
     {
         // eEffect::~eEffect
@@ -255,16 +326,24 @@ namespace hyper
         // eEffect::SetTransforms
         hook::jump(0x0071E660, &detour_e_effect_set_transforms);
 
-        // eEffect::Start
-        hook::jump(0x0071E9B0, &detour_e_effect_start);
+        // eEffect::DrawFullScreenQuad
+        hook::jump(0x0071E9B0, &detour_e_effect_draw_full_screen_quad);
 
-        // eEffect::End
-        hook::jump(0x00749790, &detour_e_effect_end);
+        // eEffect::Start
+        hook::jump(0x00749790, &detour_e_effect_start);
 
         // eEffect::ConnectParameters
         hook::jump(0x0072B5F0, &detour_e_effect_connect_parameters);
 
         // eEffect::ResetFilterParams
         hook::jump(0x00713EE0, &detour_e_effect_reset_filter_params);
+
+        // eEffect::RecomputeTechniquesByDetail
+        hook::jump(0x00730250, &detour_e_effect_recompute_techniques_by_detail);
+
+
+
+        // ShaderLib::RecomputeTechniquesByDetail
+        hook::jump(0x0073E7E0, &detour_shader_lib_recompute_techniques_by_detail);
     }
 }

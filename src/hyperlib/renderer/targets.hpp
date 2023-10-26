@@ -199,6 +199,14 @@ namespace hyper
     class shadowmap_render_target : public render_target
     {
     public:
+        enum class target_type
+        {
+            render_target,
+            stencil_d24s8,
+            stencil_df16,
+        };
+
+    public:
         constexpr static inline render_target_id tid = render_target_id::shadowmap;
 
         constexpr static inline hyper::view_id vid = view_id::player1_shadowmap;
@@ -228,9 +236,15 @@ namespace hyper
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0C08);
 
-        static inline std::uint32_t resolution_x = 1024u;
+        static inline ::IDirect3DCubeTexture9*& render_target_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C04);
 
-        static inline std::uint32_t resolution_y = 1024u;
+        static inline ::IDirect3DCubeTexture9*& depth_stencil_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C0C);
+
+        static inline std::uint32_t& resolution_x = *reinterpret_cast<std::uint32_t*>(0x00715091);
+
+        static inline std::uint32_t& resolution_y = *reinterpret_cast<std::uint32_t*>(0x00715091);
+
+        static inline target_type& shadow_target_type = *reinterpret_cast<target_type*>(0x00AB0AF0);
     };
 
     class pip_render_target : public render_target

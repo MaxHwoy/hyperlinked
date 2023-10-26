@@ -91,7 +91,7 @@ namespace hyper
             Allocator allocator_;
         };
 
-        template <typename T, typename Allocator> struct vector : public vector_base<T, Allocator>
+        template <typename T, typename Allocator = bstl::allocator> struct vector : public vector_base<T, Allocator>
         {
         private:
             static_assert(!std::is_const<T>::value, "vector<T> value_type must be non-const.");

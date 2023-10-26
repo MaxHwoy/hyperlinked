@@ -6,7 +6,7 @@
 
 namespace hyper
 {
-    class vector_string final : public eastl::vector<char, bstl::allocator>
+    class vector_string final : public eastl::vector<char>
     {
     public:
         vector_string();

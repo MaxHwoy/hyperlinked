@@ -1495,7 +1495,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        this->start_loading_time = utils::get_debug_real_time();
+        this->start_loading_time = utils::get_real_time();
 
         this->current_zone_needs_refreshing = false;
 

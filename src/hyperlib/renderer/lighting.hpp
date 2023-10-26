@@ -218,6 +218,8 @@ namespace hyper
         static inline float& scale_alpha_irradiance = *reinterpret_cast<float*>(0x00A6B91C);
 
     public:
+        static inline float& default_spec_power = *reinterpret_cast<float*>(0x00A6C224);
+
         static inline float& default_ingame_light_y = *reinterpret_cast<float*>(0x00A650E0);
 
         static inline float& default_ingame_light_w = *reinterpret_cast<float*>(0x007497CE);

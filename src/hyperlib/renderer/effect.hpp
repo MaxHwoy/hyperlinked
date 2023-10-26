@@ -106,12 +106,19 @@ namespace hyper
 
         struct technique
         {
+            technique();
+            technique(const technique& other);
+            technique(technique&& other);
+            technique(const char* name, std::uint32_t index, std::uint32_t level);
+            auto operator=(const technique& other) -> technique&;
+            auto operator=(technique&& other) -> technique&;
+
             vector_string name;
-            std::int32_t technique_index;
-            std::int32_t detail_level;
+            std::uint32_t technique_index;
+            std::uint32_t detail_level;
         };
 
-        struct table : public eastl::vector<technique, bstl::allocator>
+        struct table : public eastl::vector<technique>
         {
         };
 
@@ -302,9 +309,9 @@ namespace hyper
         virtual ~effect();
         virtual void handle_material_data(const light_material::instance* material, draw_flags flags);
         virtual void set_transforms(const matrix4x4& local_to_world, const struct render_view& view, bool use_nonjittered);
-        virtual void start(::IDirect3DTexture9* texture, bool invert);
+        virtual void draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert);
+        virtual void start();
         virtual void end();
-        virtual void preflight_draw();
         virtual void load_global_textures();
 
         effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input);
@@ -317,6 +324,8 @@ namespace hyper
 
         void load_effect_from_buffer(const effect::input* input);
 
+        void recompute_techniques_by_detail(std::uint32_t detail_level);
+
         auto find_techique(const char* name) -> technique*;
 
         void set_technique(const char* name);
@@ -324,6 +333,11 @@ namespace hyper
         inline auto id() const -> shader_type
         {
             return this->id_;
+        }
+
+        inline bool active() const
+        {
+            return this->active_;
         }
 
         inline bool has_low_lod_technique() const
@@ -628,6 +642,10 @@ namespace hyper
 
     class effect_world_reflect : public effect
     {
+    public:
+        void start() override;
+        void load_global_textures() override;
+
     private:
         ::IDirect3DTexture9* rain_splash_[16];
         std::uint32_t curr_splash_frame_;
@@ -939,6 +957,8 @@ namespace hyper
         static void lose_device();
 
         static void end_effect(effect& eff);
+
+        static void recompute_techniques_by_detail(std::uint32_t detail_level);
 
         inline static auto get_shader_name(shader_type type) -> const char*
         {

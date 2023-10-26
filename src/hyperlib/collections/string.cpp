@@ -1,7 +1,5 @@
 #include <hyperlib/collections/string.hpp>
 
-#pragma warning (disable : 26439)
-
 namespace hyper
 {
     char vector_string::empty_array_[1] { 0 };
@@ -39,9 +37,9 @@ namespace hyper
         this->end_ = other.end_;
         this->capacity_ = other.capacity_;
 
-        this->begin_ = vector_string::empty_array_;
-        this->end_ = vector_string::empty_array_;
-        this->capacity_ = vector_string::empty_array_ + 1u;
+        other.begin_ = vector_string::empty_array_;
+        other.end_ = vector_string::empty_array_;
+        other.capacity_ = vector_string::empty_array_ + 1u;
     }
 
     vector_string::vector_string(const char* str)

@@ -1,4 +1,5 @@
 #include <thread>
+#include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 
 using signed_t = std::make_signed_t<size_t>;
@@ -20,9 +21,14 @@ namespace hyper
         return call_function<float(__cdecl*)(std::uint32_t, std::uint32_t)>(0x0046CEF0)(start_ticks, end_ticks);
     }
 
-    auto utils::get_debug_real_time() -> float
+    auto utils::get_real_time() -> float
     {
-        return call_function<float(__cdecl*)()>(0x006A26D0)();
+        return static_cast<float>(global::real_time_packed) * 0.00025f;
+    }
+
+    auto utils::get_world_time() -> float
+    {
+        return static_cast<float>(global::world_time_packed) * 0.00025f;
     }
 
     void utils::thread_yield(std::uint32_t ms)

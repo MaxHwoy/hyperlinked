@@ -7,6 +7,46 @@
 
 namespace hyper
 {
+    effect::technique::technique() : name{}, technique_index(-1), detail_level(0u)
+    {
+    }
+
+    effect::technique::technique(const technique& other) : name(other.name), technique_index(other.technique_index), detail_level(other.detail_level)
+    {
+    }
+
+    effect::technique::technique(technique&& other) : name(std::move(other.name)), technique_index(other.technique_index), detail_level(other.detail_level)
+    {
+    }
+
+    effect::technique::technique(const char* name, std::uint32_t index, std::uint32_t level) : name(name), technique_index(index), detail_level(level)
+    {
+    }
+
+    auto effect::technique::operator=(const technique& other) -> effect::technique&
+    {
+        if (this != &other)
+        {
+            this->name = other.name;
+            this->technique_index = other.technique_index;
+            this->detail_level = other.detail_level;
+        }
+
+        return *this;
+    }
+
+    auto effect::technique::operator=(technique&& other) -> effect::technique&
+    {
+        if (this != &other)
+        {
+            this->name = std::move(other.name);
+            this->technique_index = other.technique_index;
+            this->detail_level = other.detail_level;
+        }
+
+        return *this;
+    }
+
     effect::effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input) : 
         id_(type), 
         index_pairs_(indices), 
@@ -294,7 +334,7 @@ namespace hyper
         }
     }
 
-    void effect::start(::IDirect3DTexture9* texture, bool invert)
+    void effect::draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert)
     {
         struct {
             vector3 position;
@@ -384,9 +424,9 @@ namespace hyper
         directx::device()->DrawPrimitiveUP(::D3DPT_TRIANGLEFAN, 2u, vertices, sizeof(vertices[0]));
     }
 
-    void effect::end()
+    void effect::start()
     {
-        this->set_float(parameter_type::cfSpecularPower, renderer::default_spec_power);
+        this->set_float(parameter_type::cfSpecularPower, lighting::default_spec_power);
 
         if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
         {
@@ -404,7 +444,7 @@ namespace hyper
         }
     }
 
-    void effect::preflight_draw()
+    void effect::end()
     {
         // nothing
     }
@@ -466,7 +506,59 @@ namespace hyper
 
         this->stride_ = stride;
 
+        std::uint32_t max_detail = 3u; // #TODO move this as part of settings
 
+        if (directx::adapter.VendorId == 4318u) // nvidia
+        {
+            if (directx::device_caps.PixelShaderVersion < 0xFFFF0300u) // less than ps_3_0
+            {
+                if (directx::adapter.DeviceId < 816u || directx::adapter.DeviceId > 820u)
+                {
+                    max_detail = 1u;
+                }
+            }
+        }
+
+        ::D3DXEFFECT_DESC eff_desc;
+
+        this->effect_->GetDesc(&eff_desc);
+
+        this->supported_table_.clear();
+        this->supported_table_.reserve(eff_desc.Techniques);
+
+        constexpr const char* lowlod = "lowlod";
+        constexpr size_t lowlod_size = string::length(lowlod);
+
+        for (std::uint32_t i = 0u; i < eff_desc.Techniques; ++i)
+        {
+            ::D3DXHANDLE tech = this->effect_->GetTechnique(i);
+
+            if (SUCCEEDED(this->effect_->ValidateTechnique(tech)))
+            {
+                ::D3DXTECHNIQUE_DESC tech_desc;
+
+                this->effect_->GetTechniqueDesc(tech, &tech_desc);
+
+                if (string::length(tech_desc.Name) == lowlod_size && !::memcmp(tech_desc.Name, lowlod, lowlod_size))
+                {
+                    this->low_lod_technique_number_ = i;
+                }
+                else
+                {
+                    if (::D3DXHANDLE annotation = this->effect_->GetAnnotationByName(tech, "shader"))
+                    {
+                        std::uint32_t shader_detail = std::numeric_limits<std::uint32_t>::max();
+
+                        this->effect_->GetInt(annotation, reinterpret_cast<::INT*>(&shader_detail));
+
+                        if (shader_detail <= max_detail)
+                        {
+                            this->supported_table_.emplace_back(tech_desc.Name, i, shader_detail);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void effect::connect_parameters()
@@ -529,6 +621,45 @@ namespace hyper
         this->reset_filter_params();
     }
 
+    void effect::recompute_techniques_by_detail(std::uint32_t detail_level)
+    {
+        eastl::vector<technique> all_techniques;
+
+        all_techniques.reserve(this->unsupported_table_.size() + this->supported_table_.size());
+
+        for (technique* i = this->unsupported_table_.begin(); i != this->unsupported_table_.end(); ++i)
+        {
+            all_techniques.push_back(std::move(*i));
+        }
+
+        for (technique* i = this->supported_table_.begin(); i != this->supported_table_.end(); ++i)
+        {
+            all_techniques.push_back(std::move(*i));
+        }
+
+        this->unsupported_table_.clear();
+        this->supported_table_.clear();
+
+        for (size_t i = 0u; i < all_techniques.size(); ++i)
+        {
+            technique& tech = all_techniques[i];
+
+            if (tech.detail_level <= detail_level)
+            {
+                this->supported_table_.push_back(std::move(tech));
+            }
+            else
+            {
+                this->unsupported_table_.push_back(std::move(tech));
+            }
+        }
+
+        std::stable_sort(this->supported_table_.begin(), this->supported_table_.end(), [](const technique& lhs, const technique& rhs) -> bool
+        {
+            return lhs.detail_level > rhs.detail_level;
+        });
+    }
+
     auto effect::find_techique(const char* name) -> technique*
     {
         if (name != nullptr)
@@ -554,6 +685,82 @@ namespace hyper
         if (tech != nullptr)
         {
             this->effect_->SetTechnique(this->effect_->GetTechnique(tech->technique_index));
+        }
+    }
+
+    void effect_world_reflect::start()
+    {
+        float rain_intensity = 0.0f;
+
+        const view::instance& view = view::instance::views[render_target::current->view_id];
+
+        if (view.rain != nullptr)
+        {
+            rain_intensity = view.rain->rain_intensity;
+        }
+
+        if (renderer::use_lowlod_pass)
+        {
+            this->set_technique("lowlod");
+        }
+        else if (rain_intensity <= 0.0f)
+        {
+            this->set_technique("dryroad");
+        }
+        else
+        {
+            float frame_count = static_cast<float>(std::size(this->rain_splash_));
+
+            this->curr_splash_frame_ = static_cast<std::uint32_t>(::fmodf(this->splash_fps_ * utils::get_world_time(), frame_count));
+
+            this->set_texture(parameter_type::MISCMAP2_TEXTURE, this->rain_splash_[this->curr_splash_frame_]);
+
+            this->set_technique("raining_on_road");
+        }
+
+        if (view.rain != nullptr)
+        {
+            this->set_float(parameter_type::cfSurfaceReflection, view.rain->road_dampness);
+            this->set_float(parameter_type::cfRainIntensity, view.rain->rain_intensity);
+        }
+
+        if (view.id == view_id::player1_rvm)
+        {
+            this->set_texture(parameter_type::MISCMAP1_TEXTURE, nullptr);
+        }
+        else
+        {
+            this->set_texture(parameter_type::MISCMAP1_TEXTURE, reflection_render_target::d3d_texture);
+        }
+
+        effect::start();
+
+        if (renderer::shadow_detail > 0 && view.id == view_id::player1)
+        {
+            if (shadowmap_render_target::shadow_target_type == shadowmap_render_target::target_type::render_target)
+            {
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::render_target_cubemap);
+            }
+            else
+            {
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::depth_stencil_cubemap);
+            }
+
+            this->set_float(parameter_type::SHADOWMAPSCALE, 1.0f / static_cast<float>(shadowmap_render_target::resolution_x));
+        }
+    }
+
+    void effect_world_reflect::load_global_textures()
+    {
+        char buffer[32];
+
+        for (std::uint32_t i = 0u; i < std::size(this->rain_splash_); ++i)
+        {
+            ::sprintf(buffer, "RAINSPLASH%02u", i);
+
+            std::uint32_t key = hashing::bin(buffer);
+
+            this->rain_splash_[i] = texture::get_texture_info(key, true, false)->pinfo->texture;
         }
     }
 
@@ -608,9 +815,31 @@ namespace hyper
     void shader_lib::end_effect(effect& eff)
     {
         eff.end_effect_pass();
-        eff.preflight_draw();
+        eff.end();
         eff.end_effect();
 
         shader_lib::current_effect = nullptr;
+    }
+
+    void shader_lib::recompute_techniques_by_detail(std::uint32_t detail_level)
+    {
+        for (shader_type type :
+        {
+            shader_type::WorldShader,
+            shader_type::WorldReflectShader,
+            shader_type::WorldNormalMap,
+            shader_type::CarShader,
+            shader_type::CARNORMALMAP,
+            shader_type::ParticlesShader,
+            shader_type::GLASS_REFLECT,
+            shader_type::WATER,
+            shader_type::GHOSTCAR,
+        })
+        {
+            if (shader_lib::effects_[type] != nullptr)
+            {
+                shader_lib::effects_[type]->recompute_techniques_by_detail(detail_level);
+            }
+        }
     }
 }

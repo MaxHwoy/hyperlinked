@@ -85,7 +85,7 @@ namespace hyper
         struct texture_entry
         {
             std::uint32_t key;
-            texture::info* texture_onfo;
+            texture::info* texture_info;
         };
 
         struct light_material_entry

@@ -13,7 +13,9 @@ namespace hyper
 
         static auto get_ticker_difference(std::uint32_t start_ticks, std::uint32_t end_ticks) -> float;
 
-        static auto get_debug_real_time() -> float;
+        static auto get_real_time() -> float;
+
+        static auto get_world_time() -> float;
 
         static void thread_yield(std::uint32_t ms);
 

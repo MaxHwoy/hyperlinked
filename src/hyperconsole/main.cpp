@@ -1,100 +1,186 @@
 #include <iostream>
+#include <vector>
+#include <mutex>
 
-#include <hyperlib/shared.hpp>
-#include <hyperlib/collections/eastl.hpp>
-#include <hyperlib/collections/string.hpp>
-#include <hyperlib/memory/fast_mem.hpp>
+#include <hyperlib/bench.hpp>
 
-#include <immintrin.h>
+struct node
+{
+    inline node(int value = 0, node* next = nullptr)
+    {
+        this->value = value;
+        this->next = next;
+    }
 
-class allocator
+    int value;
+    node* next;
+};
+
+class stack
 {
 public:
-    inline allocator() = default;
-
-    inline allocator(const allocator&) = default;
-
-    inline allocator(allocator&&) = default;
-
-    inline allocator& operator=(const allocator&) = default;
-
-    inline allocator& operator=(allocator&&) = default;
-
-    auto allocate(alloc_size_t size, std::uint32_t flags) -> void*;
-
-    auto allocate(alloc_size_t size, alloc_size_t alignment, alloc_size_t offset, std::uint32_t flags) -> void*;
-
-    void deallocate(void* memory, alloc_size_t size);
-};
-
-auto allocator::allocate(alloc_size_t size, std::uint32_t flags) -> void*
-{
-    return ::malloc(size);
-}
-
-auto allocator::allocate(alloc_size_t size, alloc_size_t alignment, alloc_size_t offset, std::uint32_t flags) -> void*
-{
-    return ::_aligned_malloc(size, alignment);
-}
-
-void allocator::deallocate(void* memory, alloc_size_t size)
-{
-    ::free(memory);
-}
-
-struct test
-{
-    float f;
-    const char* s;
-
-    test() = default;
-
-    test(const test& other) = default;
-
-    test(test&& other) = default;
-
-    test& operator=(const test& other) = default;
-
-    test& operator=(test&& other) = default;
-
-    test(float f, const char* s) : f(f), s(s)
+    inline stack() : head_(nullptr)
     {
     }
+
+    inline ~stack()
+    {
+        node* pointer = this->head_;
+
+        if (pointer)
+        {
+            node* next = nullptr;
+
+            while (pointer)
+            {
+                next = pointer->next;
+
+                delete pointer;
+
+                pointer = next;
+            }
+        }
+    }
+
+    int pop()
+    {
+        int result = 0;
+
+        node* head = this->head_;
+
+        if (head)
+        {
+            result = head->value;
+
+            node* next = head->next;
+
+            delete head;
+
+            this->head_ = next;
+        }
+
+        return result;
+    }
+
+    void push(int value)
+    {
+        node* ptr = new node(value);
+
+        ptr->next = this->head_;
+
+        this->head_ = ptr;
+    }
+
+private:
+    node* head_;
 };
 
-struct a
+class stack_mutex
 {
-    ~a() { ::printf("A"); }
+public:
+    inline stack_mutex() : head_(nullptr), mtx_()
+    {
+    }
+
+    inline ~stack_mutex()
+    {
+        node* pointer = this->head_;
+
+        if (pointer)
+        {
+            node* next = nullptr;
+
+            while (pointer)
+            {
+                next = pointer->next;
+
+                delete pointer;
+
+                pointer = next;
+            }
+        }
+    }
+
+    int pop()
+    {
+        int result = 0;
+
+        const auto _ = std::lock_guard(this->mtx_);
+
+        node* head = this->head_;
+
+        if (head)
+        {
+            result = head->value;
+
+            node* next = head->next;
+
+            delete head;
+
+            this->head_ = next;
+        }
+
+        return result;
+    }
+
+    void push(int value)
+    {
+        node* ptr = new node(value);
+
+        const auto _ = std::lock_guard(this->mtx_);
+
+        ptr->next = this->head_;
+
+        this->head_ = ptr;
+    }
+
+private:
+    std::mutex mtx_;
+    node* head_;
 };
 
-struct b : public a
-{
-    ~b() { ::printf("B"); }
-};
+constexpr std::uint32_t loop_count = 10000u;
 
-void run()
+void test_stack()
 {
-    hyper::vector_string s1{};
-    hyper::vector_string s2("Max");
-    hyper::vector_string s3 = s2;
-    hyper::vector_string s4(s1);
-    hyper::vector_string s5(s2);
+    BENCHMARK();
 
-    s2 = "AAAAA";
-    s3 = "";
+    stack s{};
+
+    for (std::uint32_t i = 0u; i < loop_count; ++i)
+    {
+        s.push(i);
+    }
+
+    for (std::uint32_t i = 0u; i < loop_count; ++i)
+    {
+        s.pop();
+    }
+}
+
+void test_stack_mutex()
+{
+    BENCHMARK();
+
+    stack_mutex s{};
+
+    for (std::uint32_t i = 0u; i < loop_count; ++i)
+    {
+        s.push(i);
+    }
+
+    for (std::uint32_t i = 0u; i < loop_count; ++i)
+    {
+        s.pop();
+    }
 }
 
 int main()
 {
-    //::run();
+    ::test_stack();
+    ::test_stack_mutex();
 
-    hyper::matrix4x4 matrix =
-    {
-        0.3f, 0.7f, 0.2f, 0.0f,
-        2.1f, 0.3f, 0.5f, 0.0f,
-        0.9f, 1.4f, 1.1f, 0.0f,
-        11.2f, -32.4f, 2.42f, 1.0f
-    };
+    hyper::bench::print();
 
     return 0;
 }
