@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <hyperlib/shared.hpp>
 
 int main()

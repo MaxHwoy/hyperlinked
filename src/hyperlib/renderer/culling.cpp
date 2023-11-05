@@ -4,7 +4,9 @@
 #include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/gameplay/g_race.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
+#include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/culling.hpp>
+#include <hyperlib/renderer/flare_pool.hpp>
 
 namespace hyper
 {
@@ -153,8 +155,8 @@ namespace hyper
         {
             scenery_cull_info& cull_info = this->scenery_cull_infos[i];
 
-            cull_info.position = cull_info.view->camera->current_key.position;
-            cull_info.direction = cull_info.view->camera->current_key.direction;
+            cull_info.position = cull_info.view->camera->current_key.position.as_vector3();
+            cull_info.direction = cull_info.view->camera->current_key.direction.as_vector3();
             cull_info.pixelation = cull_info.view->pixelation;
             cull_info.preculler_section_number = -1;
         }
@@ -223,7 +225,7 @@ namespace hyper
         {
             id = static_cast<view_id>(static_cast<std::uint32_t>(id) - static_cast<std::uint32_t>(view_id::player1_shadowmap) + static_cast<std::uint32_t>(view_id::player1));
 
-            const vector3& position = view::instance::views[id].camera->current_key.position;
+            const vector3& position = view::instance::views[id].camera->current_key.position.as_vector3();
 
             drivable = visible_section::manager::instance.get_drivable_section(position);
         }
@@ -618,15 +620,15 @@ namespace hyper
 
         view_id id = cull_info.view->id;
 
-        if (renderer::can_render_flares_in_view(id) && !renderer::is_friend_flare_view_already_committed(id))
+        if (flare_pool::can_render_flares_in_view(id) && !flare_pool::is_friend_flare_view_already_committed(id))
         {
-            std::uint32_t mask = renderer::create_flare_view_mask(id);
+            std::uint32_t mask = flare_pool::create_flare_view_mask(id);
 
             for (std::uint32_t i = 0u; i < solid.position_marker_count; ++i)
             {
                 const geometry::position_marker& marker = solid.position_markers[i];
 
-                flare::instance* pool_flare = renderer::get_next_light_flare_in_pool(mask);
+                flare::instance* pool_flare = flare_pool::get_next_flare(mask);
 
                 if (pool_flare != nullptr)
                 {
@@ -686,7 +688,7 @@ namespace hyper
                     }
                     else
                     {
-                        renderer::remove_current_light_flare_in_pool();
+                        flare_pool::remove_current_flare();
                     }
                 }
             }

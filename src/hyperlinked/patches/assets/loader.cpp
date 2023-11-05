@@ -1,5 +1,5 @@
 #include <hyperlib/assets/loader.hpp>
-#include <hyperlinked/patches/loader.hpp>
+#include <hyperlinked/patches/assets/loader.hpp>
 
 namespace hyper
 {

@@ -125,6 +125,11 @@ namespace hyper
             return reinterpret_cast<const T*>(&this->head_);
         }
 
+        inline bool empty() const
+        {
+            return this->begin() == this->end();
+        }
+
         inline void add(T* val)
         {
             reinterpret_cast<linked_node<T>*>(val)->prev() = this->head_.prev();

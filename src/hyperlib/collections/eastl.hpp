@@ -8,6 +8,13 @@ namespace hyper
     class eastl final
     {
     public:
+        enum class iterator_flags : std::uint32_t
+        {
+            valid           = 1 << 0,
+            current         = 1 << 1,
+            can_dereference = 1 << 2,
+        };
+
         template <typename T> struct use_self
         {
             typedef T result_type;
@@ -58,14 +65,160 @@ namespace hyper
 
         template <typename T, typename Allocator> struct vector_base
         {
-            T* begin;
-            T* end;
-            T* capacity;
-            Allocator allocator;
+        public:
+            constexpr static size_t npos = static_cast<size_t>(-1);
+            constexpr static size_t k_max_size = static_cast<size_t>(-2);
+
+        public:
+            vector_base();
+            vector_base(const Allocator& allocator);
+            vector_base(size_t size, const Allocator& allocator);
+            ~vector_base();
+
+            auto get_allocator() -> Allocator&;
+            auto get_allocator() const -> const Allocator&;
+            void set_allocator(const Allocator& allocator);
+            auto get_new_capacity(size_t current_capacity) -> size_t;
+
+        protected:
+            auto allocate(size_t size) -> T*;
+            void free(T* ptr, size_t size);
+
+        protected:
+            T* begin_;
+            T* end_;
+            T* capacity_;
+            Allocator allocator_;
         };
 
-        template <typename T, typename Allocator> struct vector : public vector_base<T, Allocator>
+        template <typename T, typename Allocator = bstl::allocator> struct vector : public vector_base<T, Allocator>
         {
+        private:
+            static_assert(!std::is_const<T>::value, "vector<T> value_type must be non-const.");
+            static_assert(!std::is_volatile<T>::value, "vector<T> value_type must be non-volatile.");
+
+        public:
+            vector();
+            explicit vector(const Allocator& allocator);
+            explicit vector(size_t size, const Allocator& allocator);
+            vector(size_t size, const T& value, const Allocator& allocator);
+            vector(const vector& other);
+            vector(const vector& other, const Allocator& allocator);
+            vector(vector&& other);
+            vector(vector&& other, const Allocator& allocator);
+            vector(std::initializer_list<T> ilist, const Allocator& allocator);
+            auto operator=(const vector& other) -> vector&;
+            auto operator=(vector&& other) -> vector&;
+            auto operator=(std::initializer_list<T> ilist) -> vector&;
+            template <typename InputIterator> vector(InputIterator first, InputIterator last, const Allocator& allocator);
+            ~vector();
+
+            auto begin() -> T*;
+            auto begin() const -> const T*;
+            auto end() -> T*;
+            auto end() const -> const T*;
+            bool empty() const;
+            auto size() const -> size_t;
+            auto capacity() const -> size_t;
+
+            void swap(vector& other);
+
+            void assign(size_t size, const T& value);
+            void assign(std::initializer_list<T> ilist);
+            template <typename InputIterator> void assign(InputIterator first, InputIterator last);
+
+            void resize(size_t size);
+            void resize(size_t size, const T& value);
+            void reserve(size_t size);
+            void set_capacity(size_t n = vector_base<T, Allocator>::npos);
+            void shrink_to_fit();
+
+            auto data() -> T*;
+            auto data() const -> const T*;
+            auto operator[](size_t index) -> T&;
+            auto operator[](size_t index) const -> const T&;
+            auto at(size_t index) -> T&;
+            auto at(size_t index) const -> const T&;
+            auto front() -> T&;
+            auto front() const -> const T&;
+            auto back() -> T&;
+            auto back() const -> const T&;
+
+            void push_back(const T& value);
+            auto push_back() -> T&;
+            auto push_back_uninitialized() -> void*;
+            void push_back(T&& value);
+            void pop_back();
+
+            template <typename... Args> auto emplace(const T* position, Args&&... args) -> T*;
+            template <typename... Args> auto emplace_back(Args&&... args) -> T&;
+
+            auto insert(const T* position, const T& value) -> T*;
+            auto insert(const T* position, size_t size, const T& value) -> T*;
+            auto insert(const T* position, T&& value) -> T*;
+            auto insert(const T* position, std::initializer_list<T> ilist) -> T*;
+
+            auto erase(const T* position) -> T*;
+            auto erase(const T* first, const T* last) -> T*;
+            auto erase_no_ordering(const T* position) -> T*;
+
+            void clear();
+            void reset_lose_memory();
+
+            bool validate() const;
+            auto validate_iterator(const T* iterator) const -> iterator_flags;
+
+        protected:
+            template <bool Move> struct should_move_or_copy_tag {};
+
+            using should_copy_tag = should_move_or_copy_tag<false>;
+            using should_move_tag = should_move_or_copy_tag<true>;
+
+            template <typename ForwardIterator> auto realloc(size_t size, ForwardIterator first, ForwardIterator last, should_copy_tag) -> T*;
+
+            template <typename ForwardIterator> auto realloc(size_t size, ForwardIterator first, ForwardIterator last, should_move_tag) -> T*;
+
+            template <typename Integer> void init(Integer size, Integer value, std::true_type);
+
+            template <typename InputIterator> void init(InputIterator first, InputIterator last, std::false_type);
+
+            template <typename InputIterator> void init_from_iterator(InputIterator first, InputIterator last, std::input_iterator_tag);
+
+            template <typename ForwardIterator> void init_from_iterator(ForwardIterator first, ForwardIterator last, std::forward_iterator_tag);
+
+            template <typename Integer, bool Move> void assign(Integer index, Integer value, std::true_type);
+
+            template <typename InputIterator, bool Move> void assign(InputIterator first, InputIterator last, std::false_type);
+
+            void assign_values(size_t size, const T& value);
+
+            template <typename InputIterator, bool Move> void assign_from_iterator(InputIterator first, InputIterator last, std::input_iterator_tag);
+
+            template <typename RandomAccessIterator, bool Move> void assign_from_iterator(RandomAccessIterator first, RandomAccessIterator last, std::random_access_iterator_tag);
+
+            template <typename Integer> void insert(const T* position, Integer index, Integer value, std::true_type);
+
+            template <typename InputIterator> void insert(const T* position, InputIterator first, InputIterator last, std::false_type);
+
+            template <typename InputIterator> void insert_from_iterator(const T* position, InputIterator first, InputIterator last, std::input_iterator_tag);
+
+            template <typename BidirectionalIterator> void insert_from_iterator(const T* position, BidirectionalIterator first, BidirectionalIterator last, std::bidirectional_iterator_tag);
+
+            void insert_values(const T* position, size_t size, const T& value);
+
+            void insert_values_end(size_t size);
+
+            void insert_values_end(size_t size, const T& value);
+
+            template <typename... Args> void insert_value(const T* position, Args&&... args);
+
+            template <typename... Args> void insert_value_end(Args&&... args);
+
+            void clear_capacity();
+
+            void grow(size_t size);
+
+            void swap_internal(vector& other);
         };
 
         enum class rbtree_color : std::uint8_t
@@ -352,6 +505,1023 @@ namespace hyper
         
         static void rbtree_erase(rbtree_node_base* node, rbtree_node_base* anchor);
     };
+
+    CREATE_ENUM_FLAG_OPERATORS(eastl::iterator_flags);
+
+
+
+    template <typename T, typename Allocator> inline eastl::vector_base<T, Allocator>::vector_base() : begin_(nullptr), end_(nullptr), capacity_(nullptr), allocator_{}
+    {
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector_base<T, Allocator>::vector_base(const Allocator& allocator) : begin_(nullptr), end_(nullptr), capacity_(nullptr), allocator_(allocator)
+    {
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector_base<T, Allocator>::vector_base(size_t size, const Allocator& allocator) : allocator_(allocator)
+    {
+        this->begin_ = this->allocate(size);
+        this->end_ = this->begin_;
+        this->capacity_ = this->begin_ + size;
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector_base<T, Allocator>::~vector_base()
+    {
+        if (this->begin_ != nullptr)
+        {
+            this->allocator_.deallocate(this->begin_, (this->capacity_ - this->begin_) * sizeof(T));
+        }
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector_base<T, Allocator>::get_allocator() -> Allocator&
+    {
+        return this->allocator_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector_base<T, Allocator>::get_allocator() const -> const Allocator&
+    {
+        return this->allocator_;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector_base<T, Allocator>::set_allocator(const Allocator& allocator)
+    {
+        this->allocator_ = allocator;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector_base<T, Allocator>::allocate(size_t size) -> T*
+    {
+        ASSERT(size <= static_cast<size_t>(std::numeric_limits<std::int32_t>::max()));
+
+        if (size != 0u)
+        {
+            T* ptr = reinterpret_cast<T*>(this->allocator_.allocate(size * sizeof(T), 0u));
+
+            ASSERT(ptr != nullptr);
+
+            return ptr;
+        }
+
+        return nullptr;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector_base<T, Allocator>::free(T* ptr, size_t size)
+    {
+        if (ptr != nullptr)
+        {
+            this->allocator_.deallocate(ptr, size * sizeof(T));
+        }
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector_base<T, Allocator>::get_new_capacity(size_t current_capacity) -> size_t
+    {
+        return (current_capacity > 0u) ? (current_capacity << 1) : 1;
+    }
+
+
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector() : vector_base<T, Allocator>()
+    {
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(const Allocator& allocator) : vector_base<T, Allocator>(allocator)
+    {
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(size_t size, const Allocator& allocator) : vector_base<T, Allocator>(size, allocator)
+    {
+        std::uninitialized_value_construct_n(this->begin_, size);
+
+        this->end_ = this->begin_ + size;
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(size_t size, const T& value, const Allocator& allocator) : vector_base<T, Allocator>(size, allocator)
+    {
+        std::uninitialized_fill_n(this->begin_, size, value);
+        
+        this->end_ = this->begin_ + size;
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(const vector<T, Allocator>& other) : vector_base<T, Allocator>(other.size(), other.allocator_)
+    {
+        this->end_ = std::uninitialized_copy(other.begin_, other.end_, this->begin_);
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(const vector<T, Allocator>& other, const Allocator& allocator) : vector_base<T, Allocator>(other.size(), allocator)
+    {
+        this->end_ = std::uninitialized_copy(other->begin_, other->end_, this->begin_);
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(vector<T, Allocator>&& other) : vector_base<T, Allocator>(std::move(other.allocator_))
+    {
+        this->swap_internal(other);
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(vector<T, Allocator>&& other, const Allocator& allocator) : vector_base<T, Allocator>(allocator)
+    {
+        if (this->allocator_ == other.allocator_)
+        {
+            this->swap_internal(other);
+        }
+        else
+        {
+            vector temp(std::move(*this));
+            
+            temp.swap(other);
+        }
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::vector(std::initializer_list<T> ilist, const Allocator& allocator) : vector_base<T, Allocator>(allocator)
+    {
+        this->init(ilist.begin(), ilist.end(), std::false_type());
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> inline eastl::vector<T, Allocator>::vector(InputIterator first, InputIterator last, const Allocator& allocator) : vector_base<T, Allocator>(allocator)
+    {
+        this->init(first, last, std::false_type());
+    }
+
+    template <typename T, typename Allocator> auto eastl::vector<T, Allocator>::operator=(const vector<T, Allocator>& other) -> eastl::vector<T, Allocator>&
+    {
+        if (this != &other)
+        {
+            bool slower_pathway_required = this->allocator_ != other.allocator_;
+
+            if (slower_pathway_required)
+            {
+                this->clear_capacity();
+
+                this->allocator_ = other.allocator_;
+            }
+
+            this->assign<const T*, false>(other.begin_, other.end_, std::false_type());
+        }
+
+        return *this;
+    }
+
+    template <typename T, typename Allocator> auto eastl::vector<T, Allocator>::operator=(vector<T, Allocator>&& other) -> vector<T, Allocator>&
+    {
+        if (this != &other)
+        {
+            this->clear_capacity();
+            this->swap(other);
+        }
+
+        return *this;
+    }
+
+    template <typename T, typename Allocator> auto eastl::vector<T, Allocator>::operator=(std::initializer_list<T> ilist) -> vector<T, Allocator>&
+    {
+        typedef typename std::initializer_list<T>::iterator InputIterator;
+        typedef typename std::iterator_traits<InputIterator>::iterator_category IC;
+        this->assign_from_iterator<InputIterator, false>(ilist.begin(), ilist.end(), IC());
+        return *this;
+    }
+
+    template <typename T, typename Allocator> inline eastl::vector<T, Allocator>::~vector()
+    {
+        std::destroy(this->begin_, this->end_);
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::assign(size_t size, const T& value)
+    {
+        this->assign_values(size, value);
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::assign(std::initializer_list<T> ilist)
+    {
+        typedef typename std::initializer_list<T>::iterator InputIterator;
+        typedef typename std::iterator_traits<T>::iterator_category IC;
+        this->assign_from_iterator<InputIterator, false>(ilist.begin(), ilist.end(), IC());
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> inline void eastl::vector<T, Allocator>::assign(InputIterator first, InputIterator last)
+    {
+        this->assign<InputIterator, false>(first, last, std::is_integral<InputIterator>());
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::begin() -> T*
+    {
+        return this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::begin() const -> const T*
+    {
+        return this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::end() -> T*
+    {
+        return this->end_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::end() const -> const T*
+    {
+        return this->end_;
+    }
+
+    template <typename T, typename Allocator> inline bool eastl::vector<T, Allocator>::empty() const
+    {
+        return this->begin_ == this->end_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::size() const -> size_t
+    {
+        return static_cast<size_t>(this->end_ - this->begin_);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::capacity() const -> size_t
+    {
+        return static_cast<size_t>(this->capacity_ - this->begin_);
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::resize(size_t size)
+    {
+        size_t length = this->size();
+
+        if (size != length)
+        {
+            if (size > length)
+            {
+                this->insert_values_end(size - length);
+            }
+            else
+            {
+                std::destroy(this->begin_ + size, this->end_);
+
+                this->end_ = this->begin_ + size;
+            }
+        }
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::resize(size_t size, const T& value)
+    {
+        size_t length = this->size();
+
+        if (size != length)
+        {
+            if (size > length)
+            {
+                this->insert_values_end(size - length, value);
+            }
+            else
+            {
+                std::destroy(this->begin_ + size, this->end_);
+                
+                this->end_ = this->begin_ + size;
+            }
+        }
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::reserve(size_t size)
+    {
+        if (size > this->capacity())
+        {
+            this->grow(size);
+        }
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::set_capacity(size_t size)
+    {
+        if ((size == vector_base<T, Allocator>::npos) || (size <= this->size()))
+        {
+            if (size == 0u)
+            {
+                this->clear();
+            }
+            else if (size < this->size())
+            {
+                this->resize(size);
+            }
+
+            this->shrink_to_fit();
+        }
+        else
+        {
+            T* new_data = this->realloc(size, this->begin_, this->end_, should_move_tag());
+            
+            std::destroy(this->begin_, this->end_);
+            
+            this->free(this->begin_, this->capacity());
+
+            const ptrdiff_t prev_size = this->end_ - this->begin_;
+
+            this->begin_ = new_data;
+            this->end_ = new_data + prev_size;
+            this->capacity_ = this->begin_ + size;
+        }
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::shrink_to_fit()
+    {
+        vector<T, Allocator> temp(std::move_iterator<T*>(this->begin_), std::move_iterator<T*>(this->end_), this->allocator_);
+
+        this->swap_internal(temp);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::data() -> T*
+    {
+        return this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::data() const -> const T*
+    {
+        return this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::operator[](size_t index) -> T&
+    {
+        ASSERT(index < this->size());
+
+        return this->begin_[index];
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::operator[](size_t index) const -> const T&
+    {
+        ASSERT(index < this->size());
+
+        return this->begin_[index];
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::at(size_t index) -> T&
+    {
+        ASSERT(index < this->size());
+
+        return this->begin_[index];
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::at(size_t index) const -> const T&
+    {
+        ASSERT(index < this->size());
+
+        return this->begin_[index];
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::front() -> T&
+    {
+        ASSERT(this->size() > 0u);
+
+        return *this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::front() const -> const T&
+    {
+        ASSERT(this->size() > 0u);
+
+        return *this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::back() -> T&
+    {
+        ASSERT(this->size() > 0u);
+
+        return *(this->end_ - 1);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::back() const -> const T&
+    {
+        ASSERT(this->size() > 0u);
+
+        return *(this->end_ - 1);
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::push_back(const T& value)
+    {
+        if (this->end_ < this->capacity_)
+        {
+            ::new((void*)this->end_++) T(value);
+        }
+        else
+        {
+            this->insert_value_end(value);
+        }
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::push_back(T&& value)
+    {
+        if (this->end_ < this->capacity_)
+        {
+            ::new((void*)this->end_++) T(std::move(value));
+        }
+        else
+        {
+            this->insert_value_end(std::move(value));
+        }
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::push_back() -> T&
+    {
+        if (this->end_ < this->capacity_)
+        {
+            ::new((void*)this->end_++) T();
+        }
+        else
+        {
+            this->insert_value_end(T());
+        }
+
+        return *(this->end_ - 1);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::push_back_uninitialized() -> void*
+    {
+        if (this->end_ == this->capacity_)
+        {
+            const size_t old_size = this->size();
+            const size_t new_size = this->get_new_capacity(old_size);
+            
+            this->grow(new_size);
+        }
+
+        return this->end_++;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::pop_back()
+    {
+        ASSERT(this->size() > 0u);
+
+        --this->end_;
+
+        this->end_->~T();
+    }
+
+    template <typename T, typename Allocator> template<class... Args> inline auto eastl::vector<T, Allocator>::emplace(const T* position, Args&&... args) -> T*
+    {
+        ASSERT(position >= this->begin_ && position <= this->end_);
+
+        const ptrdiff_t diff = position - this->begin_;
+
+        if ((this->end_ == this->capacity_) || (position != this->end_))
+        {
+            this->insert_value(position, std::forward<Args>(args)...);
+        }
+        else
+        {
+            ::new((void*)this->end_++) T(std::forward<Args>(args)...);
+        }
+
+        return this->begin_ + diff;
+    }
+
+    template <typename T, typename Allocator> template<class... Args> inline auto eastl::vector<T, Allocator>::emplace_back(Args&&... args) -> T&
+    {
+        if (this->end_ < this->capacity_)
+        {
+            ::new((void*)this->end_++) T(std::forward<Args>(args)...);
+        }
+        else
+        {
+            this->insert_value_end(std::forward<Args>(args)...);
+        }
+
+        return *(this->end_ - 1);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::insert(const T* position, const T& value) -> T*
+    {
+        ASSERT(position >= this->begin_ && position <= this->end_);
+
+        const ptrdiff_t diff = position - this->begin_;
+
+        if ((this->end_ == this->capacity_) || (position != this->end_))
+        {
+            this->insert_value(position, value);
+        }
+        else
+        {
+            ::new((void*)this->end_++) T(value);
+        }
+
+        return this->begin_ + diff;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::insert(const T* position, T&& value) -> T*
+    {
+        return this->emplace(position, std::move(value));
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::insert(const T* position, size_t size, const T& value) -> T*
+    {
+        const ptrdiff_t diff = position - this->begin_;
+        
+        this->insert_values(position, size, value);
+        
+        return this->begin_ + diff;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::insert(const T* position, std::initializer_list<T> ilist) -> T*
+    {
+        const ptrdiff_t diff = position - this->begin_;
+
+        this->insert(position, ilist.begin(), ilist.end(), std::false_type());
+        
+        return this->begin_ + diff;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::erase(const T* position) -> T*
+    {
+        ASSERT(position >= this->begin_ && position < this->end_);
+
+        T* dest_position = const_cast<T*>(position);
+
+        if ((position + 1) < this->end_)
+        {
+            std::move(dest_position + 1, this->end_, dest_position);
+        }
+
+        --this->end_;
+
+        this->end_->~T();
+
+        return dest_position;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::erase(const T* first, const T* last) -> T*
+    {
+        ASSERT(first >= this->begin_ && first < this->end_ && last < this->end_ && first <= last);
+
+        if (first != last)
+        {
+            T* position = const_cast<T*>(std::move(const_cast<T*>(last), const_cast<T*>(this->end_), const_cast<T*>(first)));
+            
+            std::destroy(position, this->end_);
+            
+            this->end_ -= (last - first);
+        }
+
+        return const_cast<T*>(first);
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::erase_no_ordering(const T* position) -> T*
+    {
+        ASSERT(position >= this->begin_ && position < this->end_);
+
+        T* dest_position = const_cast<T*>(position);
+
+        *dest_position = std::move(*(this->end_ - 1));
+
+        --this->end_;
+        
+        this->end_->~T();
+
+        return dest_position;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::clear()
+    {
+        std::destroy(this->begin_, this->end_);
+
+        this->end_ = this->begin_;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::reset_lose_memory()
+    {
+        this->begin_ = this->end_ = this->capacity_ = nullptr;
+    }
+
+    template <typename T, typename Allocator> inline void eastl::vector<T, Allocator>::swap(vector<T, Allocator>& other)
+    {
+        if (this->allocator_ == other.allocator_)
+        {
+            this->swap_internal(other);
+        }
+        else
+        {
+            const vector<T, Allocator> temp(*this);
+            *this = other;
+            other = temp;
+        }
+    }
+
+    template <typename T, typename Allocator> inline bool eastl::vector<T, Allocator>::validate() const
+    {
+        return this->begin_ <= this->end_ && this->end_ <= this->capacity_;
+    }
+
+    template <typename T, typename Allocator> inline auto eastl::vector<T, Allocator>::validate_iterator(const T* i) const -> iterator_flags
+    {
+        if (i >= this->begin_)
+        {
+            if (i < this->end_)
+            {
+                return iterator_flags::valid | iterator_flags::current | iterator_flags::can_dereference;
+            }
+
+            if (i <= this->end_)
+            {
+                return iterator_flags::valid | iterator_flags::current;
+            }
+        }
+
+        return static_cast<iterator_flags>(0);
+    }
+
+    template <typename T, typename Allocator> template <typename ForwardIterator> auto eastl::vector<T, Allocator>::realloc(size_t size, ForwardIterator first, ForwardIterator last, should_copy_tag) -> T*
+    {
+        T* ptr = this->allocate(size);
+
+        std::uninitialized_copy(first, last, ptr);
+        
+        return ptr;
+    }
+
+    template <typename T, typename Allocator> template <typename ForwardIterator> auto eastl::vector<T, Allocator>::realloc(size_t size, ForwardIterator first, ForwardIterator last, should_move_tag) -> T*
+    {
+        T* ptr = this->allocate(size);
+
+        std::uninitialized_move(first, last, ptr);
+        
+        return ptr;
+    }
+
+    template <typename T, typename Allocator> template <typename Integer> void eastl::vector<T, Allocator>::init(Integer size, Integer value, std::true_type)
+    {
+        this->begin_ = this->allocate(static_cast<size_t>(size));
+        this->capacity_ = this->begin_ + static_cast<size_t>(size);
+        this->end_ = this->capacity_;
+
+        std::uninitialized_fill_n(this->begin_, size, value);
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> void eastl::vector<T, Allocator>::init(InputIterator first, InputIterator last, std::false_type)
+    {
+        typedef typename std::iterator_traits<InputIterator>::iterator_category IC;
+        
+        this->init_from_iterator(first, last, IC());
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> void eastl::vector<T, Allocator>::init_from_iterator(InputIterator first, InputIterator last, std::input_iterator_tag)
+    {
+        for (; first != last; ++first)
+        {
+            this->push_back(*first);
+        }
+    }
+
+    template <typename T, typename Allocator> template <typename ForwardIterator> void eastl::vector<T, Allocator>::init_from_iterator(ForwardIterator first, ForwardIterator last, std::forward_iterator_tag)
+    {
+        const size_t size = static_cast<size_t>(std::distance(first, last));
+        
+        this->begin_ = this->allocate(size);
+        this->capacity_ = this->begin_ + size;
+        this->end_ = this->capacity_;
+
+        std::uninitialized_copy(first, last, this->begin_);
+    }
+
+    template <typename T, typename Allocator> template <typename Integer, bool Move> void eastl::vector<T, Allocator>::assign(Integer index, Integer value, std::true_type)
+    {
+        this->assign_values(static_cast<size_t>(index), static_cast<T>(value));
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator, bool Move> void eastl::vector<T, Allocator>::assign(InputIterator first, InputIterator last, std::false_type)
+    {
+        typedef typename std::iterator_traits<InputIterator>::iterator_category IC;
+        
+        this->assign_from_iterator<InputIterator, Move>(first, last, IC());
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::assign_values(size_t size, const T& value)
+    {
+        if (size > static_cast<size_t>(this->capacity_ - this->begin_))
+        {
+            vector<T, Allocator> temp(size, value, this->allocator_);
+            
+            this->swap(temp);
+        }
+        else if (size > this->size())
+        {
+            std::fill(this->begin_, this->end_, value);
+            std::uninitialized_fill_n(this->end_, size - this->size(), value);
+            this->end_ += size - this->size();
+        }
+        else // else 0 <= n <= size
+        {
+            std::fill_n(this->begin_, size, value);
+            this->erase(this->begin_ + size, this->end_);
+        }
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator, bool Move> void eastl::vector<T, Allocator>::assign_from_iterator(InputIterator first, InputIterator last, std::input_iterator_tag)
+    {
+        T* position = this->begin_;
+
+        while ((position != this->end_) && (first != last))
+        {
+            *position = *first;
+            ++first;
+            ++position;
+        }
+
+        if (first == last)
+        {
+            this->erase(position, this->end_);
+        }
+        else
+        {
+            this->insert(this->end_, first, last);
+        }
+    }
+
+    template <typename T, typename Allocator> template <typename RandomAccessIterator, bool Move> void eastl::vector<T, Allocator>::assign_from_iterator(RandomAccessIterator first, RandomAccessIterator last, std::random_access_iterator_tag)
+    {
+        const size_t size = static_cast<size_t>(std::distance(first, last));
+
+        if (size > static_cast<size_t>(this->capacity_ - this->begin_))
+        {
+            T* new_data = this->realloc(size, first, last, should_move_or_copy_tag<Move>());
+            std::destroy(this->begin_, this->end_);
+            this->free(this->begin_, static_cast<size_t>(this->capacity_ - this->begin_));
+
+            this->begin_ = new_data;
+            this->end_ = this->begin_ + size;
+            this->capacity_ = this->end_;
+        }
+        else if (size <= this->size()) // If n <= size ...
+        {
+            T* new_end = std::copy(first, last, this->begin_);
+            std::destroy(new_end, this->end_);
+            this->end_ = new_end;
+        }
+        else // else size < n <= capacity
+        {
+            RandomAccessIterator position = first + (this->end_ - this->begin_);
+            std::copy(first, position, this->begin_);
+            this->end_ = std::uninitialized_copy(position, last, this->end_);
+        }
+    }
+
+    template <typename T, typename Allocator> template <typename Integer> void eastl::vector<T, Allocator>::insert(const T* position, Integer index, Integer value, std::true_type)
+    {
+        this->insert_values(position, static_cast<size_t>(index), static_cast<T>(value));
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> void eastl::vector<T, Allocator>::insert(const T* position, InputIterator first, InputIterator last, std::false_type)
+    {
+        typedef typename std::iterator_traits<InputIterator>::iterator_category IC;
+        
+        this->insert_from_iterator(position, first, last, IC());
+    }
+
+    template <typename T, typename Allocator> template <typename InputIterator> void eastl::vector<T, Allocator>::insert_from_iterator(const T* position, InputIterator first, InputIterator last, std::input_iterator_tag)
+    {
+        for (; first != last; ++first, ++position)
+        {
+            position = this->insert(position, *first);
+        }
+    }
+
+    template <typename T, typename Allocator> template <typename BidirectionalIterator> void eastl::vector<T, Allocator>::insert_from_iterator(const T* position, BidirectionalIterator first, BidirectionalIterator last, std::bidirectional_iterator_tag)
+    {
+        ASSERT(position >= this->begin_ && position <= this->end_);
+
+        T* dest_position = const_cast<T*>(position);
+
+        if (first != last)
+        {
+            const size_t n = static_cast<size_t>(std::distance(first, last));
+
+            if (n <= static_cast<size_t>(this->capacity_ - this->end_))
+            {
+                const size_t n_extra = static_cast<size_t>(this->end_ - dest_position);
+
+                if (n < n_extra)
+                {
+                    std::uninitialized_move(this->end_ - n, this->end_, this->end_);
+                    std::move_backward(dest_position, this->end_ - n, this->end_);
+                    std::copy(first, last, dest_position);
+                }
+                else
+                {
+                    BidirectionalIterator i_temp = first;
+                    std::advance(i_temp, n_extra);
+                    std::uninitialized_copy(i_temp, last, this->end_);
+                    std::uninitialized_move(dest_position, this->end_, this->end_ + n - n_extra);
+                    std::copy_backward(first, i_temp, dest_position + n_extra);
+                }
+
+                this->end_ += n;
+            }
+            else
+            {
+                const size_t prev_size = this->size();
+                const size_t grow_size = this->get_new_capacity(prev_size);
+                const size_t new_size = grow_size > (prev_size + n) ? grow_size : (prev_size + n);
+                
+                T* new_data = this->allocate(new_size);
+                T* new_end = std::uninitialized_move(this->begin_, dest_position, new_data);
+                
+                new_end = std::uninitialized_copy(first, last, new_end);
+                new_end = std::uninitialized_move(dest_position, this->end_, new_end);
+
+                std::destroy(this->begin_, this->end_);
+                
+                this->free(this->begin_, this->capacity());
+
+                this->begin_ = new_data;
+                this->end_ = new_end;
+                this->capacity_ = new_data + new_size;
+            }
+        }
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::insert_values(const T* position, size_t n, const T& value)
+    {
+        ASSERT(position >= this->begin_ && position <= this->end_);
+
+        // C++11 stipulates that position is const_iterator, but the return value is iterator.
+        T* dest_position = const_cast<T*>(position);
+
+        if (n <= static_cast<size_t>(this->capacity_ - this->end_))
+        {
+            if (n > 0)
+            {
+                const T temp = value;
+                const size_t n_extra = static_cast<size_t>(this->end_ - dest_position);
+
+                if (n < n_extra)
+                {
+                    std::uninitialized_move(this->end_ - n, this->end_, this->end_);
+                    std::move_backward(dest_position, this->end_ - n, this->end_);
+                    std::fill(dest_position, dest_position + n, temp);
+                }
+                else
+                {
+                    std::uninitialized_fill_n(this->end_, n - n_extra, temp);
+                    std::uninitialized_move(dest_position, this->end_, this->end_ + n - n_extra);
+                    std::fill(dest_position, this->end_, temp);
+                }
+
+                this->end_ += n;
+            }
+        }
+        else // else n > capacity
+        {
+            const size_t prev_size = this->size();
+            const size_t grow_size = this->get_new_capacity(prev_size);
+            const size_t new_size = grow_size > (prev_size + n) ? grow_size : (prev_size + n);
+
+            T* new_data = this->allocate(new_size);
+            T* new_end = std::uninitialized_move(this->begin_, dest_position, new_data);
+
+            std::uninitialized_fill_n(new_end, n, value);
+            new_end = std::uninitialized_move(dest_position, this->end_, new_end + n);
+
+            std::destroy(this->begin_, this->end_);
+            this->free(this->begin_, this->capacity());
+
+            this->begin_ = new_data;
+            this->end_ = new_end;
+            this->capacity_ = new_data + new_size;
+        }
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::clear_capacity() 
+    {
+        this->clear();
+
+        vector<T, Allocator> temp(std::move(*this));
+        
+        this->swap(temp);
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::grow(size_t size)
+    {
+        T* new_data = this->allocate(size);
+
+        T* new_end = std::uninitialized_move(this->begin_, this->end_, new_data);
+
+        std::destroy(this->begin_, this->end_);
+        this->free(this->begin_, this->capacity());
+
+        this->begin_ = new_data;
+        this->end_ = new_end;
+        this->capacity_ = new_data + size;
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::swap_internal(vector<T, Allocator>& other)
+    {
+        std::swap(this->begin_, other.begin_);
+        std::swap(this->end_, other.end_);
+        std::swap(this->capacity_, other.capacity_);
+        std::swap(this->allocator_, other.allocator_);
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::insert_values_end(size_t n, const T& value)
+    {
+        if (n > static_cast<size_t>(this->capacity_ - this->end_))
+        {
+            const size_t prev_size = this->size();
+            const size_t grow_size = this->get_new_capacity(prev_size);
+            const size_t new_size = math::max(grow_size, prev_size + n);
+
+            T* new_data = this->allocate(new_size);
+            T* new_end = std::uninitialized_move(this->begin_, this->end_, new_data);
+
+            std::uninitialized_fill(new_end, n, value);
+            new_end += n;
+
+            std::destroy(this->begin_, this->end_);
+            this->free(this->begin_, this->capacity_);
+
+            this->begin_ = new_data;
+            this->end_ = new_end;
+            this->capacity_ = new_data + new_size;
+        }
+        else
+        {
+            std::uninitialized_fill(this->end_, n, value);
+            this->end_ += n;
+        }
+    }
+
+    template <typename T, typename Allocator> void eastl::vector<T, Allocator>::insert_values_end(size_t n)
+    {
+        if (n > static_cast<size_t>(this->capacity_ - this->end_))
+        {
+            const size_t prev_size = this->size();
+            const size_t grow_size = this->get_new_capacity(prev_size);
+            const size_t new_size = std::max(grow_size, prev_size + n);
+
+            T* new_data = this->allocate(new_size);
+            T* new_end = std::uninitialized_move(this->begin_, this->end_, new_data);
+
+            std::uninitialized_value_construct_n(new_end, n);
+            new_end += n;
+
+            std::destroy(this->begin_, this->end_);
+            this->free(this->begin_, this->capacity());
+
+            this->begin_ = new_data;
+            this->end_ = new_end;
+            this->capacity_ = new_data + new_size;
+        }
+        else
+        {
+            std::uninitialized_value_construct_n(this->end_, n);
+            this->end_ += n;
+        }
+    }
+
+    template <typename T, typename Allocator> template<typename... Args> void eastl::vector<T, Allocator>::insert_value(const T* position, Args&&... args)
+    {
+        ASSERT(position >= this->begin_ && position <= this->end_);
+
+        T* dest_position = const_cast<T*>(position);
+
+        if (this->end_ < this->capacity_)
+        {
+            T value(std::forward<Args>(args)...);
+
+            ::new(static_cast<void*>(this->end_)) T(std::move(*(this->end_ - 1)));
+            
+            std::move_backward(dest_position, this->end_ - 1, this->end_);
+            std::destroy_at(dest_position);
+
+            ::new(static_cast<void*>(dest_position)) T(std::move(value));
+
+            ++this->end_;
+        }
+        else // else (size == capacity)
+        {
+            const size_t pos_size = static_cast<size_t>(dest_position - this->begin_);
+            const size_t prev_size = this->size();
+            const size_t new_size = this->get_new_capacity(prev_size);
+            
+            T* new_end;
+            T* new_data = this->allocate(new_size);
+
+            ::new((void*)(new_data + pos_size)) T(std::forward<Args>(args)...);
+            
+            new_end = std::uninitialized_move(this->begin_, dest_position, new_data);
+            new_end = std::uninitialized_move(dest_position, this->end_, ++new_end);
+
+            std::destroy(this->begin_, this->end_);
+            this->free(this->begin_, this->capacity());
+
+            this->begin_ = new_data;
+            this->end_ = new_end;
+            this->capacity_ = new_data + new_size;
+        }
+    }
+
+    template <typename T, typename Allocator> template<typename... Args> void eastl::vector<T, Allocator>::insert_value_end(Args&&... args)
+    {
+        const size_t prev_size = this->size();
+        const size_t new_size = this->get_new_capacity(prev_size);
+
+        T* new_data = this->allocate(new_size);
+        T* new_end = std::uninitialized_move(this->begin_, this->end_, new_data);
+        
+        ::new((void*)new_end++) T(std::forward<Args>(args)...);
+        
+        std::destroy(this->begin_, this->end_);
+        this->free(this->begin_, this->capacity());
+
+        this->begin_ = new_data;
+        this->end_ = new_end;
+        this->capacity_ = new_data + new_size;
+    }
 
 
 

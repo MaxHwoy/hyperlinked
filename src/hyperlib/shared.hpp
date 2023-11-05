@@ -1,6 +1,7 @@
 #pragma once
 
 #pragma warning (disable : 4324)
+#pragma warning (disable : 26439)
 #pragma warning (disable : 26451)
 #pragma warning (disable : 26495)
 

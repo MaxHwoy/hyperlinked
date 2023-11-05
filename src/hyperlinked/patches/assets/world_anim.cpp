@@ -1,5 +1,5 @@
 #include <hyperlib/assets/world_anims.hpp>
-#include <hyperlinked/patches/world_anim.hpp>
+#include <hyperlinked/patches/assets/world_anim.hpp>
 
 namespace hyper
 {

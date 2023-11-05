@@ -3,60 +3,123 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/assets/flares.hpp>
+#include <hyperlib/renderer/directx.hpp>
 
 namespace hyper
 {
-    class streak final
+    template <typename Vertex> class poly_manager
     {
     public:
-        struct vertex
-        {
-            vector3 position;
-            color32 color;
-            vector2 uv;
-            vector4 vector;
-            float adder;
-        };
-
         struct poly
         {
-            vertex vertices[4];
+            Vertex vertices[4];
         };
 
-        class manager final
-        {
-        public:
-            void initialize();
+    public:
+        poly_manager(std::uint32_t max_polies);
 
-            void destroy();
+        ~poly_manager();
 
-            void lock();
+        void lock();
 
-            void unlock();
+        void unlock();
 
-            void render(struct render_view* view, void* flush_fac);
+        auto allocate() -> poly*;
 
-            void commit_flare(const vector3& position, const texture::info* texture, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle);
+    private:
+        ::IDirect3DVertexBuffer9* vertex_buffer_;
+        ::IDirect3DIndexBuffer9* index_buffer_;
+        std::uint32_t vertex_count_;
+        std::uint32_t max_polies_;
+        std::uint32_t poly_count_;
 
-        public:
-            IDirect3DVertexBuffer9* vertex_buffer;
-            IDirect3DIndexBuffer9* index_buffer;
-            std::uint32_t vertex_count;
-            std::uint32_t max_streaks;
-            std::uint32_t streak_count;
-            texture::info* flare_texture_page;
-            bool _0x18;
-            poly* polies;
-            bool locked;
-            texture::info* streak_flares_texture;
+    protected:
+        texture::info* texture_page_;
 
-            static inline manager& instance = *reinterpret_cast<manager*>(0x00B4CF28);
-
-            static inline bool emergency_reeval = false;
-        };
+    private:
+        bool _0x18_;
+        poly* polies_;
+        bool locked_;
     };
+}
 
-    ASSERT_SIZE(streak::vertex, 0x2C);
-    ASSERT_SIZE(streak::poly, 0xB0);
-    ASSERT_SIZE(streak::manager, 0x28);
+namespace hyper
+{
+    template <typename Vertex> poly_manager<Vertex>::poly_manager(std::uint32_t max_polies)
+    {
+        this->max_polies_ = max_polies;
+        this->poly_count_ = 0u;
+        this->_0x18_ = false;
+        this->vertex_count_ = max_polies * 4u;
+        this->polies_ = nullptr;
+        this->locked_ = false;
+
+        directx::device()->CreateVertexBuffer(sizeof(poly) * max_polies, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0u, ::D3DPOOL_DEFAULT, &this->vertex_buffer_, nullptr);
+        directx::device()->CreateIndexBuffer(sizeof(std::uint16_t) * 6u * max_polies, D3DUSAGE_WRITEONLY, ::D3DFMT_INDEX16, ::D3DPOOL_MANAGED, &this->index_buffer_, nullptr);
+
+        std::uint16_t* indexer;
+
+        if (SUCCEEDED(this->index_buffer_->Lock(0u, 0u, reinterpret_cast<void**>(&indexer), 0u)))
+        {
+            for (std::uint16_t i = 0u, k = 0u; i < max_polies; ++i, k += 4u)
+            {
+                *indexer++ = k + 0u;
+                *indexer++ = k + 1u;
+                *indexer++ = k + 2u;
+                *indexer++ = k + 0u;
+                *indexer++ = k + 2u;
+                *indexer++ = k + 3u;
+            }
+
+            this->index_buffer_->Unlock();
+        }
+    }
+
+    template <typename Vertex> poly_manager<Vertex>::~poly_manager()
+    {
+        if (this->vertex_buffer_ != nullptr)
+        {
+            this->vertex_buffer_->Release();
+            this->vertex_buffer_ = nullptr;
+        }
+
+        if (this->index_buffer_ != nullptr)
+        {
+            this->index_buffer_->Release();
+            this->index_buffer_ = nullptr;
+        }
+    }
+
+    template <typename Vertex> void poly_manager<Vertex>::lock()
+    {
+        HRESULT result = this->vertex_buffer_->Lock(0u, 0u, reinterpret_cast<void**>(&this->polies_), D3DLOCK_DISCARD);
+
+        ASSERT(SUCCEEDED(result));
+
+        this->poly_count_ = 0u;
+        this->_0x18_ = true;
+        this->locked_ = true;
+    }
+
+    template <typename Vertex> void poly_manager<Vertex>::unlock()
+    {
+        if (this->_0x18_ && this->vertex_buffer_ != nullptr)
+        {
+            this->_0x18_ = false; // whyyyyy do we even neeeeed this thing???
+        }
+
+        this->vertex_buffer_->Unlock();
+        this->polies_ = nullptr;
+        this->locked_ = false;
+    }
+
+    template <typename Vertex> auto poly_manager<Vertex>::allocate() -> poly_manager<Vertex>::poly*
+    {
+        if (this->locked_ && this->poly_count_ < this->max_polies_)
+        {
+            return this->polies_ + this->poly_count_++;
+        }
+
+        return nullptr;
+    }
 }

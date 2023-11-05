@@ -1,10 +1,11 @@
 #include <hyperlib/utils/logging.hpp>
 #include <cstdarg>
+#include <iostream>
 #include <cassert>
 
 namespace hyper
 {
-	void logging::init(const char* path, bool allocate_console)
+	void logging::init(const char* path, bool allocate_console, bool pause)
 	{
 		const auto _ = std::lock_guard(logging::mutex_);
 
@@ -13,7 +14,13 @@ namespace hyper
 #if defined(PLATFORM_WINDOWS)
 			::AllocConsole();
 #endif
-			errno_t result = ::freopen_s(&logging::pointers_[0], "CONOUT$", "w", stdout);
+			errno_t result;
+
+			result = ::freopen_s(&logging::pointers_[static_cast<size_t>(ptr_type::console_out)], "CONOUT$", "w", stdout);
+
+			assert(!result);
+
+			result = ::freopen_s(&logging::pointers_[static_cast<size_t>(ptr_type::console_in)], "CONIN$", "r", stdin);
 
 			assert(!result);
 
@@ -27,12 +34,17 @@ namespace hyper
 
 			::GetConsoleMode(handle, &logging::mode_);
 			::SetConsoleMode(handle, (logging::mode_ | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN) & ~ENABLE_QUICK_EDIT_MODE);
+
+			if (pause)
+			{
+				std::cin >> pause;
+			}
 #endif
 		}
 
 		if (path != nullptr)
 		{
-			errno_t result = ::fopen_s(&logging::pointers_[1], path, "ab");
+			errno_t result = ::fopen_s(&logging::pointers_[static_cast<size_t>(ptr_type::file_out)], path, "ab");
 
 			assert(!result);
 		}
@@ -42,7 +54,7 @@ namespace hyper
 	{
 		const auto _ = std::lock_guard(logging::mutex_);
 #if defined(PLATFORM_WINDOWS)
-		if (logging::pointers_[0] != nullptr)
+		if (logging::pointers_[static_cast<size_t>(ptr_type::console_out)] != nullptr)
 		{
 			::SetConsoleMode(logging::handle_, logging::mode_);
 		}
@@ -62,7 +74,7 @@ namespace hyper
 	{
 		const auto _ = std::lock_guard(logging::mutex_);
 
-		if (logging::pointers_[0] == nullptr && logging::pointers_[1] == nullptr)
+		if (logging::pointers_[static_cast<size_t>(ptr_type::console_out)] == nullptr && logging::pointers_[static_cast<size_t>(ptr_type::file_out)] == nullptr)
 		{
 			return;
 		}
@@ -84,12 +96,12 @@ namespace hyper
 #endif
 		const auto format = "%s";
 
-		if (logging::pointers_[0] != nullptr)
+		if (logging::pointers_[static_cast<size_t>(ptr_type::console_out)] != nullptr)
 		{
 			::printf(format, buffer);
 		}
 
-		if (const auto pointer = logging::pointers_[1])
+		if (const auto pointer = logging::pointers_[static_cast<size_t>(ptr_type::file_out)])
 		{
 			::fprintf(pointer, format, offset);
 			::fflush(pointer);

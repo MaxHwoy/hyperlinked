@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <cmath>
 
+#if defined(USE_SIMD_VECTORIZATIONS)
+#include <xmmintrin.h>
+#endif
+
 namespace hyper
 {
     struct vector2
@@ -283,6 +287,11 @@ namespace hyper
             return { lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x };
         }
 
+        inline static auto scale_add(const vector3& origin, const vector3& direction, float scale) -> vector3
+        {
+            return { origin.x + direction.x * scale, origin.y + direction.y * scale, origin.z + direction.z * scale };
+        }
+
     private:
         static vector3 zero_;
         static vector3 one_;
@@ -415,6 +424,33 @@ namespace hyper
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
         }
+
+        inline static auto negate(vector4& vector)
+        {
+            vector.x = -vector.x;
+            vector.y = -vector.y;
+            vector.z = -vector.z;
+        }
+
+        inline static auto add(const vector4& lhs, const vector4& rhs) -> vector4
+        {
+            return { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w };
+        }
+
+        inline static auto subtract(const vector4& lhs, const vector4& rhs) -> vector4
+        {
+            return { lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w };
+        }
+
+        inline static auto scale(const vector4& vector, float scalar) -> vector4
+        {
+            return { vector.x * scalar, vector.y * scalar, vector.z * scalar, vector.w };
+        }
+
+        inline static auto scale_add(const vector4& origin, const vector4& direction, float scale) -> vector4
+        {
+            return { origin.x + direction.x * scale, origin.y + direction.y * scale, origin.z + direction.z * scale, origin.w + direction.w * scale };
+        }
     };
 
     struct vector3pad
@@ -513,6 +549,16 @@ namespace hyper
         inline bool operator!=(const color& other) const
         {
             return this->r != other.r || this->g != other.g || this->b != other.b || this->a != other.a;
+        }
+
+        inline auto as_vector4() -> vector4&
+        {
+            return *reinterpret_cast<vector4*>(this);
+        }
+
+        inline auto as_vector4() const -> const vector4&
+        {
+            return *reinterpret_cast<const vector4*>(this);
         }
 
         inline auto operator[](std::uint32_t index) -> float&
@@ -694,6 +740,18 @@ namespace hyper
 
     struct plane
     {
+    public:
+        inline auto as_vector4() -> vector4&
+        {
+            return *reinterpret_cast<vector4*>(this);
+        }
+
+        inline auto as_vector4() const -> const vector4&
+        {
+            return *reinterpret_cast<const vector4*>(this);
+        }
+
+    public:
         vector3 normal;
         float distance;
     };
@@ -999,6 +1057,11 @@ namespace hyper
             return static_cast<std::uint16_t>(static_cast<std::int32_t>(degrees * 65536.0f) / 360);
         }
 
+        inline static auto float_bits(float value) -> std::uint32_t
+        {
+            return *reinterpret_cast<std::uint32_t*>(&value);
+        }
+
         inline static void flip_sign(float& value)
         {
             *reinterpret_cast<std::uint32_t*>(&value) ^= 0x80000000;
@@ -1015,6 +1078,10 @@ namespace hyper
         static auto tan(std::uint16_t angle) -> float;
 
         static auto tan(float angle) -> float;
+
+        static auto cot(std::uint16_t angle) -> float;
+
+        static auto cot(float angle) -> float;
 
         static auto arc_sin(float value) -> std::uint16_t;
 
@@ -1056,6 +1123,10 @@ namespace hyper
 
         static void create_axis_rotation_matrix(const vector3& axis, std::uint16_t angle, matrix4x4& result);
 
+        static void create_projection_matrix(float w, float h, float near_clip, float far_clip, matrix4x4& result);
+
+        static void create_look_at_matrix(const vector3& from, const vector3& to, const vector3& up, matrix4x4& result);
+
         static void create_rotation_x(std::uint16_t angle, matrix4x4& result);
 
         static void create_rotation_y(std::uint16_t angle, matrix4x4& result);
@@ -1069,6 +1140,8 @@ namespace hyper
         static void rotate_matrix_z(const matrix4x4& rotation, std::uint16_t angle, matrix4x4& result);
 
         static void invert_rotation(const matrix4x4& src, matrix4x4& dst);
+
+        static void invert_transform(const matrix4x4& src, matrix4x4& dst);
 
     private:
         static std::uint16_t a_tan_table_[258];

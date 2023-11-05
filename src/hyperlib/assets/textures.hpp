@@ -131,7 +131,7 @@ namespace hyper
         {
             render_state state;
             std::uint32_t type;
-            IDirect3DTexture9* texture;
+            ::IDirect3DTexture9* texture;
             std::uint16_t punchthru_value;
             std::uint16_t format;
         };

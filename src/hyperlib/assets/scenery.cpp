@@ -495,6 +495,8 @@ namespace hyper
 
         ASSERT_WITH_MESSAGE(pack != nullptr, "Scenery section does not have a header!");
 
+        visible_section::manager::instance.user_infos[pack->section_number]->scenery = nullptr;
+
         visible_section::manager::instance.unallocate_user_info(pack->section_number);
 
         scenery::pack::list.remove(pack);

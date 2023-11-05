@@ -1,7 +1,5 @@
-#include <hyperlib/hook.hpp>
-#include <hyperlib/renderer/streak.hpp>
-#include <hyperlib/renderer/drawing.hpp>
-#include <hyperlinked/patches/drawing.hpp>
+#include <hyperlib/renderer/flare_pool.hpp>
+#include <hyperlinked/patches/renderer/flare_pool.hpp>
 
 namespace hyper
 {
@@ -42,7 +40,7 @@ namespace hyper
             push [esp + 0x40]; // repush 'flare'
             push [esp + 0x40]; // repush 'view'
 
-            call renderer::render_light_flare; // call custom render_light_flare
+            call flare_pool::render_flare; // call custom render_flare
 
             add esp, 0x28; // since we repushed all arguments
 
@@ -76,7 +74,7 @@ namespace hyper
 
             push [esp + 0x1C]; // repush 'view'
 
-            call renderer::render_light_flare_pool; // call custom render_light_flare_pool
+            call flare_pool::render; // call custom render
 
             add esp, 0x04; // since we repushed all arguments
 
@@ -107,7 +105,7 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call renderer::init_light_flare_pool; // call custom init_light_flare_pool
+            call flare_pool::init; // call custom init
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -136,7 +134,7 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call renderer::reset_light_flare_pool; // call custom reset_light_flare_pool
+            call flare_pool::reset; // call custom reset
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -149,12 +147,12 @@ namespace hyper
         }
     }
 
-    __declspec(naked) void detour_streak_manager_initialize()
+    __declspec(naked) void detour_flare_pool_ctor()
     {
         __asm
         {
             // [esp + 0x00] is 'return address'
-            // ecx contains pointer to streak::manager
+            // ecx contains pointer to flare_pool
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -166,9 +164,11 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call streak::manager::initialize; // call custom initialize
+            push ecx; // push pointer to flare_pool
 
-            // no need to restore esp since 'initialize' is a __thiscall
+            call flare_pool::ctor; // call custom ctor
+
+            add esp, 0x04; // since we pushed pointer to flare_pool
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -177,16 +177,16 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn; // return immediately to caller function, not back to StreakManager::Initialize; note that this is a __thiscall
+            retn; // return immediately to caller function, not back to FlarePool::FlarePool; note that this is a __thiscall
         }
     }
 
-    __declspec(naked) void detour_streak_manager_destroy()
+    __declspec(naked) void detour_flare_pool_dtor()
     {
         __asm
         {
             // [esp + 0x00] is 'return address'
-            // ecx contains pointer to streak::manager
+            // ecx contains pointer to flare_pool
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -198,9 +198,11 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call streak::manager::destroy; // call custom destroy
+            push ecx; // push pointer to flare_pool
 
-            // no need to restore esp since 'destroy' is a __thiscall
+            call flare_pool::dtor; // call custom dtor
+
+            add esp, 0x04; // since we pushed pointer to flare_pool
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -209,17 +211,17 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn; // return immediately to caller function, not back to StreakManager::Destroy; note that this is a __thiscall
+            retn; // return immediately to caller function, not back to FlarePool::~FlarePool; note that this is a __thiscall
         }
     }
 
-    __declspec(naked) void detour_streak_manager_lock()
+    __declspec(naked) void detour_flare_pool_lock()
     {
         __asm
         {
             // [esp + 0x00] is 'return address'
             // [esp + 0x04] is 'view'
-            // ecx contains pointer to streak::manager
+            // ecx contains pointer to flare_pool
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -231,7 +233,7 @@ namespace hyper
             push esi; // 'view' is now at [esp + 0x18]
             push edi; // 'view' is now at [esp + 0x1C]
 
-            call streak::manager::lock; // call custom lock
+            call flare_pool::lock; // call custom lock
 
             // no need to restore esp since 'lock' is a __thiscall
 
@@ -242,17 +244,17 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn 4; // return immediately to caller function, not back to StreakManager::Lock; note that this is a __thiscall
+            retn 4; // return immediately to caller function, not back to FlarePool::Lock; note that this is a __thiscall
         }
     }
 
-    __declspec(naked) void detour_streak_manager_unlock()
+    __declspec(naked) void detour_flare_pool_unlock()
     {
         __asm
         {
             // [esp + 0x00] is 'return address'
             // [esp + 0x04] is 'view'
-            // ecx contains pointer to streak::manager
+            // ecx contains pointer to flare_pool
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -264,7 +266,7 @@ namespace hyper
             push esi; // 'view' is now at [esp + 0x18]
             push edi; // 'view' is now at [esp + 0x1C]
 
-            call streak::manager::unlock; // call custom unlock
+            call flare_pool::unlock; // call custom unlock
 
             // no need to restore esp since 'unlock' is a __thiscall
 
@@ -275,11 +277,11 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn 4; // return immediately to caller function, not back to StreakManager::Unlock; note that this is a __thiscall
+            retn 4; // return immediately to caller function, not back to FlarePool::Unlock; note that this is a __thiscall
         }
     }
 
-    void drawing_patches::init()
+    void flare_pool_patches::init()
     {
         // eRenderLightFlare
         hook::jump(0x0074D330, &detour_render_light_flare);
@@ -293,16 +295,16 @@ namespace hyper
         // eResetLightFlarePool
         hook::jump(0x0073A1F0, &detour_reset_light_flare_pool);
 
-        // StreakManager::Initialize
-        hook::jump(0x00749C10, &detour_streak_manager_initialize);
+        // FlarePool::FlarePool
+        hook::jump(0x00749C10, &detour_flare_pool_ctor);
 
-        // StreakManager::Destroy
-        hook::jump(0x00749C80, &detour_streak_manager_destroy);
+        // FlarePool::~FlarePool
+        hook::jump(0x00749C80, &detour_flare_pool_dtor);
 
-        // StreakManager::Lock
-        hook::jump(0x00749CB0, &detour_streak_manager_lock);
+        // FlarePool::Lock
+        hook::jump(0x00749CB0, &detour_flare_pool_lock);
 
-        // StreakManager::Unlock
-        hook::jump(0x00749E50, &detour_streak_manager_unlock);
+        // FlarePool::Unlock
+        hook::jump(0x00749E50, &detour_flare_pool_unlock);
     }
 }

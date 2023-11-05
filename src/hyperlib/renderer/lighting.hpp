@@ -82,12 +82,16 @@ namespace hyper
 
         struct __declspec(align(0x10)) shaper_light_rigorous
         {
+        public:
             std::uint32_t key;
             shaper_light lights[4];
             vector3 padv3;
             vector3 position;
             std::uint32_t padi4;
             std::uint32_t override_slot_count;
+
+        public:
+            static inline shaper_light_rigorous& world = *reinterpret_cast<shaper_light_rigorous*>(0x00A6C4A0);
         };
 
         struct dynamic_light : public linked_node<dynamic_light>, public light::instance
@@ -212,6 +216,17 @@ namespace hyper
         static inline float& scale_rgb_irradiance = *reinterpret_cast<float*>(0x00A6B914);
 
         static inline float& scale_alpha_irradiance = *reinterpret_cast<float*>(0x00A6B91C);
+
+    public:
+        static inline float& default_spec_power = *reinterpret_cast<float*>(0x00A6C224);
+
+        static inline float& default_ingame_light_y = *reinterpret_cast<float*>(0x00A650E0);
+
+        static inline float& default_ingame_light_w = *reinterpret_cast<float*>(0x007497CE);
+
+        static inline vector4& ingame_light_params = *reinterpret_cast<vector4*>(0x00A6C204);
+
+        static inline vector4& frontend_light_params = *reinterpret_cast<vector4*>(0x00A6C214);
     };
 
     ASSERT_SIZE(lighting::time_of_day, 0x170);

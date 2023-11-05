@@ -144,7 +144,7 @@ namespace hyper
     {
         if (base != nullptr && base->camera != nullptr)
         {
-            camera_trs = &base->camera->current_key.matrix;
+            camera_trs = &base->camera->current_key.view_matrix;
         }
 
         matrix4x4 rotation;

@@ -1,5 +1,5 @@
 #include <hyperlib/streamer/streamer.hpp>
-#include <hyperlinked/patches/streamer.hpp>
+#include <hyperlinked/patches/streamer/streamer.hpp>
 
 namespace hyper
 {

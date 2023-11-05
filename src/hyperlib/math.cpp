@@ -6,10 +6,6 @@
 #undef hyper
 #endif
 
-#if defined(USE_SIMD_VECTORIZATIONS)
-#include <xmmintrin.h>
-#endif
-
 namespace hyper
 {
     vector2 vector2::zero_(0.0f, 0.0f);
@@ -220,12 +216,32 @@ namespace hyper
 
     auto math::tan(std::uint16_t angle) -> float
     {
-        return math::sin(angle) / math::cos(angle);
+        float sin;
+        float cos;
+
+        math::sincos(angle, sin, cos);
+
+        return sin / cos;
     }
 
     auto math::tan(float angle) -> float
     {
-        return math::sin(angle) / math::cos(angle);
+        return math::tan(static_cast<std::uint16_t>(angle * 10430.378f)); // 10430.378 = UINT16_MAX / 2pi
+    }
+
+    auto math::cot(std::uint16_t angle) -> float
+    {
+        float sin;
+        float cos;
+
+        math::sincos(angle, sin, cos);
+
+        return cos / sin;
+    }
+
+    auto math::cot(float angle) -> float
+    {
+        return math::cot(static_cast<std::uint16_t>(angle * 10430.378f)); // 10430.378 = UINT16_MAX / 2pi
     }
 
     auto math::arc_sin(float value) -> std::uint16_t
@@ -854,6 +870,57 @@ namespace hyper
         result.m44 = 1.0;
     }
 
+    void math::create_projection_matrix(float w, float h, float near_clip, float far_clip, matrix4x4& result)
+    {
+        float ratio = far_clip / (far_clip - near_clip);
+
+        result.m11 = w;
+        result.m12 = 0.0f;
+        result.m13 = 0.0f;
+        result.m14 = 0.0f;
+        result.m21 = 0.0f;
+        result.m22 = -h;
+        result.m23 = 0.0f;
+        result.m24 = 0.0f;
+        result.m31 = 0.0f;
+        result.m32 = 0.0f;
+        result.m33 = ratio;
+        result.m34 = 1.0f;
+        result.m41 = 0.0f;
+        result.m42 = 0.0f;
+        result.m43 = -(ratio * near_clip);
+        result.m44 = 0.0f;
+    }
+
+    void math::create_look_at_matrix(const vector3& from, const vector3& to, const vector3& up, matrix4x4& result)
+    {
+        vector3 forward = (to - from).normalized();
+
+        vector3 right = vector3::cross(forward, up).normalized();
+
+        vector3 true_up = vector3::cross(forward, right).normalized();
+
+        result.m11 = right.x;
+        result.m21 = right.y;
+        result.m31 = right.z;
+        result.m41 = -vector3::dot(from, right);
+
+        result.m12 = true_up.x;
+        result.m22 = true_up.y;
+        result.m32 = true_up.z;
+        result.m42 = -vector3::dot(from, true_up);
+
+        result.m13 = forward.x;
+        result.m23 = forward.y;
+        result.m33 = forward.z;
+        result.m43 = -vector3::dot(from, forward);
+
+        result.m14 = 0.0f;
+        result.m24 = 0.0f;
+        result.m34 = 0.0f;
+        result.m44 = 1.0f;
+    }
+
     void math::create_rotation_x(std::uint16_t angle, matrix4x4& result)
     {
         float sin = math::sin(angle);
@@ -970,5 +1037,26 @@ namespace hyper
         dst.m42 = 0.0f;
         dst.m43 = 0.0f;
         dst.m44 = 0.0f;
+    }
+
+    void math::invert_transform(const matrix4x4& src, matrix4x4& dst)
+    {
+        matrix4x4 a =
+        {
+                1.0f,     0.0f,     0.0f, 0.0f,
+                0.0f,     1.0f,     0.0f, 0.0f,
+                0.0f,     0.0f,     1.0f, 0.0f,
+            -src.m41, -src.m42, -src.m43, 1.0f
+        };
+
+        matrix4x4 b =
+        {
+            src.m11, src.m21, src.m31, 0.0f,
+            src.m12, src.m22, src.m32, 0.0f,
+            src.m13, src.m23, src.m33, 0.0f,
+               0.0f,    0.0f,    0.0f, 1.0f
+        };
+
+        math::multiply_matrix(a, b, dst);
     }
 }

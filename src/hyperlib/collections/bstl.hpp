@@ -48,6 +48,20 @@ namespace hyper
             auto allocate(alloc_size_t size, alloc_size_t alignment, alloc_size_t offset, std::uint32_t flags) -> void*;
 
             void deallocate(void* memory, alloc_size_t size);
+
+            inline bool operator==(const allocator& other)
+            {
+                static_cast<void>(other);
+
+                return true;
+            }
+
+            inline bool operator!=(const allocator& other)
+            {
+                static_cast<void>(other);
+
+                return false;
+            }
         };
     };
 }

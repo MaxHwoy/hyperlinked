@@ -6,36 +6,13 @@
 #include <hyperlib/assets/flares.hpp>
 #include <hyperlib/world/collision.hpp>
 #include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/lighting.hpp>
+#include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
 {
-    enum class camera_mover_types : std::uint32_t
-    {
-        none,
-        drive_cubic,
-        debug_world,
-        road_editor,
-        orbit_car,
-        rear_view_mirror,
-        track_car,
-        max,
-        select_car,
-        still,
-        race_start,
-        zone_freeze,
-        zone_preview,
-        auto_pilot,
-        ice,
-        animation_controller,
-        cop_view,
-        animation_entity,
-        showcase,
-        pip,
-        count,
-    };
-
     enum class anchor_car_class : std::uint32_t
     {
         regular,
@@ -76,50 +53,6 @@ namespace hyper
         count,
     };
 
-    struct render_target
-    {
-        render_target_id target_id;
-        view_id view_id;
-        IDirect3DSurface9* d3d_target;
-        IDirect3DSurface9* d3d_depth_stencil;
-        bool active;
-        __declspec(align(0x04)) std::uint32_t resolution_x;
-        __declspec(align(0x04)) std::uint32_t resolution_y;
-
-        static inline auto targets = array<render_target, static_cast<size_t>(render_target_id::count)>(0x00AB04D0);
-    };
-
-    struct __declspec(align(0x10)) render_view
-    {
-        view_id id;
-        bool has_camera;
-        bool is_shadow_projection_view;
-        IDirect3DSurface9* d3d_render_target;
-        IDirect3DSurface9* d3d_depth_stencil_surface;
-        __declspec(align(0x10)) vector3 camera_direction;
-        __declspec(align(0x10)) vector3 camera_up_vector;
-        __declspec(align(0x10)) vector3 camera_previous_direction;
-        __declspec(align(0x10)) vector3 camera_position;
-        __declspec(align(0x10)) vector3 camera_velocity;
-        __declspec(align(0x10)) matrix4x4 camera_matrix;
-        float camera_focal_distance;
-        float camera_depth_of_field;
-        float camera_dof_falloff;
-        float camera_dof_max_intensity;
-        bool has_outside_view;
-        camera_mover_types camera_mover_type;
-        bool is_hood_render_view;
-        std::int32_t something_0xBC;
-        matrix4x4 projection_matrix;
-        matrix4x4 view_matrix;
-        matrix4x4 view_projection_matrix;
-        vector4 vector4_0x180;
-        matrix4x4 non_jittered_projection_matrix;
-        render_target* target;
-
-        static inline auto views = array<render_view, static_cast<size_t>(view_id::count)>(0x00B47A90);
-    };
-
     struct __declspec(align(0x10)) poly
     {
         vector3pad vertices[4];
@@ -128,29 +61,6 @@ namespace hyper
         color32 colors[4];
         poly_flags flags;
         char flailer;
-    };
-
-    struct __declspec(align(0x10)) camera_params
-    {
-        __declspec(align(0x10)) matrix4x4 matrix;
-        __declspec(align(0x10)) vector3 position;
-        __declspec(align(0x10)) vector3 direction;
-        __declspec(align(0x10)) vector3 target;
-        __declspec(align(0x10)) vector4 noise_frequency_1;
-        __declspec(align(0x10)) vector4 noise_amplitude_1;
-        __declspec(align(0x10)) vector4 noise_frequency_2;
-        __declspec(align(0x10)) vector4 noise_amplitude_2;
-        __declspec(align(0x10)) vector4 fade_color;
-        float target_distance;
-        float focal_distance;
-        float depth_of_field;
-        float dof_falloff;
-        float dof_max_intensity;
-        float near_clip;
-        float far_clip;
-        float lb_height;
-        float sim_time_multiplier;
-        std::uint16_t horizontal_fov;
     };
 
     struct camera_anchor
@@ -194,35 +104,41 @@ namespace hyper
         bool is_camera_frozen;
     };
 
-    struct __declspec(align(0x10)) camera
-    {
-        camera_params current_key;
-        camera_params previous_key;
-        camera_params velocity_key;
-        bool clear_velocity;
-        float elapsed_time;
-        float last_update_time;
-        float last_disparate_time;
-        bool render_dash;
-        float noise_intensity;
-    };
-
     hyper_interface camera_mover : public linked_node<camera_mover>
     {
+    public:
         virtual void on_w_collider() = 0;
         virtual ~camera_mover() = default;
         virtual void update() = 0;
         virtual void render() = 0;
         virtual auto get_anchor() -> camera_anchor* = 0;
-        virtual void set_anchor() = 0;
-        virtual void set_look_back() = 0;
-        virtual void set_look_back_speed() = 0;
+        virtual void set_look_back(bool) = 0;
+        virtual void set_look_back_speed(float) = 0;
         virtual void set_disable_lag() = 0;
         virtual void set_pov_type() = 0;
-        virtual void get_pov_type() = 0;
-        virtual bool is_hood_camera() = 0;
-        virtual void outside_pov() = 0;
+        virtual void get_pov_type() const = 0;
+        virtual bool is_hood_camera() const = 0;
+        virtual auto outside_pov() const -> std::uint32_t = 0;
+        virtual void render_car_pov() = 0;
+        virtual auto min_dist_to_wall() -> float = 0;
+        virtual auto get_lookback_angle() -> float = 0;
+        virtual void reset_state() = 0;
+        virtual void enable_camera_mover() = 0;
+        virtual void disable_camera_mover() = 0;
+        virtual auto get_target() -> void* = 0;
 
+    public:
+        inline auto vtable_fix() -> camera_mover*
+        {
+            return reinterpret_cast<camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
+        }
+
+        inline auto vtable_fix() const -> const camera_mover*
+        {
+            return reinterpret_cast<const camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
+        }
+
+    public:
         camera_mover_types type;
         view_id id;
         bool enabled;
@@ -352,52 +268,52 @@ namespace hyper
     {
         texture::render_state render_bits;
         texture::info* base_texture_info;
-        IDirect3DTexture9* d3d9_diffuse_texture;
-        IDirect3DTexture9* d3d9_normal_texture;
-        IDirect3DTexture9* d3d9_height_texture;
-        IDirect3DTexture9* d3d9_specular_texture;
-        IDirect3DTexture9* d3d9_opacity_texture;
+        ::IDirect3DTexture9* d3d9_diffuse_texture;
+        ::IDirect3DTexture9* d3d9_normal_texture;
+        ::IDirect3DTexture9* d3d9_height_texture;
+        ::IDirect3DTexture9* d3d9_specular_texture;
+        ::IDirect3DTexture9* d3d9_opacity_texture;
         geometry::mesh_entry* mesh_entry;
         bool is_tri_stripped;
         geometry::solid* solid;
-        std::uint32_t flags;
-        struct effect* effect;
-        lighting::dynamic_context* light_context;
-        light_material::instance* light_material;
-        matrix4x4* local_to_world;
-        matrix4x4* blending_matrices;
-        texture::info* diffuse_texture_info;
-        texture::info* normal_texture_info;
-        texture::info* height_texture_info;
-        texture::info* specular_texture_info;
-        texture::info* opacity_texture_info;
-        std::uint32_t z_sort_flags;
+        draw_flags flags;
+        effect* effect;
+        const lighting::dynamic_context* light_context;
+        const light_material::instance* light_material;
+        const matrix4x4* local_to_world;
+        const matrix4x4* blending_matrices;
+        const texture::info* diffuse_texture_info;
+        const texture::info* normal_texture_info;
+        const texture::info* height_texture_info;
+        const texture::info* specular_texture_info;
+        const texture::info* opacity_texture_info;
+        std::int32_t sort_flags;
         void* null;
         float negative_one;
-        struct pca_blend_data* pca_blend_data;
-        std::uint32_t technique_flags;
+        geometry::pca_blend_data* blend_data;
+        bool use_low_lod;
+    };
+
+    struct rendering_order
+    {
+        std::uint32_t model_index;
+        std::int32_t sort_flags;
     };
 
     class renderer final
     {
     public:
-        static auto create_flare_view_mask(view_id id) -> std::uint32_t;
+        static void create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca);
 
-        static bool can_render_flares_in_view(view_id id);
+        static void compute_sort_key(rendering_model& model);
 
-        static bool is_friend_flare_view_already_committed(view_id id);
+        static void init_render_targets();
 
-        static auto get_next_light_flare_in_pool(std::uint32_t mask) -> flare::instance*;
+        static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
 
-        static void remove_current_light_flare_in_pool();
+        static void update_render_views();
 
-        static void init_light_flare_pool();
-
-        static void reset_light_flare_pool();
-
-        static void render_light_flare_pool(const view::instance* view);
-
-        static void render_light_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
+        static void sort_models_and_draw_world();
 
     public:
         static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
@@ -414,51 +330,20 @@ namespace hyper
 
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
 
-        static inline bool& flare_pool_off = *reinterpret_cast<bool*>(0x00B42F1C);
-
-        static inline bool& draw_light_flares = *reinterpret_cast<bool*>(0x00A6C088);
-
-        static inline std::uint32_t& rendering_model_count = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
-
-        static array<rendering_model, 4096u> rendering_models;
+        static inline bool& use_lowlod_pass = *reinterpret_cast<bool*>(0x00AB0B98);
 
     private:
-        static bool flare_pool_inited_;
+        static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);
 
-        static std::uint32_t active_flare_count_;
+        static inline rendering_order*& rendering_orders_ = *reinterpret_cast<rendering_order**>(0x00B1DB90);
 
-        static bool active_flare_types_[4]; // red, amber, green, generic
-
-        static float active_flare_times_[4]; // red, amber, green, generic
-
-        static float active_flare_blink_[4]; // red, amber, green, generic
-
-        static std::uint32_t flare_texture_keys_[5];
-
-        static texture::e_texture flare_texture_infos_[5];
-
-        static bitset<static_cast<size_t>(view_id::count)> flare_mask_;
-
-        static bitset<static_cast<size_t>(view_id::count)> view_to_flare_;
-
-        static array<flare::params*, static_cast<size_t>(flare::type::count) * 2u> flare_params_;
-
-        static inline flare::instance flare_pool_[1000]{};
-
-        static inline std::uint32_t flare_bits_[1000]{};
+        static inline std::uint32_t& rendering_model_count_ = *reinterpret_cast<std::uint32_t*>(0x00AB0BF0);
     };
 
-    CREATE_ENUM_EXPR_OPERATORS(model_lod);
-    CREATE_ENUM_EXPR_OPERATORS(render_target_id);
-    CREATE_ENUM_EXPR_OPERATORS(view_id);
     CREATE_ENUM_FLAG_OPERATORS(poly_flags);
 
-    ASSERT_SIZE(render_target, 0x1C);
-    ASSERT_SIZE(render_view, 0x1E0);
     ASSERT_SIZE(poly, 0xA0);
-    ASSERT_SIZE(camera_params, 0xF0);
     ASSERT_SIZE(camera_anchor, 0xF0);
-    ASSERT_SIZE(camera, 0x2F0);
     ASSERT_SIZE(camera_mover, 0x8C);
     ASSERT_SIZE(screen_effect_inf, 0x0C);
     ASSERT_SIZE(screen_effect_def, 0x50);

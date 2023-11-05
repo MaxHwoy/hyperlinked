@@ -1,5 +1,5 @@
 #include <hyperlib/renderer/lighting.hpp>
-#include <hyperlinked/patches/lighting.hpp>
+#include <hyperlinked/patches/renderer/lighting.hpp>
 
 namespace hyper
 {

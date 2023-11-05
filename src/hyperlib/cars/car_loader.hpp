@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <hyperlib/shared.hpp>
 
 namespace hyper
 {

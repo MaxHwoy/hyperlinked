@@ -21,6 +21,8 @@ namespace hyper
         plane planes[static_cast<std::uint32_t>(clipping_plane_type::count)];
     };
 
+    class lighting;
+
     class view final
     {
     public:
@@ -65,21 +67,32 @@ namespace hyper
             std::int32_t pixel_min_size;
             vector3 view_direction;
             std::uint32_t pad04;
-            struct camera* camera;
+            class camera* camera;
             linked_list<struct camera_mover> camera_mover_list;
-            struct dynamic_light_context* world_light_context;
-            struct render_target* attached_target;
+            void* world_light_context; // fuck you c++
+            class render_target* attached_target;
             char pad0C[0x0C];
         };
 
         struct __declspec(align(0x10)) instance : public base
         {
         public:
+            static auto calculate_pixelation(std::uint16_t horizontal_fov) -> float;
+
+        public:
+            void calculate_view_matrices(float near_clip, float far_clip, bool calculate_frustum);
+
             auto get_flare_intensity() const -> float;
 
             bool is_in_a_tunnel(bool check_overpass) const;
 
             auto get_camera_mover() const -> struct camera_mover*;
+
+            auto get_screen_depth(const vector3& point, const matrix4x4* trs) const -> float;
+
+            auto get_screen_depth(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> float;
+
+            void setup_world_light_context();
 
         public:
             std::uint32_t num_cops_in_view;
@@ -89,7 +102,10 @@ namespace hyper
             struct screen_effect_db* screen_effect;
             struct face_pixelation* face_pixelation;
 
+        public:
             static array<instance, static_cast<size_t>(view_id::count)> views;
+
+            static inline matrix4x4& super_rotation = *reinterpret_cast<matrix4x4*>(0x00B1F5F0);
         };
     };
 

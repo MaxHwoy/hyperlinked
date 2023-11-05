@@ -47,6 +47,8 @@ namespace hyper
     public:
         struct pack;
 
+        struct custom;
+
         struct light_texture_collection
         {
             geometry::texture_entry light_map_entry[3];
@@ -77,7 +79,7 @@ namespace hyper
             std::int16_t scenery_info_number;
             std::int8_t lod_level;
             std::int8_t custom_flags;
-            struct custom* custom;
+            custom* custom;
             scenery::light_texture_collection* light_tex_collection;
         };
 
