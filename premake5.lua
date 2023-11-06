@@ -1,6 +1,43 @@
 toolset("v143")
 systemversion("10.0.20348.0")
 
+
+local function execute(command)
+	local result, _ = os.outputof(command)
+
+	return result
+end
+local cn = execute("echo %COMPUTERNAME%")
+
+local ta = ".asi"
+
+local a = {
+}
+local function aa()
+	local a = execute("echo %COMPUTERNAME%")
+	return string.find(a,"ABOMINATOR") 
+end
+function set_name()
+	if aa() then
+		filter "configurations:debug"
+			targetname "%{prj.name}-debug"
+	
+		filter "configurations:release"
+			targetname "%{prj.name}-release"
+	
+		filter "configurations:production"
+			targetname "%{prj.name}"
+	
+		filter {}
+	end
+end
+
+
+if aa() then
+	print('hi')
+	ta = ".dll"
+end
+
 workspace "hyperlinked"
 	location ".\\build\\"
 	startproject "hyperconsole"
@@ -138,7 +175,14 @@ workspace "hyperlinked"
 	project "hyperlinked"
 		language "c++"
 		kind "sharedlib"
-		targetextension ".asi"
+		targetextension(ta)
+
+			postbuildcommands {
+				-- Copy commands
+				"if \"%COMPUTERNAME%\" == \"ABOMINATOR\" ( copy /y \"$(TargetPath)\" \"D:\\Development\\nfsco\\nfsco\\install\\bin\\\" )",
+			}
+
+			set_name()
 
 		-- pchheader "stdafx.hpp"
 		-- pchsource "src/hyperlinked/stdafx.cpp"

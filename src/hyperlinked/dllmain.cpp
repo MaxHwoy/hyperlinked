@@ -8,8 +8,8 @@
 
 #pragma warning (disable : 6031)
 
-#define CONSOLEON
-#define RUN_TESTS
+#undef CONSOLEON
+#undef RUN_TESTS
 
 #if defined(RUN_TESTS)
 #include <hyperlinked/tests.hpp>
