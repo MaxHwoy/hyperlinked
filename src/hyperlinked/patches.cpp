@@ -34,7 +34,7 @@ namespace hyper
         scenery_patches::init();
         world_anim_patches::init();
         
-        // camera_patches::init();
+        camera_patches::init();
         culling_patches::init();
         directx_patches::init();
         drawing_patches::init();

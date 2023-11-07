@@ -101,6 +101,8 @@ namespace hyper
                 this->current_key.view_matrix = trolli::instance.camera_matrix;
 
                 this->current_key.view_matrix.row(3u).as_vector3() *= 0.01f;
+
+                this->current_key.view_matrix.m44 = 1.0f;
             }
 
             matrix4x4 rotation;
@@ -138,7 +140,7 @@ namespace hyper
 
                 this->velocity_key.direction = vector4::scale(vector4::subtract(this->current_key.direction, this->previous_key.direction), inverse_lapsed);
 
-                this->velocity_key.target = vector4::scale(vector4::subtract(this->current_key.target, this->previous_key.direction), inverse_lapsed);
+                this->velocity_key.target = vector4::scale(vector4::subtract(this->current_key.target, this->previous_key.target), inverse_lapsed);
 
                 this->velocity_key.noise_frequency_1 = (this->current_key.noise_frequency_1 - this->previous_key.noise_frequency_1) * inverse_lapsed;
 
