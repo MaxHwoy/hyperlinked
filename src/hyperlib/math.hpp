@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <cmath>
 
 #if defined(USE_SIMD_VECTORIZATIONS)
