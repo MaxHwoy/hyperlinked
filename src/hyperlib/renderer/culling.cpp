@@ -386,7 +386,7 @@ namespace hyper
                             
                             if ((exclude & instance_flags::include_rear_view) != 0)
                             {
-                                if ((include & instance_flags::include_rear_view) != 0 && pixel_size >= 32)
+                                if (pixel_size >= 32)
                                 {
                                     return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
                                 }
