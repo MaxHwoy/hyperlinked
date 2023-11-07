@@ -84,8 +84,6 @@ namespace hyper
 
     void camera::set_camera_matrix(const matrix4x4& world_to_camera, float elapsed)
     {
-        // #TODO why is this broken for canyon-nis to car camera transition???
-
         if (!camera::stop_updating)
         {
             ::memcpy(&this->previous_key, &this->current_key, sizeof(camera::params));
