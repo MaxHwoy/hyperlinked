@@ -34,14 +34,14 @@ namespace hyper
         scenery_patches::init();
         world_anim_patches::init();
         
-        camera_patches::init();
+        // camera_patches::init();
         culling_patches::init();
-        directx_patches::init();
-        drawing_patches::init();
-        effect_patches::init();
+        // directx_patches::init();
+        // drawing_patches::init();
+        // effect_patches::init();
         flare_pool_patches::init();
         lighting_patches::init();
-        view_patches::init();
+        // view_patches::init();
         
         section_patches::init();
         streamer_patches::init();
