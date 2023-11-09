@@ -433,14 +433,32 @@ namespace hyper
             lighting::ingame_light_params.y = lighting::default_ingame_light_y;
             lighting::ingame_light_params.w = lighting::default_ingame_light_w;
 
-            if (game_flow::manager::instance.current_state == game_flow::state::racing)
+            const auto in_frontend = game_flow::manager::instance.current_state == game_flow::state::in_frontend;
+
+#if defined(ABOMINATOR)
+            // copy the vector.
+            auto vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
+#else
+            const auto& vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
+#endif
+
+#if defined(ABOMINATOR)
+            const auto render_target = render_target::current;
+
+            if (render_target->view_id >= view_id::env_z_pos)
             {
-                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params);
+                if (in_frontend)
+                {
+                    vector.x += 2.5f;
+                    vector.y -= 1.0f;
+                }
+                else
+                {
+                    vector.y -= 0.4f;
+                }
             }
-            else
-            {
-                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params);
-            }
+#endif
+            this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, vector);
         }
     }
 

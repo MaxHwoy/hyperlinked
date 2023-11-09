@@ -1,24 +1,28 @@
 toolset("v143")
 systemversion("10.0.20348.0")
 
-
 local function execute(command)
 	local result, _ = os.outputof(command)
 
 	return result
 end
-local cn = execute("echo %COMPUTERNAME%")
 
-local ta = ".asi"
+local target_extension = ".asi"
 
-local a = {
-}
-local function aa()
-	local a = execute("echo %COMPUTERNAME%")
-	return string.find(a,"ABOMINATOR") 
+local function is_abominator()
+	local name = execute("echo %COMPUTERNAME%")
+
+	return string.find(name,"ABOMINATOR")
 end
-function set_name()
-	if aa() then
+
+local function set_defines()
+	if is_abominator() then
+		defines("ABOMINATOR")
+	end
+end
+
+local function set_name()
+	if is_abominator() then
 		filter "configurations:debug"
 			targetname "%{prj.name}-debug"
 	
@@ -32,10 +36,9 @@ function set_name()
 	end
 end
 
-
-if aa() then
+if is_abominator() then
 	print('hi')
-	ta = ".dll"
+	target_extension = ".dll"
 end
 
 workspace "hyperlinked"
@@ -72,6 +75,8 @@ workspace "hyperlinked"
 		"undefinedidentifiers",
 		"multiprocessorcompile",
 	}
+
+	set_defines()
 
 	defines {
 		"NOMINMAX",
@@ -175,14 +180,14 @@ workspace "hyperlinked"
 	project "hyperlinked"
 		language "c++"
 		kind "sharedlib"
-		targetextension(ta)
 
-			postbuildcommands {
-				-- Copy commands
-				"if \"%COMPUTERNAME%\" == \"ABOMINATOR\" ( copy /y \"$(TargetPath)\" \"D:\\Development\\nfsco\\nfsco\\install\\bin\\\" )",
-			}
+		targetextension(target_extension)
 
-			set_name()
+		postbuildcommands {
+			"if \"%COMPUTERNAME%\" == \"ABOMINATOR\" ( copy /y \"$(TargetPath)\" \"D:\\Development\\nfsco\\nfsco\\install\\bin\\\" )",
+		}
+
+		set_name()
 
 		-- pchheader "stdafx.hpp"
 		-- pchsource "src/hyperlinked/stdafx.cpp"
