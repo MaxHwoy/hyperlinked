@@ -686,7 +686,7 @@ namespace hyper
 
             for (technique* i = this->supported_table_.begin(); i != this->supported_table_.end(); ++i)
             {
-                if (length == i->name.length() && ::memcmp(name, i->name, length))
+                if (length == i->name.length() && !::memcmp(name, i->name, length))
                 {
                     return i;
                 }
@@ -813,7 +813,7 @@ namespace hyper
     {
         for (size_t i = 0u; i < shader_lib::inputs_.length(); ++i)
         {
-            if (::strcmp(name, shader_lib::inputs_[i].effect_name))
+            if (!::strcmp(name, shader_lib::inputs_[i].effect_name))
             {
                 return &shader_lib::inputs_[i];
             }
