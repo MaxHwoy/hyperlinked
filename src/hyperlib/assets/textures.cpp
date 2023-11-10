@@ -26,43 +26,43 @@ namespace hyper
             switch (texture->blend_type)
             {
                 case texture::alpha_blend_type::blend:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                    this->alpha_blend_src = ::D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = ::D3DBLEND_INVSRCALPHA;
                     break;
                 
                 case texture::alpha_blend_type::additive:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_ONE;
+                    this->alpha_blend_src = ::D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = ::D3DBLEND_ONE;
                     this->is_additive_blend = true;
                     this->colour_write_alpha = true;
                     break;
                 
                 case texture::alpha_blend_type::subtractive:
-                    this->alpha_blend_src = D3DBLEND_ZERO;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCCOLOR;
+                    this->alpha_blend_src = ::D3DBLEND_ZERO;
+                    this->alpha_blend_dest = ::D3DBLEND_INVSRCCOLOR;
                     break;
                 
                 case texture::alpha_blend_type::overbright:
-                    this->alpha_blend_src = D3DBLEND_SRCALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVSRCALPHA;
+                    this->alpha_blend_src = ::D3DBLEND_SRCALPHA;
+                    this->alpha_blend_dest = ::D3DBLEND_INVSRCALPHA;
                     break;
                 
                 case texture::alpha_blend_type::dest_blend:
-                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                    this->alpha_blend_dest = D3DBLEND_INVDESTALPHA;
+                    this->alpha_blend_src = ::D3DBLEND_DESTALPHA;
+                    this->alpha_blend_dest = ::D3DBLEND_INVDESTALPHA;
                     break;
                 
                 case texture::alpha_blend_type::dest_additive:
-                    this->alpha_blend_src = D3DBLEND_DESTALPHA;
-                    this->alpha_blend_dest = D3DBLEND_ONE;
+                    this->alpha_blend_src = ::D3DBLEND_DESTALPHA;
+                    this->alpha_blend_dest = ::D3DBLEND_ONE;
                     break;
             }
         }
         else
         {
             this->z_write_enabled = true;
-            this->alpha_blend_src = D3DBLEND_ONE;
-            this->alpha_blend_dest = D3DBLEND_ZERO;
+            this->alpha_blend_src = ::D3DBLEND_ONE;
+            this->alpha_blend_dest = ::D3DBLEND_ZERO;
 
             if (!this->alpha_test_enabled && (texture->flags & texture::bit_flags::disable_culling) != texture::bit_flags::disable_culling)
             {
@@ -72,24 +72,28 @@ namespace hyper
 
         if ((texture->tilable_uv & texture::tileable_type::u_mirror) == texture::tileable_type::u_mirror)
         {
-            this->texture_address_u = D3DTADDRESS_MIRROR;
+            this->texture_address_u = ::D3DTADDRESS_MIRROR;
         }
         else
         {
-            this->texture_address_u = (texture->tilable_uv & texture::tileable_type::u_repeat) == texture::tileable_type::u_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
+            this->texture_address_u = (texture->tilable_uv & texture::tileable_type::u_repeat) == texture::tileable_type::u_repeat 
+                ? ::D3DTADDRESS_WRAP 
+                : ::D3DTADDRESS_CLAMP;
         }
 
         if ((texture->tilable_uv & texture::tileable_type::v_mirror) == texture::tileable_type::v_mirror)
         {
-            this->texture_address_v = D3DTADDRESS_MIRROR;
+            this->texture_address_v = ::D3DTADDRESS_MIRROR;
         }
         else
         {
-            this->texture_address_v = (texture->tilable_uv & texture::tileable_type::v_repeat) == texture::tileable_type::v_repeat ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
+            this->texture_address_v = (texture->tilable_uv & texture::tileable_type::v_repeat) == texture::tileable_type::v_repeat 
+                ? ::D3DTADDRESS_WRAP 
+                : ::D3DTADDRESS_CLAMP;
         }
 
         this->bias_level = texture->bias_level & 3;
-        this->alpha_test_ref = 11u; // #TODO
+        this->alpha_test_ref = 11u; // #TODO ?
 
         if (class_key == hashing::bin_const("Tree Leaves") || class_key == hashing::bin_const("Tree Cards") || class_key == hashing::bin_const("MultiPass Blend"))
         {
@@ -99,7 +103,7 @@ namespace hyper
 
         bool is_barrier = class_key == hashing::bin_const("Barrier Mask")
 #if defined(CHECK_BARRIER_STRINGS)
-            || ::strncmp(reinterpret_cast<const char*>(texture->name), "SFX_TRACKBARRIER", 16u)
+            || !::strncmp(reinterpret_cast<const char*>(texture->name), "SFX_TRACKBARRIER", 16u)
 #endif
             ;
 
