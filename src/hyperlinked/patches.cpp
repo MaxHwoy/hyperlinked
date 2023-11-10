@@ -6,6 +6,7 @@
 
 #include <hyperlinked/patches/assets/loader.hpp>
 #include <hyperlinked/patches/assets/scenery.hpp>
+#include <hyperlinked/patches/assets/textures.hpp>
 #include <hyperlinked/patches/assets/world_anim.hpp>
 
 #include <hyperlinked/patches/renderer/camera.hpp>
@@ -32,6 +33,7 @@ namespace hyper
         
         loader_patches::init();
         scenery_patches::init();
+        texture_patches::init();
         world_anim_patches::init();
         
         camera_patches::init();
