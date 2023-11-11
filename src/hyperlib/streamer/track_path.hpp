@@ -76,6 +76,10 @@ namespace hyper
         struct manager
         {
         public:
+            void disable_all_barriers();
+
+            void enable_barriers(const char* barrier_name);
+
             auto find_zone(const vector2* position, zone::type type, const zone* prev) -> zone*;
 
         public:

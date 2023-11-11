@@ -325,6 +325,8 @@ namespace hyper
 
             void disable_group(std::uint32_t key);
 
+            void disable_all_groups();
+
             bool loader(chunk* block);
 
             bool unloader(chunk* block);
@@ -336,6 +338,8 @@ namespace hyper
 
         public:
             static auto get_distance_outside(const boundary* bound, const vector2& position, float extra_width) -> float;
+
+            static auto get_group_info(const char* group_name) -> const group_info*;
 
         public:
             linked_list<boundary> drivable_boundary_list;
@@ -370,6 +374,8 @@ namespace hyper
             static inline std::uint32_t& current_zone_number = *reinterpret_cast<std::uint32_t*>(0x00A71C1C);
 
             static inline geometry::model*& zone_boundary_model = *reinterpret_cast<geometry::model**>(0x00B69BE8);
+
+            static inline array<group_info, 5u> group_info_table = array<group_info, 5u>(0x00A72C30);
         };
     };
 
