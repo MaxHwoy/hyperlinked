@@ -18,6 +18,14 @@ namespace hyper
 
         static void disable_all_scenery_groups();
 
+        static void init_topology_and_scenery_groups();
+
         static void redo_topology_and_scenery_groups();
+
+    private:
+        static inline const char* permanent_scenery_groups[] =
+        {
+            "SCENERY_GROUP_DOOR",
+        };
     };
 }

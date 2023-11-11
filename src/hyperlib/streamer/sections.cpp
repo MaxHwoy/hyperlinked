@@ -494,7 +494,9 @@ namespace hyper
         {
             const group_info& info = visible_section::manager::group_info_table[i];
 
-            if (string::length(info.selection_set_name) == length && !::_strnicmp(info.selection_set_name, group_name, length))
+            size_t namesz = string::length(info.selection_set_name);
+
+            if (namesz <= length && !::_strnicmp(info.selection_set_name, group_name, namesz))
             {
                 return &info;
             }

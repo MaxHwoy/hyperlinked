@@ -50,6 +50,17 @@ namespace hyper
         }
     }
 
+    void world::init_topology_and_scenery_groups()
+    {
+        for (const char* group : world::permanent_scenery_groups)
+        {
+            if (scenery::group::find(hashing::bin(group)) != nullptr)
+            {
+                world::enable_barrier_scenery_group(group, false);
+            }
+        }
+    }
+
     void world::redo_topology_and_scenery_groups()
     {
         track_path::manager::instance.disable_all_barriers();
@@ -58,9 +69,6 @@ namespace hyper
         
         world::disable_all_scenery_groups();
 
-        if (scenery::group::find(hashing::bin_const("SCENERY_GROUP_DOOR")) != nullptr)
-        {
-            world::enable_barrier_scenery_group("SCENERY_GROUP_DOOR", false);
-        }
+        world::init_topology_and_scenery_groups();
     }
 }
