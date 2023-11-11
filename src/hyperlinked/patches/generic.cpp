@@ -28,5 +28,11 @@ namespace hyper
 
         // TrackStreamer::DetermineCurrentZones
         hook::nop(0x007A486D, 1u);
+
+        // GManager::RefreshRandomEncounterIcons (unhardcode Silverton encounter locations)
+        hook::nop(0x00634735, 2);
+
+        // GCareer::EnableCareerBarriers (disable Silverton barriers)
+        hook::set<std::uint8_t>(0x0061817C, 0xEB);
     }
 }
