@@ -117,7 +117,7 @@ namespace hyper
 
     void flare_pool::ctor(flare_pool* pool)
     {
-        new (pool) flare_pool(0x80u); // by default, flare pool is initialized to 0x80 flares
+        new (pool) flare_pool(0x200u);
     }
 
     void flare_pool::dtor(flare_pool* pool)

@@ -6,6 +6,7 @@
 
 #include <hyperlinked/patches/assets/loader.hpp>
 #include <hyperlinked/patches/assets/scenery.hpp>
+#include <hyperlinked/patches/assets/textures.hpp>
 #include <hyperlinked/patches/assets/world_anim.hpp>
 
 #include <hyperlinked/patches/renderer/camera.hpp>
@@ -21,6 +22,7 @@
 #include <hyperlinked/patches/streamer/streamer.hpp>
 
 #include <hyperlinked/patches/world/collision.hpp>
+#include <hyperlinked/patches/world/world.hpp>
 
 namespace hyper
 {
@@ -32,6 +34,7 @@ namespace hyper
         
         loader_patches::init();
         scenery_patches::init();
+        texture_patches::init();
         world_anim_patches::init();
         
         // camera_patches::init();
@@ -47,5 +50,6 @@ namespace hyper
         streamer_patches::init();
         
         collision_patches::init();
+        world_patches::init();
     }
 }

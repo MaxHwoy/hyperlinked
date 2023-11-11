@@ -13,5 +13,21 @@ namespace hyper
         static void init_visible_zones(geometry::model*& boundary_model);
 
         static void notify_sky_loader();
+
+        static void enable_barrier_scenery_group(const char* name, bool flip_artwork);
+
+        static void disable_all_scenery_groups();
+
+        static void init_topology_and_scenery_groups();
+
+        static void redo_topology_and_scenery_groups();
+
+    private:
+        static inline const char* permanent_scenery_groups[] =
+        {
+            "SCENERY_GROUP_DOOR",
+            "SCENERY_GROUP_CHRISTMAS",
+            "SCENERY_GROUP_HALLOWEEN_DISABLE",
+        };
     };
 }
