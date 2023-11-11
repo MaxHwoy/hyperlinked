@@ -306,6 +306,11 @@ namespace hyper
         }
     }
 
+    void visible_section::manager::disable_all_groups()
+    {
+        ::memset(this->enabled_groups, 0, sizeof(this->enabled_groups));
+    }
+
     bool visible_section::manager::loader(chunk* block)
     {
         if (block->id() == block_id::visible_section_manager)
@@ -479,5 +484,22 @@ namespace hyper
         }
 
         return extra_width;
+    }
+
+    auto visible_section::manager::get_group_info(const char* group_name) -> const group_info*
+    {
+        size_t length = string::length(group_name);
+
+        for (size_t i = 0u; i < visible_section::manager::group_info_table.length(); ++i)
+        {
+            const group_info& info = visible_section::manager::group_info_table[i];
+
+            if (string::length(info.selection_set_name) == length && !::_strnicmp(info.selection_set_name, group_name, length))
+            {
+                return &info;
+            }
+        }
+
+        return nullptr;
     }
 }

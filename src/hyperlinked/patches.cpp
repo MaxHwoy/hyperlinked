@@ -22,6 +22,7 @@
 #include <hyperlinked/patches/streamer/streamer.hpp>
 
 #include <hyperlinked/patches/world/collision.hpp>
+#include <hyperlinked/patches/world/world.hpp>
 
 namespace hyper
 {
@@ -49,5 +50,6 @@ namespace hyper
         streamer_patches::init();
         
         collision_patches::init();
+        world_patches::init();
     }
 }
