@@ -26,6 +26,8 @@ namespace hyper
         static inline const char* permanent_scenery_groups[] =
         {
             "SCENERY_GROUP_DOOR",
+            "SCENERY_GROUP_CHRISTMAS",
+            "SCENERY_GROUP_HALLOWEEN_DISABLE",
         };
     };
 }
