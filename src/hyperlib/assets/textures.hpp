@@ -237,6 +237,16 @@ namespace hyper
     public:
         static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);
 
+        static inline info*& rvm_texture = *reinterpret_cast<info**>(0x00AB0A44);
+
+        static inline info*& rvm_mask_texture = *reinterpret_cast<info**>(0x00AB0A48);
+
+        static inline info*& pip_mask_texture = *reinterpret_cast<info**>(0x00AB0A50);
+
+        static inline info*& white_16x16_no_alpha_texture = *reinterpret_cast<info**>(0x00AB0A4C);
+
+        static inline array<info*, 5u> ghost_car_textures = array<info*, 5u>(0x00AB08C0);
+
         static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A921B0);
     };
 
