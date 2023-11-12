@@ -1,5 +1,7 @@
-#include <hyperlib/assets/loader.hpp>
+#include <hyperlib/global_vars.hpp>
 #include <hyperlib/memory/memory.hpp>
+#include <hyperlib/assets/loader.hpp>
+#include <hyperlib/assets/textures.hpp>
 
 namespace hyper
 {
@@ -15,7 +17,18 @@ namespace hyper
 
     void loader::load_chunks(void* memory, size_t size, const char* debug_name)
     {
-        call_function<void(__cdecl*)(void*, size_t, const char*)>(0x006AD8F0)(memory, size, debug_name);
+        chunk* block = reinterpret_cast<chunk*>(memory);
+
+        loader::verify_chunk_integrity(block, size, 0u);
+
+        const chunk* end = reinterpret_cast<const chunk*>(reinterpret_cast<uintptr_t>(block) + size);
+
+        for (chunk* curr = block; curr < end; curr = curr->end())
+        {
+            call_function<int(__cdecl*)(chunk*)>(0x00699320)(curr); // CallChunkLoader
+        }
+
+        loader::post_load_fixup();
     }
 
     void loader::unload_chunks(void* memory, size_t size)
@@ -30,7 +43,7 @@ namespace hyper
             ASSERT_WITH_MESSAGE(false, "Chunks are internally corrupted! Exceeding maximum recursive depth!");
         }
 
-        const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);
+        const chunk* end = reinterpret_cast<const chunk*>(reinterpret_cast<uintptr_t>(block) + size);
 
         if (block != end)
         {
@@ -211,6 +224,33 @@ namespace hyper
 
     void loader::post_load_fixup()
     {
-        call_function<void(__cdecl*)()>(0x006995D0)();
+        if (!global::disable_fixup_tables && (global::dirty_solids || global::dirty_textures))
+        {
+            loader::fixup_tables_plat();
+
+            global::dirty_solids = false;
+            global::dirty_textures = false;
+            global::dirty_animations = false;
+        }
+    }
+
+    void loader::fixup_tables_plat()
+    {
+        // #TODO this should be made better (via static/on-startup registration)
+
+        texture::rvm_texture = texture::get_texture_info(hashing::bin_const("RVM"), false, false);
+
+        texture::rvm_mask_texture = texture::get_texture_info(hashing::bin_const("RVM_MASK"), false, false);
+
+        texture::pip_mask_texture = texture::get_texture_info(hashing::bin_const("PIP_MASK"), false, false);
+
+        texture::white_16x16_no_alpha_texture = texture::get_texture_info(hashing::bin_const("WHITE16X16_NOALPHA"), false, false);
+
+        texture::info* ghost = texture::get_texture_info(hashing::bin_const("GHOSTCAR"), false, false);
+
+        for (size_t i = 0u; i < texture::ghost_car_textures.length(); ++i)
+        {
+            texture::ghost_car_textures[i] = ghost;
+        }
     }
 }
