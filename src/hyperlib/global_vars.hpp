@@ -20,5 +20,13 @@ namespace hyper
         static inline std::uint32_t& allow_duplicate_solids = *reinterpret_cast<std::uint32_t*>(0x00A8FF90);
 
         static inline std::uint32_t& duplicate_texture_warning_enabled = *reinterpret_cast<std::uint32_t*>(0x00A5E008);
+
+        static inline bool& disable_fixup_tables = *reinterpret_cast<bool*>(0x00A8FF94);
+
+        static inline bool& dirty_solids = *reinterpret_cast<bool*>(0x00A8FF98);
+
+        static inline bool& dirty_textures = *reinterpret_cast<bool*>(0x00A8FF9C);
+
+        static inline bool& dirty_animations = *reinterpret_cast<bool*>(0x00A8FFA0);
     };
 }

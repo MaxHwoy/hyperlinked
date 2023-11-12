@@ -69,6 +69,8 @@ namespace hyper
 
         static void post_load_fixup();
 
+        static void fixup_tables_plat();
+
     public:
         static inline bool& split_vram_data = *reinterpret_cast<bool*>(0x00A62B74);
 
