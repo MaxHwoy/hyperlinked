@@ -59,6 +59,9 @@ namespace hyper
                 world::enable_barrier_scenery_group(group, false);
             }
         }
+
+        // enable the Rockport golf course scenery group.
+        scenery::group::enable(0xE7F447E4, false);
     }
 
     void world::redo_topology_and_scenery_groups()
