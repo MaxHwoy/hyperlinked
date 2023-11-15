@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/pca.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/collections/string.hpp>
 #include <hyperlib/renderer/enums.hpp>
@@ -89,6 +90,7 @@ namespace hyper
     public:
         enum class flags : std::uint32_t
         {
+            none                 = 0u,
             wants_alpha_sort     = 1u << 0,
             wants_pass_preflight = 1u << 1,
             wants_draw_preflight = 1u << 2,
@@ -314,13 +316,15 @@ namespace hyper
         virtual void end();
         virtual void load_global_textures();
 
-        effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input);
+        effect(shader_type type, effect::flags flags, const effect::param_index_pair* indices, const effect::input* input);
 
         void initialize(const effect::input* input);
 
         void connect_parameters();
 
         void reset_filter_params();
+
+        void reset_lighting_params();
 
         void load_effect_from_buffer(const effect::input* input);
 
@@ -329,6 +333,8 @@ namespace hyper
         auto find_techique(const char* name) -> technique*;
 
         void set_technique(const char* name);
+
+        void set_pca_blend_data(const pca::blend_data& data);
 
         inline auto id() const -> shader_type
         {
@@ -427,6 +433,19 @@ namespace hyper
             this->effect_->SetMatrix(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXMATRIX*>(&matrix));
         }
 
+        inline void set_vector_array(parameter_type type, const vector4* array, std::uint32_t count)
+        {
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetVectorArray(handle, reinterpret_cast<const ::D3DXVECTOR4*>(array), count);
+            }
+        }
+
+        inline void set_vector_array_unchecked(parameter_type type, const vector4* array, std::uint32_t count)
+        {
+            this->effect_->SetVectorArray(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXVECTOR4*>(array), count);
+        }
+
         inline void set_texture(parameter_type type, IDirect3DBaseTexture9* texture)
         {
             if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
@@ -443,8 +462,8 @@ namespace hyper
     private:
         shader_type id_;
         std::uint32_t stride_;
-        std::uint32_t technique_count_;
-        std::uint32_t annotation_count_;
+        std::uint32_t main_technique_number_;
+        ::D3DXHANDLE main_technique_handle_;
         std::uint32_t pass_count_;
         std::int32_t __3__;
         std::int32_t __4__;
@@ -457,15 +476,19 @@ namespace hyper
         std::int32_t __11__;
         std::int32_t __14__;
         bool active_;
+
+    protected:
         ::ID3DXEffect* effect_;
+
+    private:
         ::IDirect3DVertexDeclaration9* vertex_decl_;
         parameter params_[static_cast<std::uint32_t>(parameter_type::count)];
         table unsupported_table_;
         table supported_table_;
-        param_index_pair* index_pairs_;
+        const param_index_pair* index_pairs_;
         const char* name_;
         flags flags_;
-        bool has_annotations_;
+        bool has_main_technique_;
         std::int32_t low_lod_technique_number_;
         std::int32_t has_zero_offset_scale_;
         std::int32_t has_fog_disabled_;
@@ -633,6 +656,9 @@ namespace hyper
     class effect_world : public effect
     {
     public:
+        effect_world();
+
+    public:
         constexpr static inline shader_type type = shader_type::WorldShader;
 
         constexpr static inline const char* name = "WorldShader";
@@ -642,6 +668,9 @@ namespace hyper
 
     class effect_world_reflect : public effect
     {
+    public:
+        effect_world_reflect();
+
     public:
         void start() override;
         void load_global_textures() override;
@@ -663,6 +692,12 @@ namespace hyper
     class effect_world_bone : public effect
     {
     public:
+        effect_world_bone();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::WorldBoneShader;
 
         constexpr static inline const char* name = "WorldBoneShader";
@@ -672,6 +707,12 @@ namespace hyper
 
     class effect_world_normal_map : public effect
     {
+    public:
+        effect_world_normal_map();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::WorldNormalMap;
 
@@ -683,6 +724,12 @@ namespace hyper
     class effect_car : public effect
     {
     public:
+        effect_car();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::CarShader;
 
         constexpr static inline const char* name = "CarShader";
@@ -692,6 +739,13 @@ namespace hyper
 
     class effect_car_normal_map : public effect
     {
+    public:
+        effect_car_normal_map();
+
+    public:
+        void start() override;
+        void load_global_textures() override;
+
     private:
         ::IDirect3DTexture9* normal_2dnoise_;
 
@@ -706,6 +760,9 @@ namespace hyper
     class effect_world_min : public effect
     {
     public:
+        effect_world_min();
+
+    public:
         constexpr static inline shader_type type = shader_type::WorldMinShader;
 
         constexpr static inline const char* name = "WorldMinShader";
@@ -715,6 +772,12 @@ namespace hyper
 
     class effect_fe : public effect
     {
+    public:
+        effect_fe();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::FEShader;
 
@@ -726,6 +789,12 @@ namespace hyper
     class effect_fe_mask : public effect
     {
     public:
+        effect_fe_mask();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::FEMaskShader;
 
         constexpr static inline const char* name = "FEMaskShader";
@@ -735,6 +804,12 @@ namespace hyper
 
     class effect_filter : public effect
     {
+    public:
+        effect_filter();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::FilterShader;
 
@@ -746,6 +821,12 @@ namespace hyper
     class effect_screen_filter : public effect
     {
     public:
+        effect_screen_filter();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::ScreenFilterShader;
 
         constexpr static inline const char* name = "ScreenFilterShader";
@@ -755,6 +836,9 @@ namespace hyper
 
     class effect_raindrop : public effect
     {
+    public:
+        effect_raindrop();
+
     public:
         constexpr static inline shader_type type = shader_type::RainDropShader;
 
@@ -766,6 +850,13 @@ namespace hyper
     class effect_visual_treatment : public effect
     {
     public:
+        effect_visual_treatment();
+
+    public:
+        void draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert) override;
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::VisualTreatmentShader;
 
         constexpr static inline const char* name = "VisualTreatmentShader";
@@ -775,6 +866,12 @@ namespace hyper
 
     class effect_world_prelit : public effect
     {
+    public:
+        effect_world_prelit();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::WorldPrelitShader;
 
@@ -786,6 +883,9 @@ namespace hyper
     class effect_particles : public effect
     {
     public:
+        effect_particles();
+
+    public:
         constexpr static inline shader_type type = shader_type::ParticlesShader;
 
         constexpr static inline const char* name = "ParticlesShader";
@@ -795,8 +895,15 @@ namespace hyper
 
     class effect_sky : public effect
     {
+    public:
+        effect_sky();
+
+    public:
+        void start() override;
+        void load_global_textures() override;
+
     private:
-        ::IDirect3DTexture9* texture_;
+        ::IDirect3DTexture9* sky_texture_;
 
     public:
         constexpr static inline shader_type type = shader_type::skyshader;
@@ -804,10 +911,21 @@ namespace hyper
         constexpr static inline const char* name = "skyshader";
 
         static inline effect_sky*& instance = *reinterpret_cast<effect_sky**>(0x00B42FF4);
+
+    private:
+        static inline float& sky_time_ticker_ = *reinterpret_cast<float*>(0x00B4CFB0);
+
+        static inline std::int32_t& last_frame_updated_ = *reinterpret_cast<std::int32_t*>(0x00B4CFB4);
     };
 
     class effect_shadow_map_mesh : public effect
     {
+    public:
+        effect_shadow_map_mesh();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::shadow_map_mesh;
 
@@ -819,6 +937,12 @@ namespace hyper
     class effect_car_shadow_map : public effect
     {
     public:
+        effect_car_shadow_map();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::CarShadowMapShader;
 
         constexpr static inline const char* name = "CarShadowMapShader";
@@ -828,6 +952,12 @@ namespace hyper
 
     class effect_world_depth : public effect
     {
+    public:
+        effect_world_depth();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::WorldDepthShader;
 
@@ -839,6 +969,12 @@ namespace hyper
     class effect_shadow_map_mesh_depth : public effect
     {
     public:
+        effect_shadow_map_mesh_depth();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::shadow_map_mesh_depth;
 
         constexpr static inline const char* name = "shadow_map_mesh_depth";
@@ -848,6 +984,12 @@ namespace hyper
 
     class effect_normal_map_no_fog : public effect
     {
+    public:
+        effect_normal_map_no_fog();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::NormalMapNoFog;
 
@@ -859,6 +1001,12 @@ namespace hyper
     class effect_instance_mesh : public effect
     {
     public:
+        effect_instance_mesh();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::InstanceMesh;
 
         constexpr static inline const char* name = "InstanceMesh";
@@ -868,6 +1016,12 @@ namespace hyper
 
     class effect_screen_effect : public effect
     {
+    public:
+        effect_screen_effect();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::ScreenEffectShader;
 
@@ -879,6 +1033,12 @@ namespace hyper
     class effect_hdr : public effect
     {
     public:
+        effect_hdr();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::HDRShader;
 
         constexpr static inline const char* name = "HDRShader";
@@ -889,6 +1049,12 @@ namespace hyper
     class effect_ucap : public effect
     {
     public:
+        effect_ucap();
+
+    public:
+        void start() override;
+
+    public:
         constexpr static inline shader_type type = shader_type::UCAP;
 
         constexpr static inline const char* name = "UCAP";
@@ -898,6 +1064,13 @@ namespace hyper
 
     class effect_glass_reflect : public effect
     {
+    public:
+        effect_glass_reflect();
+
+    public:
+        void start() override;
+        void load_global_textures() override;
+
     private:
         ::IDirect3DTexture9* reflection_texture_;
 
@@ -911,10 +1084,16 @@ namespace hyper
 
     class effect_water : public effect
     {
+    public:
+        effect_water();
+
+    public:
+        void start() override;
+        void load_global_textures() override;
+
     private:
         texture::info* pca_water_textures_[2];
-        geometry::pca_blend_data blend_data_;
-        char data_unknown[0x04];
+        pca::blend_data blend_data_;
 
     public:
         constexpr static inline shader_type type = shader_type::WATER;
@@ -922,10 +1101,23 @@ namespace hyper
         constexpr static inline const char* name = "WATER";
 
         static inline effect_water*& instance = *reinterpret_cast<effect_water**>(0x00B43020);
+
+    private:
+        static inline float& fps_ = *reinterpret_cast<float*>(0x00A71258);
+
+        static inline float& water_time_ticker_ = *reinterpret_cast<float*>(0x00B4CFA8);
+
+        static inline std::int32_t& last_frame_updated_ = *reinterpret_cast<std::int32_t*>(0x00B4CFAC);
     };
 
     class effect_rvmpip : public effect
     {
+    public:
+        effect_rvmpip();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::RVMPIP;
 
@@ -936,6 +1128,12 @@ namespace hyper
 
     class effect_ghost_car : public effect
     {
+    public:
+        effect_ghost_car();
+
+    public:
+        void start() override;
+
     public:
         constexpr static inline shader_type type = shader_type::GHOSTCAR;
 

@@ -315,6 +315,10 @@ namespace hyper
         {
         }
 
+        inline vector4(const vector2& vector) : x(vector.x), y(vector.y), z(0.0f), w(0.0f)
+        {
+        }
+
         inline vector4(const vector3& vector) : x(vector.x), y(vector.y), z(vector.z), w(1.0f)
         {
         }

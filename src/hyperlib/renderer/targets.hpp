@@ -324,6 +324,12 @@ namespace hyper
     class env_map_render_target : public render_target
     {
     public:
+        static inline ::IDirect3DCubeTexture9*& cube_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0920);
+
+        static inline ::IDirect3DCubeTexture9*& unk_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
+
+        static inline ::IDirect3DVolumeTexture9*& car_volume = *reinterpret_cast<::IDirect3DVolumeTexture9**>(0x00AB09E8);
+
         static inline std::uint32_t& resolution = *reinterpret_cast<std::uint32_t*>(0x00A63AE0);
     };
 

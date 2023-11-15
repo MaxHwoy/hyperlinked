@@ -180,6 +180,41 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_e_effect_initialize()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'input'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'input' is now at [esp + 0x08]
+            push ebx; // 'input' is now at [esp + 0x0C]
+            push ecx; // 'input' is now at [esp + 0x10]
+            push edx; // 'input' is now at [esp + 0x14]
+            push esi; // 'input' is now at [esp + 0x18]
+            push edi; // 'input' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'input'
+
+            call effect::initialize; // call custom initialize
+
+            // no need to restore esp since 'initialize' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to eEffect::Initialize; note that this is a __thiscall
+        }
+    }
+
     __declspec(naked) void detour_e_effect_connect_parameters()
     {
         __asm
@@ -280,6 +315,38 @@ namespace hyper
     }
 
 
+    __declspec(naked) void detour_e_effect_world_reflect_start()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call effect_world_reflect::start; // call custom start
+
+            // no need to restore esp since 'start' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to eEffect_WORLDREFLECT::Start; note that this is a __thiscall
+        }
+    }
+
     
     __declspec(naked) void detour_shader_lib_recompute_techniques_by_detail()
     {
@@ -332,6 +399,9 @@ namespace hyper
         // eEffect::Start
         hook::jump(0x00749790, &detour_e_effect_start);
 
+        // eEffect::Initialize
+        hook::jump(0x0072F030, &detour_e_effect_initialize);
+
         // eEffect::ConnectParameters
         hook::jump(0x0072B5F0, &detour_e_effect_connect_parameters);
 
@@ -340,6 +410,11 @@ namespace hyper
 
         // eEffect::RecomputeTechniquesByDetail
         hook::jump(0x00730250, &detour_e_effect_recompute_techniques_by_detail);
+
+
+
+        // eEffect_WORLDREFLECT::Start
+        hook::jump(0x00748B50, &detour_e_effect_world_reflect_start);
 
 
 

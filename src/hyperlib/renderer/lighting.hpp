@@ -29,6 +29,22 @@ namespace hyper
             count,
         };
 
+        struct fog_shader_params
+        {
+            float float_0;
+            float float_1;
+            float float_2;
+            float float_3;
+            float float_4;
+            float float_5;
+            float float_6;
+            float float_7;
+            vector2 sky_fog_falloff;
+            float fog_enable;
+
+            static inline fog_shader_params*& instance = *reinterpret_cast<fog_shader_params**>(0x00B4295C);
+        };
+
         struct time_of_day
         {
             struct __declspec(align(0x10)) params
@@ -224,11 +240,16 @@ namespace hyper
 
         static inline float& default_ingame_light_w = *reinterpret_cast<float*>(0x007497CE);
 
+        static inline float& ingame_envmap_pull_amount = *reinterpret_cast<float*>(0x00A6C228);
+
+        static inline float& frontend_envmap_pull_amount = *reinterpret_cast<float*>(0x00B43030);
+
         static inline vector4& ingame_light_params = *reinterpret_cast<vector4*>(0x00A6C204);
 
         static inline vector4& frontend_light_params = *reinterpret_cast<vector4*>(0x00A6C214);
     };
 
+    ASSERT_SIZE(lighting::fog_shader_params, 0x2C);
     ASSERT_SIZE(lighting::time_of_day, 0x170);
     ASSERT_SIZE(lighting::time_of_day::params, 0x90);
     ASSERT_SIZE(lighting::shaper_light, 0x1C);
