@@ -632,7 +632,50 @@ namespace hyper
 
         ::LPD3DXBUFFER errors;
 
-        ::D3DXCreateEffectFromResourceA(directx::device(), nullptr, input->resource, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
+        const auto device = directx::device();
+
+#if defined(ABOMINATOR)
+        static auto print = [](auto pointer) -> void
+        {
+            if (pointer)
+            {
+                PRINT_WARNING("%s", pointer->GetBufferPointer());
+            }
+        };
+
+        auto& buffer = effect::buffer_;
+
+        const auto size = std::size(buffer);
+        const auto name = input->resource;
+
+        OutputDebugStringA(name);
+        ::snprintf(buffer, size, "../../shaders/%s.cso", name);
+
+        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
+
+        if (FAILED(_result))
+        {
+            PRINT_WARNING("Failed to create DirectX effect %s from file %s with HRESULT 0x%08X.", name, buffer, _result);
+
+            print(errors);
+
+            // try to create the effect from an available source file.
+            ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
+
+            _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
+
+            if (FAILED(_result))
+            {
+                print(errors);
+
+                PRINT_FATAL("Failed to compile DirectX effect %s with HRESULT 0x%08X.", name, _result);
+            }
+        }
+
+        PRINT_TRACE("Created DirectX effect %s from file %s.", name, buffer);
+#else
+        ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
+#endif
 
         this->connect_parameters();
 

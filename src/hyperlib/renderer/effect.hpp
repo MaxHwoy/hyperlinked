@@ -628,6 +628,10 @@ namespace hyper
             "cvVisualTreatmentParams",
             "cmWorldMatTranspose",
         };
+
+#if defined(ABOMINATOR)
+        static inline char buffer_[MAX_PATH];
+#endif
     };
 
     class effect_world : public effect
