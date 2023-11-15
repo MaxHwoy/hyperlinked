@@ -13,6 +13,10 @@ namespace hyper
 
         static inline std::int32_t& real_time_frames = *reinterpret_cast<std::int32_t*>(0x00A62EE8);
 
+        static inline std::int32_t& world_time_frames = *reinterpret_cast<std::int32_t*>(0x00A62F04);
+
+        static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
+
         static inline std::uint32_t& real_time_packed = *reinterpret_cast<std::uint32_t*>(0x00A99C60);
 
         static inline std::uint32_t& world_time_packed = *reinterpret_cast<std::uint32_t*>(0x00A99C3C);

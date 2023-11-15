@@ -1,3 +1,4 @@
+#include <hyperlib/global_vars.hpp>
 #include <hyperlib/gameplay/g_race.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/streamer/parameter_map.hpp>
@@ -207,7 +208,7 @@ namespace hyper
         {
             float& time = flare_pool::active_flare_times_[i];
 
-            time += renderer::world_time_elapsed;
+            time += global::world_time_elapsed;
 
             if (time > flare_pool::active_flare_blink_[i])
             {

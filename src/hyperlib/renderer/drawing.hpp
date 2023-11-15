@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/pca.hpp>
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/assets/flares.hpp>
@@ -290,7 +291,7 @@ namespace hyper
         std::int32_t sort_flags;
         void* null;
         float negative_one;
-        geometry::pca_blend_data* blend_data;
+        pca::blend_data* blend_data;
         bool use_low_lod;
     };
 
@@ -303,7 +304,7 @@ namespace hyper
     class renderer final
     {
     public:
-        static void create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca);
+        static void create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca);
 
         static void compute_sort_key(rendering_model& model);
 
@@ -316,8 +317,6 @@ namespace hyper
         static void sort_models_and_draw_world();
 
     public:
-        static inline float& world_time_elapsed = *reinterpret_cast<float*>(0x00A996F8);
-
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);
 
         static inline std::uint32_t& world_detail = *reinterpret_cast<std::uint32_t*>(0x00A65370);
