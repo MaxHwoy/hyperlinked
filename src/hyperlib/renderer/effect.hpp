@@ -1145,8 +1145,13 @@ namespace hyper
 
     class shader_lib final
     {
+    private:
+        static void bind_pca_channels(pca::channel_info* channels, size_t count);
+
     public:
         static void init();
+
+        static void close();
 
         static auto find_input(const char* name) -> const effect::input*;
 
@@ -1157,6 +1162,10 @@ namespace hyper
         static void end_effect(effect& eff);
 
         static void recompute_techniques_by_detail(std::uint32_t detail_level);
+
+        static void bind_pca_weights(pca::weights& weights);
+
+        static void bind_ucap_weights(pca::ucap_frame_weights& weights);
 
         inline static auto get_shader_name(shader_type type) -> const char*
         {

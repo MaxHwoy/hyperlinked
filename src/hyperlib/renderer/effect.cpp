@@ -404,29 +404,29 @@ namespace hyper
         vertices[0].position.y = +1.0f;
         vertices[0].position.z = +0.0f;
         vertices[0].color = color32::white();
-        vertices[0].uv[0] = uv00;
-        vertices[0].uv[1] = uv01;
+        vertices[0].uv.x = uv00;
+        vertices[0].uv.y = uv01;
 
         vertices[1].position.x = +1.0f;
         vertices[1].position.y = +1.0f;
         vertices[1].position.z = +0.0f;
         vertices[1].color = color32::white();
-        vertices[1].uv[0] = uv10;
-        vertices[1].uv[1] = uv11;
+        vertices[1].uv.x = uv10;
+        vertices[1].uv.y = uv11;
 
         vertices[2].position.x = +1.0f;
         vertices[2].position.y = -1.0f;
         vertices[2].position.z = +0.0f;
         vertices[2].color = color32::white();
-        vertices[2].uv[0] = uv20;
-        vertices[2].uv[1] = uv21;
+        vertices[2].uv.x = uv20;
+        vertices[2].uv.y = uv21;
 
         vertices[3].position.x = -1.0f;
         vertices[3].position.y = -1.0f;
         vertices[3].position.z = +0.0f;
         vertices[3].color = color32::white();
-        vertices[3].uv[0] = uv30;
-        vertices[3].uv[1] = uv31;
+        vertices[3].uv.x = uv30;
+        vertices[3].uv.y = uv31;
 
         this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
 
@@ -954,27 +954,117 @@ namespace hyper
             h += 4.2949673e9f;
         }
 
+        float inv_w = 0.5f / w;
+        float inv_h = 0.5f / h;
+
+        float uv00 = inv_w;
+        float uv10 = inv_w + 1.0f;
+        float uv20 = inv_w + 1.0f;
+        float uv30 = inv_w;
+
+        float uv11;
+        float uv31;
+        float uv21;
+        float uv01;
+
+        if (invert)
+        {
+            uv01 = inv_h + 1.0f;
+            uv11 = inv_h + 1.0f;
+            uv21 = inv_h;
+            uv31 = inv_h;
+        }
+        else
+        {
+            uv01 = inv_h;
+            uv11 = inv_h;
+            uv21 = inv_h + 1.0f;
+            uv31 = inv_h + 1.0f;
+        }
+
         vertices[0].position.x = -1.0;
         vertices[0].position.y = +1.0;
         vertices[0].position.z = +0.0;
         vertices[0].position.w = +1.0;
+        vertices[0].uv[0].x = uv00;
+        vertices[0].uv[0].y = uv01;
+        vertices[0].uv[1].x = uv00;
+        vertices[0].uv[1].y = uv01;
+        vertices[0].uv[2].x = uv00;
+        vertices[0].uv[2].y = uv01;
+        vertices[0].uv[3].x = uv00;
+        vertices[0].uv[3].y = uv01;
+        vertices[0].uv[4].x = uv00;
+        vertices[0].uv[4].y = uv01;
+        vertices[0].uv[5].x = uv00;
+        vertices[0].uv[5].y = uv01;
+        vertices[0].uv[6].x = uv00;
+        vertices[0].uv[6].y = uv01;
+        vertices[0].uv[7].x = uv00;
+        vertices[0].uv[7].y = uv01;
 
         vertices[1].position.x = +1.0;
         vertices[1].position.y = +1.0;
         vertices[1].position.z = +0.0;
         vertices[1].position.w = +1.0;
+        vertices[1].uv[0].x = uv10;
+        vertices[1].uv[0].y = uv11;
+        vertices[1].uv[1].x = uv10;
+        vertices[1].uv[1].y = uv11;
+        vertices[1].uv[2].x = uv10;
+        vertices[1].uv[2].y = uv11;
+        vertices[1].uv[3].x = uv10;
+        vertices[1].uv[3].y = uv11;
+        vertices[1].uv[4].x = uv10;
+        vertices[1].uv[4].y = uv11;
+        vertices[1].uv[5].x = uv10;
+        vertices[1].uv[5].y = uv11;
+        vertices[1].uv[6].x = uv10;
+        vertices[1].uv[6].y = uv11;
+        vertices[1].uv[7].x = uv10;
+        vertices[1].uv[7].y = uv11;
 
         vertices[2].position.x = +1.0;
         vertices[2].position.y = -1.0;
         vertices[2].position.z = +0.0;
         vertices[2].position.w = +1.0;
+        vertices[2].uv[0].x = uv20;
+        vertices[2].uv[0].y = uv21;
+        vertices[2].uv[1].x = uv20;
+        vertices[2].uv[1].y = uv21;
+        vertices[2].uv[2].x = uv20;
+        vertices[2].uv[2].y = uv21;
+        vertices[2].uv[3].x = uv20;
+        vertices[2].uv[3].y = uv21;
+        vertices[2].uv[4].x = uv20;
+        vertices[2].uv[4].y = uv21;
+        vertices[2].uv[5].x = uv20;
+        vertices[2].uv[5].y = uv21;
+        vertices[2].uv[6].x = uv20;
+        vertices[2].uv[6].y = uv21;
+        vertices[2].uv[7].x = uv20;
+        vertices[2].uv[7].y = uv21;
 
         vertices[3].position.x = -1.0;
         vertices[3].position.y = -1.0;
         vertices[3].position.z = +0.0;
         vertices[3].position.w = +1.0;
-
-        // #TODO see 0x00748DB0
+        vertices[3].uv[0].x = uv30;
+        vertices[3].uv[0].y = uv31;
+        vertices[3].uv[1].x = uv30;
+        vertices[3].uv[1].y = uv31;
+        vertices[3].uv[2].x = uv30;
+        vertices[3].uv[2].y = uv31;
+        vertices[3].uv[3].x = uv30;
+        vertices[3].uv[3].y = uv31;
+        vertices[3].uv[4].x = uv30;
+        vertices[3].uv[4].y = uv31;
+        vertices[3].uv[5].x = uv30;
+        vertices[3].uv[5].y = uv31;
+        vertices[3].uv[6].x = uv30;
+        vertices[3].uv[6].y = uv31;
+        vertices[3].uv[7].x = uv30;
+        vertices[3].uv[7].y = uv31;
 
         this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
 
@@ -1268,6 +1358,56 @@ namespace hyper
     /// SHADER_LIB
     /// *************************************************************************************************************
 
+    void shader_lib::bind_pca_channels(pca::channel_info* channels, size_t count)
+    {
+        for (size_t i = 0u; i < count; ++i)
+        {
+            pca::channel_info& info = channels[i];
+
+            switch (info.type)
+            {
+                case 0:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsR);
+                    break;
+
+                case 1:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsG);
+                    break;
+
+                case 2:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsB);
+                    break;
+
+                case 3:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsX);
+                    break;
+
+                case 4:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsY);
+                    break;
+
+                case 5:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsZ);
+                    break;
+
+                case 6:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNX);
+                    break;
+
+                case 7:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNY);
+                    break;
+
+                case 8:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNZ);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
     void shader_lib::init()
     {
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
@@ -1281,9 +1421,52 @@ namespace hyper
             return lhs.key < rhs.key;
         });
 
-        shader_lib::initilaized_ = true;
+        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = memory::allocate<effect_world>();
+        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = memory::allocate<effect_world_reflect>();
+        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = memory::allocate<effect_world_bone>();
+        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = memory::allocate<effect_world_normal_map>();
+        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = memory::allocate<effect_car>();
+        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = memory::allocate<effect_car_normal_map>();
+        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = memory::allocate<effect_world_min>();
+        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = memory::allocate<effect_fe>();
+        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = memory::allocate<effect_fe_mask>();
+        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = memory::allocate<effect_filter>();
+        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = memory::allocate<effect_screen_filter>();
+        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = memory::allocate<effect_raindrop>();
+        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = memory::allocate<effect_visual_treatment>();
+        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = memory::allocate<effect_world_prelit>();
+        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = memory::allocate<effect_particles>();
+        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = memory::allocate<effect_sky>();
+        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = memory::allocate<effect_shadow_map_mesh>();
+        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = memory::allocate<effect_car_shadow_map>();
+        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = memory::allocate<effect_world_depth>();
+        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = memory::allocate<effect_shadow_map_mesh_depth>();
+        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = memory::allocate<effect_normal_map_no_fog>();
+        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = memory::allocate<effect_instance_mesh>();
+        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = memory::allocate<effect_screen_effect>();
+        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = memory::allocate<effect_hdr>();
+        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = memory::allocate<effect_ucap>();
+        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = memory::allocate<effect_glass_reflect>();
+        shader_lib::effects_[shader_type::WATER] = effect_water::instance = memory::allocate<effect_water>();
+        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = memory::allocate<effect_rvmpip>();
+        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = memory::allocate<effect_ghost_car>();
 
-        // #TODO init
+        pca::ucap_bind = shader_lib::bind_ucap_weights;
+
+        shader_lib::initilaized_ = true;
+    }
+
+    void shader_lib::close()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            effect* ptr = shader_lib::effects_[i];
+
+            if (ptr != nullptr)
+            {
+                memory::destroy(ptr);
+            }
+        }
     }
 
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
@@ -1345,5 +1528,17 @@ namespace hyper
                 shader_lib::effects_[type]->recompute_techniques_by_detail(detail_level);
             }
         }
+    }
+
+    void shader_lib::bind_pca_weights(pca::weights& weights)
+    {
+        shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
+    }
+
+    void shader_lib::bind_ucap_weights(pca::ucap_frame_weights& weights)
+    {
+        weights.feature_heights_param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavFeatureHeights);
+
+        shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
     }
 }

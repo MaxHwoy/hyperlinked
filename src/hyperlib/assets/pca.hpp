@@ -54,8 +54,13 @@ namespace hyper
             weights* pca_weight;
         };
 
+        using ucap_binder = void(*)(ucap_frame_weights& weights);
+
     public:
         static auto blend_ucap(const ucap_frame_weights& weights, std::uint8_t type, std::uint32_t curr_frame, std::uint32_t next_frame, float blend) -> float*;
+
+    public:
+        static ucap_binder ucap_bind;
     };
 
     ASSERT_SIZE(pca::channel_info, 0x0C);
