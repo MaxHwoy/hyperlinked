@@ -349,6 +349,120 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_e_effect_set_blend_matrices()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'blend_matrices'
+            // [esp + 0x08] is 'entry'
+            // ecx needs pointer to current effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'entry' is now at [esp + 0x0C]
+            push ebx; // 'entry' is now at [esp + 0x10]
+            push ecx; // 'entry' is now at [esp + 0x14]
+            push edx; // 'entry' is now at [esp + 0x18]
+            push esi; // 'entry' is now at [esp + 0x1C]
+            push edi; // 'entry' is now at [esp + 0x20]
+
+            push [esp + 0x20]; // repush 'entry'
+            push [esp + 0x20]; // repush 'blend_matrices'
+
+            mov ecx, shader_lib::current_effect;
+
+            mov ecx, [ecx];
+
+            call effect::set_blend_matrices; // call custom set_blend_matrices
+
+            // no need to restore esp since 'set_blend_matrices' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to eEffect::SetBlendMatrices
+        }
+    }
+
+    __declspec(naked) void detour_e_effect_set_light_context()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'context'
+            // [esp + 0x08] is 'local_to_world'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'local_to_world' is now at [esp + 0x0C]
+            push ebx; // 'local_to_world' is now at [esp + 0x10]
+            push ecx; // 'local_to_world' is now at [esp + 0x14]
+            push edx; // 'local_to_world' is now at [esp + 0x18]
+            push esi; // 'local_to_world' is now at [esp + 0x1C]
+            push edi; // 'local_to_world' is now at [esp + 0x20]
+
+            push [esp + 0x20]; // repush 'local_to_world'
+            push [esp + 0x20]; // repush 'context'
+
+            call effect::set_light_context; // call custom set_light_context
+
+            // no need to restore esp since 'set_light_context' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 8; // return immediately to caller function, not back to eEffect::SetLightContext; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_e_effect_set_diffuse_map()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'texture'
+            // [esp + 0x08] is 'model'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'model' is now at [esp + 0x0C]
+            push ebx; // 'model' is now at [esp + 0x10]
+            push ecx; // 'model' is now at [esp + 0x14]
+            push edx; // 'model' is now at [esp + 0x18]
+            push esi; // 'model' is now at [esp + 0x1C]
+            push edi; // 'model' is now at [esp + 0x20]
+
+            push [esp + 0x20]; // repush 'model'
+            push [esp + 0x20]; // repush 'texture'
+
+            call effect::set_diffuse_map; // call custom set_diffuse_map
+
+            // no need to restore esp since 'set_diffuse_map' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 8; // return immediately to caller function, not back to eEffect::SetDiffuseMap; note that this is a __thiscall
+        }
+    }
 
 
     
@@ -475,6 +589,15 @@ namespace hyper
 
         // eEffect::SetPCABlendData
         hook::jump(0x0071E540, &detour_e_effect_set_pca_blend_data);
+
+        // eEffect::SetBlendMatrices
+        hook::jump(0x00714CC0, &detour_e_effect_set_blend_matrices);
+
+        // eEffect::SetLightContext
+        hook::jump(0x0071DFA0, &detour_e_effect_set_light_context);
+
+        // eEffect::SetDiffuseMap
+        hook::jump(0x0071DCE0, &detour_e_effect_set_diffuse_map);
 
 
 

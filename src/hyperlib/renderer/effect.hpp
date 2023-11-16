@@ -85,6 +85,8 @@ namespace hyper
         count,
     };
 
+    struct rendering_model;
+
     class effect
     {
     public:
@@ -336,6 +338,12 @@ namespace hyper
 
         void set_pca_blend_data(const pca::blend_data& data);
 
+        void set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry);
+
+        void set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world);
+
+        void set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model);
+
         inline auto id() const -> shader_type
         {
             return this->id_;
@@ -444,6 +452,19 @@ namespace hyper
         inline void set_vector_array_unchecked(parameter_type type, const vector4* array, std::uint32_t count)
         {
             this->effect_->SetVectorArray(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXVECTOR4*>(array), count);
+        }
+
+        inline void set_matrix_array(parameter_type type, const matrix4x4* array, std::uint32_t count)
+        {
+            if (::D3DXHANDLE handle = this->params_[static_cast<std::uint32_t>(type)].handle)
+            {
+                this->effect_->SetMatrixArray(handle, reinterpret_cast<const ::D3DXMATRIX*>(array), count);
+            }
+        }
+
+        inline void set_matrix_array_unchecked(parameter_type type, const matrix4x4* array, std::uint32_t count)
+        {
+            this->effect_->SetMatrixArray(this->params_[static_cast<std::uint32_t>(type)].handle, reinterpret_cast<const ::D3DXMATRIX*>(array), count);
         }
 
         inline void set_texture(parameter_type type, IDirect3DBaseTexture9* texture)

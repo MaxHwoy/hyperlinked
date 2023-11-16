@@ -772,6 +772,61 @@ namespace hyper
         }
     }
 
+    void effect::set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry)
+    {
+        if (this->has_parameter(parameter_type::camBlendMatrices))
+        {
+            matrix4x4 matrix_array[geometry::mesh_entry::blend_matrix_count];
+
+            for (std::uint32_t i = 0u; i < geometry::mesh_entry::blend_matrix_count; ++i)
+            {
+                matrix_array[i] = blend_matrices[entry.blend_matrix_indices[i]];
+            }
+
+            this->set_matrix_array_unchecked(parameter_type::camBlendMatrices, matrix_array, geometry::mesh_entry::blend_matrix_count);
+        }
+    }
+
+    void effect::set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world)
+    {
+        if (context != nullptr)
+        {
+            if (context->type == 0 && context != this->last_used_light_context_)
+            {
+                this->last_used_light_context_ = context;
+
+                this->set_vector_array(parameter_type::cavHarmonicCoeff, context->harmonics, std::size(context->harmonics));
+
+                this->set_matrix(parameter_type::cmLocalColourMatrix, context->local_color);
+
+                this->set_matrix(parameter_type::cmLocalDirectionMatrix, context->local_direction);
+
+                if (local_to_world != nullptr)
+                {
+                    this->set_matrix(parameter_type::cmLocalPositionMatrix, *local_to_world);
+                }
+            }
+        }
+    }
+
+    void effect::set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model)
+    {
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+
+        texture::render_state state = model.render_bits;
+
+        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
+        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
+        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
+        directx::device()->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
+        directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
+        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
+        directx::device()->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
+        directx::device()->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
+        directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
+        directx::device()->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+    }
+
     /// *************************************************************************************************************
     /// CTOR
     /// *************************************************************************************************************
