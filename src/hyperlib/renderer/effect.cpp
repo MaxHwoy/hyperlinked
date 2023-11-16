@@ -1544,6 +1544,11 @@ namespace hyper
         }
     }
 
+    template <typename T> auto allocate = []() -> T*
+    {
+        return new T();
+    };
+
     void shader_lib::init()
     {
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
@@ -1557,35 +1562,35 @@ namespace hyper
             return lhs.key < rhs.key;
         });
 
-        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = memory::allocate<effect_world>();
-        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = memory::allocate<effect_world_reflect>();
-        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = memory::allocate<effect_world_bone>();
-        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = memory::allocate<effect_world_normal_map>();
-        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = memory::allocate<effect_car>();
-        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = memory::allocate<effect_car_normal_map>();
-        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = memory::allocate<effect_world_min>();
-        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = memory::allocate<effect_fe>();
-        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = memory::allocate<effect_fe_mask>();
-        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = memory::allocate<effect_filter>();
-        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = memory::allocate<effect_screen_filter>();
-        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = memory::allocate<effect_raindrop>();
-        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = memory::allocate<effect_visual_treatment>();
-        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = memory::allocate<effect_world_prelit>();
-        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = memory::allocate<effect_particles>();
-        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = memory::allocate<effect_sky>();
-        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = memory::allocate<effect_shadow_map_mesh>();
-        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = memory::allocate<effect_car_shadow_map>();
-        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = memory::allocate<effect_world_depth>();
-        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = memory::allocate<effect_shadow_map_mesh_depth>();
-        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = memory::allocate<effect_normal_map_no_fog>();
-        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = memory::allocate<effect_instance_mesh>();
-        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = memory::allocate<effect_screen_effect>();
-        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = memory::allocate<effect_hdr>();
-        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = memory::allocate<effect_ucap>();
-        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = memory::allocate<effect_glass_reflect>();
-        shader_lib::effects_[shader_type::WATER] = effect_water::instance = memory::allocate<effect_water>();
-        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = memory::allocate<effect_rvmpip>();
-        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = memory::allocate<effect_ghost_car>();
+        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = allocate<effect_world>();
+        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = allocate<effect_world_reflect>();
+        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = allocate<effect_world_bone>();
+        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = allocate<effect_world_normal_map>();
+        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = allocate<effect_car>();
+        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = allocate<effect_car_normal_map>();
+        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = allocate<effect_world_min>();
+        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = allocate<effect_fe>();
+        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = allocate<effect_fe_mask>();
+        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = allocate<effect_filter>();
+        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = allocate<effect_screen_filter>();
+        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = allocate<effect_raindrop>();
+        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = allocate<effect_visual_treatment>();
+        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = allocate<effect_world_prelit>();
+        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = allocate<effect_particles>();
+        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = allocate<effect_sky>();
+        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = allocate<effect_shadow_map_mesh>();
+        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = allocate<effect_car_shadow_map>();
+        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = allocate<effect_world_depth>();
+        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = allocate<effect_shadow_map_mesh_depth>();
+        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = allocate<effect_normal_map_no_fog>();
+        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = allocate<effect_instance_mesh>();
+        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = allocate<effect_screen_effect>();
+        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = allocate<effect_hdr>();
+        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = allocate<effect_ucap>();
+        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = allocate<effect_glass_reflect>();
+        shader_lib::effects_[shader_type::WATER] = effect_water::instance = allocate<effect_water>();
+        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = allocate<effect_rvmpip>();
+        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = allocate<effect_ghost_car>();
 
         pca::ucap_bind = shader_lib::bind_ucap_weights;
 
@@ -1596,11 +1601,13 @@ namespace hyper
     {
         for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
         {
-            effect* ptr = shader_lib::effects_[i];
+            auto& ptr = shader_lib::effects_[i];
 
             if (ptr != nullptr)
             {
-                memory::destroy(ptr);
+                delete ptr;
+
+                ptr = nullptr;
             }
         }
     }
