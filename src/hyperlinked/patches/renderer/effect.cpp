@@ -558,6 +558,38 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_e_effect_load_from_buffer()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call effect::really_load_from_buffer; // call custom really_load_from_buffer
+
+            // no need to restore esp since 'really_load_from_buffer' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to eEffect::LoadEffectFromBuffer; note that this is a __thiscall
+        }
+    }
+
     void effect_patches::init()
     {
         // eEffect::~eEffect
@@ -599,6 +631,8 @@ namespace hyper
         // eEffect::SetDiffuseMap
         hook::jump(0x0071DCE0, &detour_e_effect_set_diffuse_map);
 
+        // eEffect::LoadFromBuffer
+        hook::jump(0x0072B660, &detour_e_effect_load_from_buffer);
 
 
         // ShaderLib::Init

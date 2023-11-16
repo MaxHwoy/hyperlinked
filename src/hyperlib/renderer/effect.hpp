@@ -309,6 +309,8 @@ namespace hyper
     private:
         void store_param_by_key(::LPCSTR name, ::D3DXHANDLE handle);
 
+        void create_effect_from_resource(const effect::input* input);
+
     public:
         virtual ~effect();
         virtual void handle_material_data(const light_material::instance* material, draw_flags flags);
@@ -331,6 +333,8 @@ namespace hyper
         void load_effect_from_buffer(const effect::input* input);
 
         void recompute_techniques_by_detail(std::uint32_t detail_level);
+
+        void really_load_from_buffer();
 
         auto find_techique(const char* name) -> technique*;
 

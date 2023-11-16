@@ -498,6 +498,36 @@ namespace hyper
         }
     }
 
+    void effect::create_effect_from_resource(const effect::input* input)
+    {
+        const auto device = directx::device();
+        const auto effect_pool = shader_lib::effect_pool;
+
+        ::LPD3DXBUFFER errors;
+
+#if defined(ABOMINATOR)
+        auto& buffer = effect::buffer_;
+
+        const auto size = std::size(buffer);
+        const auto name = input->resource;
+
+        ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
+
+        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+
+        if (FAILED(_result))
+        {
+            // try to create the effect from an available source file.
+            ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
+
+            // pray to god this works as printing from hyperlinked doesn't work in NFSCO.
+            ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+        }
+#else
+        ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+#endif
+    }
+
     void effect::initialize(const effect::input* input)
     {
         if (this->effect_ != nullptr)
@@ -680,51 +710,7 @@ namespace hyper
             this->effect_ = nullptr;
         }
 
-        ::LPD3DXBUFFER errors;
-
-        const auto device = directx::device();
-
-#if defined(ABOMINATOR)
-        static auto print = [](auto pointer) -> void
-        {
-            if (pointer)
-            {
-                PRINT_WARNING("%s", pointer->GetBufferPointer());
-            }
-        };
-
-        auto& buffer = effect::buffer_;
-
-        const auto size = std::size(buffer);
-        const auto name = input->resource;
-
-        ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
-
-        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
-
-        if (FAILED(_result))
-        {
-            PRINT_WARNING("Failed to create DirectX effect %s from file %s with HRESULT 0x%08X.", name, buffer, _result);
-
-            print(errors);
-
-            // try to create the effect from an available source file.
-            ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
-
-            _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
-
-            if (FAILED(_result))
-            {
-                print(errors);
-
-                PRINT_FATAL("Failed to compile DirectX effect %s with HRESULT 0x%08X.", name, _result);
-            }
-        }
-
-        PRINT_TRACE("Created DirectX effect %s from file %s.", name, buffer);
-#else
-        ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
-#endif
+        this->create_effect_from_resource(input);
 
         this->connect_parameters();
 
@@ -768,6 +754,31 @@ namespace hyper
         {
             return lhs.detail_level > rhs.detail_level;
         });
+    }
+
+    void effect::really_load_from_buffer()
+    {
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
+
+        auto& effect = this->effect_;
+
+        if (effect)
+        {
+            effect->OnLostDevice();
+            effect->Release();
+
+            effect = nullptr;
+        }
+
+        this->create_effect_from_resource(shader_lib::find_input(this->name_));
+
+        this->connect_parameters();
+
+        this->reset_filter_params();
     }
 
     auto effect::find_techique(const char* name) -> technique*
