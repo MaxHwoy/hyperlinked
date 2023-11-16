@@ -49,7 +49,8 @@ namespace hyper
                 player_render_target::vid,
                 directx::resolution_x,
                 directx::resolution_y,
-                directx::visual_treatment ? player_render_target::render_target_surface_standalone : player_render_target::render_target_surface_postprocess,
+                // using player_render_target::render_target_surface_postprocess here prevents vehicles from becoming half-transparent on the frontend.
+                player_render_target::render_target_surface_postprocess,
                 player_render_target::depth_stencil_surface
             );
         }
