@@ -132,6 +132,12 @@ namespace hyper
         // bFree
         static void free(void* ptr);
 
+        // New
+        template <typename T, typename... Args> static auto allocate(Args&&... args) -> T*;
+
+        // Delete
+        template <typename T> static void destroy(T* ptr);
+
         static inline bool initialized()
         {
             return memory::initialized_;
@@ -254,4 +260,26 @@ namespace hyper
         ASSERT_SIZE(memory::memory_pool_info, 0x10);
 #endif
     };
+}
+
+namespace hyper
+{
+    template <typename T, typename... Args> auto memory::allocate(Args&&... args) -> T*
+    {
+        void* ptr = memory::malloc(sizeof(T), memory::create_allocation_params(memory::pool_type::main, true, true, 0x10u, 0x00u));
+
+        if (ptr != nullptr)
+        {
+            return new (ptr) T(std::forward<Args>(args)...);
+        }
+
+        return nullptr;
+    }
+
+    template <typename T> void memory::destroy(T* ptr)
+    {
+        ptr->~T();
+
+        memory::free(ptr);
+    }
 }

@@ -159,6 +159,8 @@ namespace hyper
 
         struct mesh_entry
         {
+            const static inline std::uint32_t blend_matrix_count = 16;
+
             vector3 bbox_min;
             vector3 bbox_max;
             std::uint8_t diffuse_texture_index;
@@ -167,8 +169,8 @@ namespace hyper
             std::uint8_t specular_texture_index;
             std::uint8_t opacity_texture_index;
             std::uint8_t light_material_table_index;
+            unsigned char blend_matrix_indices[blend_matrix_count];
             std::uint16_t padding;
-            std::uint32_t blending_matrix_indices[4];
             shader_type type;
             class effect* effect;
             std::uint32_t flags;
