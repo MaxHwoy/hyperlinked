@@ -60,7 +60,7 @@ namespace hyper
         static auto blend_ucap(const ucap_frame_weights& weights, std::uint8_t type, std::uint32_t curr_frame, std::uint32_t next_frame, float blend) -> float*;
 
     public:
-        static ucap_binder ucap_bind;
+        static inline ucap_binder& ucap_bind = *reinterpret_cast<ucap_binder*>(0x00AB0978);
     };
 
     ASSERT_SIZE(pca::channel_info, 0x0C);
