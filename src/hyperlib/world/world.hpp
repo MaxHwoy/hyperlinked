@@ -32,7 +32,6 @@ namespace hyper
 #endif
             "SCENERY_GROUP_DOOR",
             "SCENERY_GROUP_HALLOWEEN_DISABLE",
-#endif
         };
     };
 }
