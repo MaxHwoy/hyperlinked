@@ -49,7 +49,8 @@ namespace hyper
                 player_render_target::vid,
                 directx::resolution_x,
                 directx::resolution_y,
-                directx::visual_treatment ? player_render_target::render_target_surface_standalone : player_render_target::render_target_surface_postprocess,
+                // using player_render_target::render_target_surface_postprocess here prevents vehicles from becoming half-transparent on the frontend.
+                player_render_target::render_target_surface_postprocess,
                 player_render_target::depth_stencil_surface
             );
         }
@@ -324,6 +325,12 @@ namespace hyper
     class env_map_render_target : public render_target
     {
     public:
+        static inline ::IDirect3DCubeTexture9*& cube_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0920);
+
+        static inline ::IDirect3DCubeTexture9*& unk_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
+
+        static inline ::IDirect3DVolumeTexture9*& car_volume = *reinterpret_cast<::IDirect3DVolumeTexture9**>(0x00AB09E8);
+
         static inline std::uint32_t& resolution = *reinterpret_cast<std::uint32_t*>(0x00A63AE0);
     };
 

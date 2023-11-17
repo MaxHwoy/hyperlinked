@@ -159,6 +159,8 @@ namespace hyper
 
         struct mesh_entry
         {
+            const static inline std::uint32_t blend_matrix_count = 16;
+
             vector3 bbox_min;
             vector3 bbox_max;
             std::uint8_t diffuse_texture_index;
@@ -167,8 +169,8 @@ namespace hyper
             std::uint8_t specular_texture_index;
             std::uint8_t opacity_texture_index;
             std::uint8_t light_material_table_index;
+            unsigned char blend_matrix_indices[blend_matrix_count];
             std::uint16_t padding;
-            std::uint32_t blending_matrix_indices[4];
             shader_type type;
             class effect* effect;
             std::uint32_t flags;
@@ -355,51 +357,6 @@ namespace hyper
             __declspec(align(0x04)) node nodes[1];
         };
 
-        struct pca_channel_info
-        {
-            std::uint8_t type;
-            std::uint8_t weight_count;
-            std::uint16_t vector_buffer_offset;
-            std::uint16_t weight_offset;
-            std::uint32_t param_handle;
-        };
-
-        struct ucap_pca_frame_weights
-        {
-            std::uint16_t frame_count;
-            std::uint16_t weights_per_frame_count;
-            std::uint16_t sample_count;
-            std::uint16_t channel_count;
-            pca_channel_info channel_infos[9];
-            std::uint32_t feature_heights_param_handle;
-            float* feature_heights;
-            float* min_values;
-            float* ranges;
-            float* vector_buffer;
-            std::uint16_t* short_weights;
-        };
-
-        struct pca_weights
-        {
-            std::uint32_t key;
-            std::uint16_t frame_count;
-            std::uint16_t weights_per_frame_count;
-            std::uint16_t sample_count;
-            std::uint16_t channel_count;
-            pca_channel_info channel_infos[9];
-            float* mean;
-            float* frames;
-        };
-
-        struct pca_blend_data
-        {
-            std::uint16_t curr_frame;
-            std::uint16_t next_frame;
-            float blend;
-            ucap_pca_frame_weights* ucap_weights;
-            pca_weights* weights;
-        };
-
     public:
         static auto find_solid(std::uint32_t key) -> solid*;
 
@@ -433,8 +390,4 @@ namespace hyper
     ASSERT_SIZE(geometry::hierarchy, 0x08 + sizeof(geometry::hierarchy::nodes));
     ASSERT_SIZE(geometry::hierarchy::map, 0x1C);
     ASSERT_SIZE(geometry::hierarchy::node, 0x10);
-    ASSERT_SIZE(geometry::pca_channel_info, 0x0C);
-    ASSERT_SIZE(geometry::ucap_pca_frame_weights, 0x8C);
-    ASSERT_SIZE(geometry::pca_weights, 0x80);
-    ASSERT_SIZE(geometry::pca_blend_data, 0x10);
 }

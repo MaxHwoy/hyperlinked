@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/pca.hpp>
 #include <hyperlib/assets/loader.hpp>
 
 namespace hyper
@@ -177,7 +178,7 @@ namespace hyper
             std::int16_t unknown;
             struct pack* pack;
             void* image_data;
-            void* palette_data;
+            pca::weights* weights;
             std::uint8_t name_len;
             std::uint8_t name[35];
         };
@@ -237,6 +238,12 @@ namespace hyper
     public:
         static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);
 
+        static inline info*& headlights_texture = *reinterpret_cast<info**>(0x00B43040);
+
+        static inline info*& headlights_clip_texture = *reinterpret_cast<info**>(0x00B43038);
+
+        static inline info*& headlights_xenon_texture = *reinterpret_cast<info**>(0x00B4303C);
+
         static inline info*& rvm_texture = *reinterpret_cast<info**>(0x00AB0A44);
 
         static inline info*& rvm_mask_texture = *reinterpret_cast<info**>(0x00AB0A48);
@@ -246,6 +253,12 @@ namespace hyper
         static inline info*& white_16x16_no_alpha_texture = *reinterpret_cast<info**>(0x00AB0A4C);
 
         static inline array<info*, 5u> ghost_car_textures = array<info*, 5u>(0x00AB08C0);
+
+        static inline array<::IDirect3DCubeTexture9*, 5u> refl_cube_textures = array<::IDirect3DCubeTexture9*, 5u>(0x00AB09D0);
+
+        static inline array<std::uint32_t, 2u> refl_cube_world_indices = array<std::uint32_t, 2u>(0x00B42EA8);
+
+        static inline std::uint32_t& refl_cube_texture_count = *reinterpret_cast<std::uint32_t*>(0x00AB09E4);
 
         static inline loader::table& loaded_table = *reinterpret_cast<loader::table*>(0x00A921B0);
     };

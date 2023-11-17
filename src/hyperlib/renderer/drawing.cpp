@@ -11,7 +11,7 @@
 
 namespace hyper
 {
-    void renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, geometry::pca_blend_data* pca)
+    void renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
     {
         BENCHMARK();
 

@@ -1,13 +1,19 @@
+#include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
+#include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
 #include <hyperlib/renderer/drawing.hpp>
 
 namespace hyper
 {
-    effect::technique::technique() : name{}, technique_index(-1), detail_level(0u)
+    /// *************************************************************************************************************
+    /// TECHNIQUE
+    /// *************************************************************************************************************
+
+    effect::technique::technique() : name{}, technique_index(std::numeric_limits<std::uint32_t>::max()), detail_level(0u)
     {
     }
 
@@ -47,7 +53,11 @@ namespace hyper
         return *this;
     }
 
-    effect::effect(shader_type type, effect::flags flags, effect::param_index_pair* indices, const effect::input* input) : 
+    /// *************************************************************************************************************
+    /// EFFECT
+    /// *************************************************************************************************************
+
+    effect::effect(shader_type type, effect::flags flags, const effect::param_index_pair* indices, const effect::input* input) : 
         id_(type), 
         index_pairs_(indices), 
         unsupported_table_{}, 
@@ -80,7 +90,8 @@ namespace hyper
         this->__8__ = -1;
         this->__9__ = -1;
         this->__10__ = -1;
-        this->__11__ = -1;
+        this->__11__ = 0;
+        this->__14__ = 0;
 
         this->initialize(input);
         this->connect_parameters();
@@ -393,29 +404,29 @@ namespace hyper
         vertices[0].position.y = +1.0f;
         vertices[0].position.z = +0.0f;
         vertices[0].color = color32::white();
-        vertices[0].uv[0] = uv00;
-        vertices[0].uv[1] = uv01;
+        vertices[0].uv.x = uv00;
+        vertices[0].uv.y = uv01;
 
         vertices[1].position.x = +1.0f;
         vertices[1].position.y = +1.0f;
         vertices[1].position.z = +0.0f;
         vertices[1].color = color32::white();
-        vertices[1].uv[0] = uv10;
-        vertices[1].uv[1] = uv11;
+        vertices[1].uv.x = uv10;
+        vertices[1].uv.y = uv11;
 
         vertices[2].position.x = +1.0f;
         vertices[2].position.y = -1.0f;
         vertices[2].position.z = +0.0f;
         vertices[2].color = color32::white();
-        vertices[2].uv[0] = uv20;
-        vertices[2].uv[1] = uv21;
+        vertices[2].uv.x = uv20;
+        vertices[2].uv.y = uv21;
 
         vertices[3].position.x = -1.0f;
         vertices[3].position.y = -1.0f;
         vertices[3].position.z = +0.0f;
         vertices[3].color = color32::white();
-        vertices[3].uv[0] = uv30;
-        vertices[3].uv[1] = uv31;
+        vertices[3].uv.x = uv30;
+        vertices[3].uv.y = uv31;
 
         this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
 
@@ -487,6 +498,36 @@ namespace hyper
         }
     }
 
+    void effect::create_effect_from_resource(const effect::input* input)
+    {
+        const auto device = directx::device();
+        const auto effect_pool = shader_lib::effect_pool;
+
+        ::LPD3DXBUFFER errors;
+
+#if defined(ABOMINATOR)
+        auto& buffer = effect::buffer_;
+
+        const auto size = std::size(buffer);
+        const auto name = input->resource;
+
+        ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
+
+        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+
+        if (FAILED(_result))
+        {
+            // try to create the effect from an available source file.
+            ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
+
+            // pray to god this works as printing from hyperlinked doesn't work in NFSCO.
+            ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+        }
+#else
+        ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+#endif
+    }
+
     void effect::initialize(const effect::input* input)
     {
         if (this->effect_ != nullptr)
@@ -523,6 +564,8 @@ namespace hyper
         directx::device()->CreateVertexDeclaration(elements, &this->vertex_decl_);
 
         this->stride_ = stride;
+
+        this->load_effect_from_buffer(input);
 
         std::uint32_t max_detail = 3u; // #TODO move this as part of settings
 
@@ -577,6 +620,28 @@ namespace hyper
                 }
             }
         }
+
+        for (std::uint32_t i = 0u; i < eff_desc.Techniques; ++i)
+        {
+            ::D3DXHANDLE tech = this->effect_->GetTechnique(i);
+
+            if (SUCCEEDED(this->effect_->ValidateTechnique(tech)))
+            {
+                ::D3DXTECHNIQUE_DESC tech_desc;
+
+                this->main_technique_number_ = i;
+                this->main_technique_handle_ = tech;
+
+                this->effect_->GetTechniqueDesc(tech, &tech_desc);
+
+                this->pass_count_ = tech_desc.Passes;
+
+                break;
+            }
+        }
+
+        this->active_ = this->effect_ != nullptr;
+        this->has_main_technique_ = this->main_technique_handle_ != nullptr;
     }
 
     void effect::connect_parameters()
@@ -616,6 +681,21 @@ namespace hyper
         }
     }
 
+    void effect::reset_lighting_params()
+    {
+        lighting::ingame_light_params.y = lighting::default_ingame_light_y;
+        lighting::ingame_light_params.w = lighting::default_ingame_light_w;
+
+        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        {
+            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params);
+        }
+        else
+        {
+            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params);
+        }
+    }
+
     void effect::load_effect_from_buffer(const effect::input* input)
     {
         this->has_zero_offset_scale_ = -1;
@@ -630,9 +710,7 @@ namespace hyper
             this->effect_ = nullptr;
         }
 
-        ::LPD3DXBUFFER errors;
-
-        ::D3DXCreateEffectFromResourceA(directx::device(), nullptr, input->resource, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
+        this->create_effect_from_resource(input);
 
         this->connect_parameters();
 
@@ -678,6 +756,31 @@ namespace hyper
         });
     }
 
+    void effect::really_load_from_buffer()
+    {
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
+
+        auto& effect = this->effect_;
+
+        if (effect)
+        {
+            effect->OnLostDevice();
+            effect->Release();
+
+            effect = nullptr;
+        }
+
+        this->create_effect_from_resource(shader_lib::find_input(this->name_));
+
+        this->connect_parameters();
+
+        this->reset_filter_params();
+    }
+
     auto effect::find_techique(const char* name) -> technique*
     {
         if (name != nullptr)
@@ -705,6 +808,410 @@ namespace hyper
             this->effect_->SetTechnique(this->effect_->GetTechnique(tech->technique_index));
         }
     }
+
+    void effect::set_pca_blend_data(const pca::blend_data& data)
+    {
+        if (data.ucap_weight != nullptr)
+        {
+            const pca::ucap_frame_weights* weights = data.ucap_weight;
+
+            parameter_type feature_type = static_cast<parameter_type>(weights->feature_heights_param_handle);
+
+            this->set_vector(feature_type, *weights->feature_heights);
+
+            for (std::uint32_t i = 0u; i < weights->channel_count; ++i)
+            {
+                const pca::channel_info& info = weights->channel_infos[i];
+
+                parameter_type type = static_cast<parameter_type>(info.param_handle);
+
+                std::uint32_t vector_count = info.weight_count >> 2;
+
+                const vector4* vectors = reinterpret_cast<const vector4*>(pca::blend_ucap(*weights, info.type, data.curr_frame, data.next_frame, data.blend));
+
+                this->set_vector_array(type, vectors, vector_count);
+            }
+        }
+        else
+        {
+            const pca::weights* weights = data.pca_weight;
+
+            for (std::uint32_t i = 0u; i < weights->channel_count; ++i)
+            {
+                const pca::channel_info& info = weights->channel_infos[i];
+
+                parameter_type type = static_cast<parameter_type>(info.param_handle);
+
+                std::uint32_t vector_count = info.weight_count >> 2;
+
+                std::uint32_t offset = data.curr_frame * weights->weights_per_frame_count + info.weight_offset;
+
+                const vector4* vectors = reinterpret_cast<const vector4*>(weights->mean + offset);
+
+                this->set_vector_array(type, vectors, vector_count);
+            }
+        }
+    }
+
+    void effect::set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry)
+    {
+        if (this->has_parameter(parameter_type::camBlendMatrices))
+        {
+            matrix4x4 matrix_array[geometry::mesh_entry::blend_matrix_count];
+
+            for (std::uint32_t i = 0u; i < geometry::mesh_entry::blend_matrix_count; ++i)
+            {
+                matrix_array[i] = blend_matrices[entry.blend_matrix_indices[i]];
+            }
+
+            this->set_matrix_array_unchecked(parameter_type::camBlendMatrices, matrix_array, geometry::mesh_entry::blend_matrix_count);
+        }
+    }
+
+    void effect::set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world)
+    {
+        if (context != nullptr)
+        {
+            if (context->type == 0 && context != this->last_used_light_context_)
+            {
+                this->last_used_light_context_ = context;
+
+                this->set_vector_array(parameter_type::cavHarmonicCoeff, context->harmonics, std::size(context->harmonics));
+
+                this->set_matrix(parameter_type::cmLocalColourMatrix, context->local_color);
+
+                this->set_matrix(parameter_type::cmLocalDirectionMatrix, context->local_direction);
+
+                if (local_to_world != nullptr)
+                {
+                    this->set_matrix(parameter_type::cmLocalPositionMatrix, *local_to_world);
+                }
+            }
+        }
+    }
+
+    void effect::set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model)
+    {
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+
+        texture::render_state state = model.render_bits;
+
+        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
+        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
+        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
+        directx::device()->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
+        directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
+        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
+        directx::device()->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
+        directx::device()->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
+        directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
+        directx::device()->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+    }
+
+    /// *************************************************************************************************************
+    /// CTOR
+    /// *************************************************************************************************************
+
+    effect_world::effect_world() : 
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_world_reflect::effect_world_reflect() : 
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name)), 
+        curr_splash_frame_(0u), 
+        splash_fps_(20.0f)
+    {
+    }
+
+    effect_world_bone::effect_world_bone() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_world_normal_map::effect_world_normal_map() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_car::effect_car() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_car_normal_map::effect_car_normal_map() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name)),
+        normal_2dnoise_(nullptr)
+    {
+    }
+
+    effect_world_min::effect_world_min() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_fe::effect_fe() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_fe_mask::effect_fe_mask() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_filter::effect_filter() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_screen_filter::effect_screen_filter() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_raindrop::effect_raindrop() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_visual_treatment::effect_visual_treatment() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_world_prelit::effect_world_prelit() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_particles::effect_particles() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_sky::effect_sky() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_shadow_map_mesh::effect_shadow_map_mesh() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_car_shadow_map::effect_car_shadow_map() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_world_depth::effect_world_depth() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_shadow_map_mesh_depth::effect_shadow_map_mesh_depth() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_normal_map_no_fog::effect_normal_map_no_fog() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_instance_mesh::effect_instance_mesh() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_screen_effect::effect_screen_effect() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_hdr::effect_hdr() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_ucap::effect_ucap() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_glass_reflect::effect_glass_reflect() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_water::effect_water() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_rvmpip::effect_rvmpip() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    effect_ghost_car::effect_ghost_car() :
+        effect(type, effect::flags::none, shader_lib::effect_param_list.pointer(), shader_lib::find_input(name))
+    {
+    }
+
+    /// *************************************************************************************************************
+    /// DRAW_FULL_SCREEN_QUAD
+    /// *************************************************************************************************************
+
+    void effect_visual_treatment::draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert)
+    {
+        struct {
+            vector4 position;
+            vector2 uv[8];
+        } vertices[4];
+
+        directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
+
+        ::D3DSURFACE_DESC desc;
+
+        texture->GetLevelDesc(0u, &desc);
+
+        float w = static_cast<float>(desc.Width);
+        float h = static_cast<float>(desc.Height);
+
+        if ((desc.Width & 0x80000000) != 0)
+        {
+            w += 4.2949673e9f;
+        }
+
+        if ((desc.Height & 0x80000000) != 0)
+        {
+            h += 4.2949673e9f;
+        }
+
+        float inv_w = 0.5f / w;
+        float inv_h = 0.5f / h;
+
+        float uv00 = inv_w;
+        float uv10 = inv_w + 1.0f;
+        float uv20 = inv_w + 1.0f;
+        float uv30 = inv_w;
+
+        float uv11;
+        float uv31;
+        float uv21;
+        float uv01;
+
+        if (invert)
+        {
+            uv01 = inv_h + 1.0f;
+            uv11 = inv_h + 1.0f;
+            uv21 = inv_h;
+            uv31 = inv_h;
+        }
+        else
+        {
+            uv01 = inv_h;
+            uv11 = inv_h;
+            uv21 = inv_h + 1.0f;
+            uv31 = inv_h + 1.0f;
+        }
+
+        vertices[0].position.x = -1.0;
+        vertices[0].position.y = +1.0;
+        vertices[0].position.z = +0.0;
+        vertices[0].position.w = +1.0;
+        vertices[0].uv[0].x = uv00;
+        vertices[0].uv[0].y = uv01;
+        vertices[0].uv[1].x = uv00;
+        vertices[0].uv[1].y = uv01;
+        vertices[0].uv[2].x = uv00;
+        vertices[0].uv[2].y = uv01;
+        vertices[0].uv[3].x = uv00;
+        vertices[0].uv[3].y = uv01;
+        vertices[0].uv[4].x = uv00;
+        vertices[0].uv[4].y = uv01;
+        vertices[0].uv[5].x = uv00;
+        vertices[0].uv[5].y = uv01;
+        vertices[0].uv[6].x = uv00;
+        vertices[0].uv[6].y = uv01;
+        vertices[0].uv[7].x = uv00;
+        vertices[0].uv[7].y = uv01;
+
+        vertices[1].position.x = +1.0;
+        vertices[1].position.y = +1.0;
+        vertices[1].position.z = +0.0;
+        vertices[1].position.w = +1.0;
+        vertices[1].uv[0].x = uv10;
+        vertices[1].uv[0].y = uv11;
+        vertices[1].uv[1].x = uv10;
+        vertices[1].uv[1].y = uv11;
+        vertices[1].uv[2].x = uv10;
+        vertices[1].uv[2].y = uv11;
+        vertices[1].uv[3].x = uv10;
+        vertices[1].uv[3].y = uv11;
+        vertices[1].uv[4].x = uv10;
+        vertices[1].uv[4].y = uv11;
+        vertices[1].uv[5].x = uv10;
+        vertices[1].uv[5].y = uv11;
+        vertices[1].uv[6].x = uv10;
+        vertices[1].uv[6].y = uv11;
+        vertices[1].uv[7].x = uv10;
+        vertices[1].uv[7].y = uv11;
+
+        vertices[2].position.x = +1.0;
+        vertices[2].position.y = -1.0;
+        vertices[2].position.z = +0.0;
+        vertices[2].position.w = +1.0;
+        vertices[2].uv[0].x = uv20;
+        vertices[2].uv[0].y = uv21;
+        vertices[2].uv[1].x = uv20;
+        vertices[2].uv[1].y = uv21;
+        vertices[2].uv[2].x = uv20;
+        vertices[2].uv[2].y = uv21;
+        vertices[2].uv[3].x = uv20;
+        vertices[2].uv[3].y = uv21;
+        vertices[2].uv[4].x = uv20;
+        vertices[2].uv[4].y = uv21;
+        vertices[2].uv[5].x = uv20;
+        vertices[2].uv[5].y = uv21;
+        vertices[2].uv[6].x = uv20;
+        vertices[2].uv[6].y = uv21;
+        vertices[2].uv[7].x = uv20;
+        vertices[2].uv[7].y = uv21;
+
+        vertices[3].position.x = -1.0;
+        vertices[3].position.y = -1.0;
+        vertices[3].position.z = +0.0;
+        vertices[3].position.w = +1.0;
+        vertices[3].uv[0].x = uv30;
+        vertices[3].uv[0].y = uv31;
+        vertices[3].uv[1].x = uv30;
+        vertices[3].uv[1].y = uv31;
+        vertices[3].uv[2].x = uv30;
+        vertices[3].uv[2].y = uv31;
+        vertices[3].uv[3].x = uv30;
+        vertices[3].uv[3].y = uv31;
+        vertices[3].uv[4].x = uv30;
+        vertices[3].uv[4].y = uv31;
+        vertices[3].uv[5].x = uv30;
+        vertices[3].uv[5].y = uv31;
+        vertices[3].uv[6].x = uv30;
+        vertices[3].uv[6].y = uv31;
+        vertices[3].uv[7].x = uv30;
+        vertices[3].uv[7].y = uv31;
+
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+
+        this->effect_->CommitChanges();
+
+        directx::device()->DrawPrimitiveUP(::D3DPT_TRIANGLEFAN, 2u, vertices, sizeof(vertices[0]));
+    }
+
+    /// *************************************************************************************************************
+    /// START
+    /// *************************************************************************************************************
 
     void effect_world_reflect::start()
     {
@@ -768,6 +1275,182 @@ namespace hyper
         }
     }
 
+    void effect_world_bone::start()
+    {
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+    }
+
+    void effect_world_normal_map::start()
+    {
+        this->reset_lighting_params();
+    }
+
+    void effect_car::start()
+    {
+        if (env_map_render_target::car_volume != nullptr)
+        {
+            this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
+        }
+
+        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        {
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        }
+        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
+        {
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+    }
+
+    void effect_car_normal_map::start()
+    {
+        if (env_map_render_target::car_volume != nullptr)
+        {
+            this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
+        }
+
+        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        {
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        }
+        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
+        {
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+    }
+
+    void effect_fe::start()
+    {
+    }
+
+    void effect_fe_mask::start()
+    {
+    }
+
+    void effect_filter::start()
+    {
+    }
+
+    void effect_screen_filter::start()
+    {
+    }
+
+    void effect_visual_treatment::start()
+    {
+    }
+
+    void effect_world_prelit::start()
+    {
+    }
+
+    void effect_sky::start()
+    {
+        this->set_texture(parameter_type::MISCMAP1_TEXTURE, this->sky_texture_);
+
+        if (effect_sky::last_frame_updated_ != global::world_time_frames)
+        {
+            float update_rate = lighting::time_of_day::instance->update_rate;
+
+            effect_sky::last_frame_updated_ = global::world_time_frames;
+
+            effect_sky::sky_time_ticker_ += update_rate * 0.5f * global::world_time_elapsed * 0.04f;
+        }
+
+        this->set_float(parameter_type::cfTimeTicker, effect_sky::sky_time_ticker_);
+
+        this->set_vector(parameter_type::cfSkyFogFalloff, lighting::fog_shader_params::instance->sky_fog_falloff);
+
+        this->reset_lighting_params();
+    }
+
+    void effect_shadow_map_mesh::start()
+    {
+    }
+
+    void effect_car_shadow_map::start()
+    {
+    }
+
+    void effect_world_depth::start()
+    {
+    }
+
+    void effect_shadow_map_mesh_depth::start()
+    {
+    }
+
+    void effect_normal_map_no_fog::start()
+    {
+    }
+
+    void effect_instance_mesh::start()
+    {
+    }
+
+    void effect_screen_effect::start()
+    {
+    }
+
+    void effect_hdr::start()
+    {
+    }
+
+    void effect_ucap::start()
+    {
+    }
+
+    void effect_glass_reflect::start()
+    {
+        ::IDirect3DCubeTexture9* refl_texture = texture::refl_cube_world_indices[0] >= texture::refl_cube_texture_count
+            ? texture::refl_cube_textures[0]
+            : texture::refl_cube_textures[texture::refl_cube_world_indices[0]];
+
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, refl_texture);
+
+        this->set_texture(parameter_type::HEADLIGHT_TEXTURE, texture::headlights_xenon_texture->pinfo->texture);
+
+        this->reset_lighting_params();
+    }
+
+    void effect_water::start()
+    {
+        this->blend_data_.curr_frame = static_cast<std::uint32_t>(::fmodf(effect_water::fps_ * utils::get_world_time(), this->blend_data_.pca_weight->frame_count));
+
+        if (effect_water::last_frame_updated_ != global::world_time_frames)
+        {
+            float update_rate = lighting::time_of_day::instance->update_rate;
+
+            effect_water::last_frame_updated_ = global::world_time_frames;
+
+            effect_water::water_time_ticker_ += update_rate * 0.5f * global::world_time_elapsed * 0.04f;
+        }
+
+        this->set_float(parameter_type::cfTimeTicker, effect_water::water_time_ticker_);
+
+        this->set_texture(parameter_type::MISCMAP1_TEXTURE, reflection_render_target::d3d_texture);
+        this->set_texture(parameter_type::PCA_COMPONENTS0_TEXTURE, this->pca_water_textures_[0]->pinfo->texture);
+        this->set_texture(parameter_type::PCA_COMPONENTS1_TEXTURE, this->pca_water_textures_[1]->pinfo->texture);
+
+        this->set_pca_blend_data(this->blend_data_);
+    }
+
+    void effect_rvmpip::start()
+    {
+    }
+
+    void effect_ghost_car::start()
+    {
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+    }
+
+    /// *************************************************************************************************************
+    /// LOAD_GLOBAL_TEXTURES
+    /// *************************************************************************************************************
+
     void effect_world_reflect::load_global_textures()
     {
         char buffer[32];
@@ -782,6 +1465,90 @@ namespace hyper
         }
     }
 
+    void effect_car_normal_map::load_global_textures()
+    {
+        this->normal_2dnoise_ = texture::get_texture_info(hashing::bin_const("2DNOISE_NORMAL"), true, false)->pinfo->texture;
+    }
+
+    void effect_sky::load_global_textures()
+    {
+        this->sky_texture_ = texture::get_texture_info(hashing::bin_const("SKY_NIGHT_CLOUDS_02"), true, false)->pinfo->texture;
+    }
+
+    void effect_glass_reflect::load_global_textures()
+    {
+        this->reflection_texture_ = texture::get_texture_info(hashing::bin_const("WINDOWREFLECTION"), true, false)->pinfo->texture;
+    }
+
+    void effect_water::load_global_textures()
+    {
+        this->pca_water_textures_[0] = texture::get_texture_info(hashing::bin_const("PCAWATER0"), true, false);
+        this->pca_water_textures_[1] = texture::get_texture_info(hashing::bin_const("PCAWATER1"), true, false);
+        this->blend_data_.curr_frame = 0u;
+        this->blend_data_.blend = 0.0f;
+        this->blend_data_.ucap_weight = nullptr;
+        this->blend_data_.pca_weight = this->pca_water_textures_[0]->weights;
+    }
+
+    /// *************************************************************************************************************
+    /// SHADER_LIB
+    /// *************************************************************************************************************
+
+    void shader_lib::bind_pca_channels(pca::channel_info* channels, size_t count)
+    {
+        for (size_t i = 0u; i < count; ++i)
+        {
+            pca::channel_info& info = channels[i];
+
+            switch (info.type)
+            {
+                case 0:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsR);
+                    break;
+
+                case 1:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsG);
+                    break;
+
+                case 2:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsB);
+                    break;
+
+                case 3:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsX);
+                    break;
+
+                case 4:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsY);
+                    break;
+
+                case 5:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsZ);
+                    break;
+
+                case 6:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNX);
+                    break;
+
+                case 7:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNY);
+                    break;
+
+                case 8:
+                    info.param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavPcaWeightsNZ);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    template <typename T> auto allocate = []() -> T*
+    {
+        return new T();
+    };
+
     void shader_lib::init()
     {
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
@@ -795,9 +1562,54 @@ namespace hyper
             return lhs.key < rhs.key;
         });
 
-        shader_lib::initilaized_ = true;
+        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = allocate<effect_world>();
+        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = allocate<effect_world_reflect>();
+        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = allocate<effect_world_bone>();
+        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = allocate<effect_world_normal_map>();
+        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = allocate<effect_car>();
+        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = allocate<effect_car_normal_map>();
+        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = allocate<effect_world_min>();
+        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = allocate<effect_fe>();
+        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = allocate<effect_fe_mask>();
+        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = allocate<effect_filter>();
+        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = allocate<effect_screen_filter>();
+        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = allocate<effect_raindrop>();
+        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = allocate<effect_visual_treatment>();
+        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = allocate<effect_world_prelit>();
+        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = allocate<effect_particles>();
+        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = allocate<effect_sky>();
+        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = allocate<effect_shadow_map_mesh>();
+        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = allocate<effect_car_shadow_map>();
+        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = allocate<effect_world_depth>();
+        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = allocate<effect_shadow_map_mesh_depth>();
+        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = allocate<effect_normal_map_no_fog>();
+        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = allocate<effect_instance_mesh>();
+        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = allocate<effect_screen_effect>();
+        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = allocate<effect_hdr>();
+        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = allocate<effect_ucap>();
+        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = allocate<effect_glass_reflect>();
+        shader_lib::effects_[shader_type::WATER] = effect_water::instance = allocate<effect_water>();
+        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = allocate<effect_rvmpip>();
+        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = allocate<effect_ghost_car>();
 
-        // #TODO init
+        pca::ucap_bind = shader_lib::bind_ucap_weights;
+
+        shader_lib::initilaized_ = true;
+    }
+
+    void shader_lib::close()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            auto& ptr = shader_lib::effects_[i];
+
+            if (ptr != nullptr)
+            {
+                delete ptr;
+
+                ptr = nullptr;
+            }
+        }
     }
 
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
@@ -859,5 +1671,17 @@ namespace hyper
                 shader_lib::effects_[type]->recompute_techniques_by_detail(detail_level);
             }
         }
+    }
+
+    void shader_lib::bind_pca_weights(pca::weights& weights)
+    {
+        shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
+    }
+
+    void shader_lib::bind_ucap_weights(pca::ucap_frame_weights& weights)
+    {
+        weights.feature_heights_param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavFeatureHeights);
+
+        shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
     }
 }
