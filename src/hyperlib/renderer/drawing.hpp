@@ -331,6 +331,10 @@ namespace hyper
 
         static inline bool& use_lowlod_pass = *reinterpret_cast<bool*>(0x00AB0B98);
 
+        static inline bool& cull_backfaces = *reinterpret_cast<bool*>(0x00A650E4);
+
+        static inline ::D3DCULL& current_cull_mode = *reinterpret_cast<::D3DCULL*>(0x00A6523C);
+
     private:
         static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);
 

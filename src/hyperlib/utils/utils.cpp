@@ -1,6 +1,7 @@
 #include <thread>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
 
 using signed_t = std::make_signed_t<size_t>;
 
@@ -29,6 +30,18 @@ namespace hyper
     auto utils::get_world_time() -> float
     {
         return static_cast<float>(global::world_time_packed) * 0.00025f;
+    }
+
+    auto utils::get_render_time() -> float
+    {
+        if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
+        {
+            return utils::get_real_time();
+        }
+        else
+        {
+            return utils::get_world_time();
+        }
     }
 
     void utils::thread_yield(std::uint32_t ms)

@@ -28,6 +28,8 @@ namespace hyper
 
     vector3 vector3::forward_(0.0f, +1.0f, 0.0f);
     
+    vector4 vector4::zero_(0.0f, 0.0f, 0.0f, 0.0f);
+
     color color::clear_(0.0f, 0.0f, 0.0f, 0.0f);
 
     color color::black_(0.0f, 0.0f, 0.0f, 1.0f);

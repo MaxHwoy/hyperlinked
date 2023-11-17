@@ -30,6 +30,8 @@ namespace hyper
 
         static void reset_rendering_states();
 
+        static void set_alpha_render_state(bool enabled, ::DWORD alpha_ref, ::D3DCMPFUNC alpha_func);
+
     public:
         static inline float pixel_aspect_ratio = 1.0f;
 
@@ -54,8 +56,6 @@ namespace hyper
         static inline ::D3DADAPTER_IDENTIFIER9& adapter = *reinterpret_cast<::D3DADAPTER_IDENTIFIER9*>(0x00AAFEB0);
 
         static inline ::D3DCAPS9& device_caps = *reinterpret_cast<::D3DCAPS9*>(0x00AB0348);
-
-        static inline ::D3DCULL& default_cull = *reinterpret_cast<::D3DCULL*>(0x00A6523C);
 
         static inline bool& use_16bit_depth = *reinterpret_cast<bool*>(0x00AB0A54);
 

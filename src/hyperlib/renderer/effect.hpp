@@ -301,12 +301,6 @@ namespace hyper
         };
 
     private:
-        struct linked_technique : public linked_node<linked_technique>
-        {
-            technique tech;
-        };
-
-    private:
         void store_param_by_key(::LPCSTR name, ::D3DXHANDLE handle);
 
     public:
@@ -322,13 +316,17 @@ namespace hyper
 
         void initialize(const effect::input* input);
 
+        void reset();
+
         void connect_parameters();
 
         void reset_filter_params();
 
         void reset_lighting_params();
 
-        void load_effect_from_buffer(const effect::input* input);
+        void load_effect();
+
+        void load_effect_from_input(const effect::input* input);
 
         void recompute_techniques_by_detail(std::uint32_t detail_level);
 
@@ -336,13 +334,23 @@ namespace hyper
 
         void set_technique(const char* name);
 
+        void set_current_pass(std::uint32_t pass, const char* technique, bool use_low_lod);
+
         void set_pca_blend_data(const pca::blend_data& data);
 
         void set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry);
 
         void set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world);
 
-        void set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model);
+        void set_texture_maps(rendering_model& model, draw_flags flags);
+
+        void set_diffuse_map(rendering_model& model);
+
+        void set_auxiliary_maps(rendering_model& model);
+
+        void set_texture_animation(const texture::info& info);
+
+        void commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model);
 
         inline auto id() const -> shader_type
         {
@@ -475,6 +483,16 @@ namespace hyper
             }
         }
 
+        inline static auto get_current_effect() -> effect*
+        {
+            return effect::current_effect_;
+        }
+
+        inline static void set_current_effect(effect* eff)
+        {
+            effect::current_effect_ = eff;
+        }
+
         constexpr static inline auto get_parameter_name(parameter_type type) -> const char*
         {
             return effect::parameter_names_[static_cast<std::uint32_t>(type)];
@@ -483,7 +501,7 @@ namespace hyper
     private:
         shader_type id_;
         std::uint32_t stride_;
-        std::uint32_t main_technique_number_;
+        std::int32_t main_technique_number_;
         ::D3DXHANDLE main_technique_handle_;
         std::uint32_t pass_count_;
         std::int32_t __3__;
@@ -517,11 +535,27 @@ namespace hyper
         const lighting::dynamic_context* last_used_light_context_;
 
     private:
+        static inline effect*& current_effect_ = *reinterpret_cast<effect**>(0x00AB0BA4);
+
         static inline const effect*& last_submitted_effect_ = *reinterpret_cast<const effect**>(0x00B1F2E4);
 
         static inline const matrix4x4* last_submitted_matrix_ = *reinterpret_cast<const matrix4x4**>(0x00B1F2E8);
 
         static inline view_id& last_submitted_view_id_ = *reinterpret_cast<view_id*>(0x00A651A4);
+
+        static inline draw_flags& last_submitted_draw_flags_ = *reinterpret_cast<draw_flags*>(0x00AB0B88);
+
+        static inline texture::render_state& last_submitted_render_state_ = *reinterpret_cast<texture::render_state*>(0x00B1DB70);
+
+        static inline ::IDirect3DTexture9*& last_submitted_diffuse_map_ = *reinterpret_cast<::IDirect3DTexture9**>(0x00B1DB78);
+
+        static inline ::IDirect3DTexture9*& last_submitted_normal_map_ = *reinterpret_cast<::IDirect3DTexture9**>(0x00B1DB7C);
+
+        static inline ::IDirect3DTexture9*& last_submitted_height_map_ = *reinterpret_cast<::IDirect3DTexture9**>(0x00B1DB80);
+
+        static inline ::IDirect3DTexture9*& last_submitted_specular_map_ = *reinterpret_cast<::IDirect3DTexture9**>(0x00B1DB84);
+
+        static inline ::IDirect3DTexture9*& last_submitted_opacity_map_ = *reinterpret_cast<::IDirect3DTexture9**>(0x00B1DB88);
 
         static inline const char* parameter_names_[static_cast<size_t>(parameter_type::count)] = {
             "AmbientCoeff",
@@ -1174,6 +1208,8 @@ namespace hyper
 
         static void close();
 
+        static auto find_input(shader_type type) -> const effect::input*;
+
         static auto find_input(const char* name) -> const effect::input*;
 
         static auto find_param_index(std::uint32_t key) -> const effect::param_index_pair*;
@@ -1196,8 +1232,6 @@ namespace hyper
     public:
         static inline auto effect_param_list = array<effect::param_index_pair, static_cast<size_t>(effect::parameter_type::count)>(0x00B43150);
         
-        static inline effect*& current_effect = *reinterpret_cast<effect**>(0x00AB0BA4);
-
         static inline auto vertex_decl_type_map = array<::D3DDECLTYPE, static_cast<size_t>(vertex_type::count)>(0x00A650EC);
 
         static inline auto vertex_decl_usage_map = array<::D3DDECLUSAGE, static_cast<size_t>(vertex_component::count)>(0x00A65110);

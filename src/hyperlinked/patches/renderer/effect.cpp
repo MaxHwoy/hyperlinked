@@ -279,6 +279,38 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_e_effect_load_effect_from_buffer()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call effect::load_effect; // call custom load_effect
+
+            // no need to restore esp since 'load_effect' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to eEffect::LoadEffectFromBuffer; note that this is a __thiscall
+        }
+    }
+
     __declspec(naked) void detour_e_effect_recompute_techniques_by_detail()
     {
         __asm
@@ -311,6 +343,45 @@ namespace hyper
             pop eax; // restore saved register
 
             retn 4; // return immediately to caller function, not back to eEffect::RecomputeTechniquesByDetail; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_e_effect_set_current_pass()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'pass'
+            // [esp + 0x08] is 'technique'
+            // [esp + 0x0C] is 'use_low_lod'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'use_low_lod' is now at [esp + 0x10]
+            push ebx; // 'use_low_lod' is now at [esp + 0x14]
+            push ecx; // 'use_low_lod' is now at [esp + 0x18]
+            push edx; // 'use_low_lod' is now at [esp + 0x1C]
+            push esi; // 'use_low_lod' is now at [esp + 0x20]
+            push edi; // 'use_low_lod' is now at [esp + 0x24]
+
+            push [esp + 0x24]; // repush 'use_low_lod'
+            push [esp + 0x24]; // repush 'technique'
+            push [esp + 0x24]; // repush 'pass'
+
+            call effect::set_current_pass; // call custom set_current_pass
+
+            // no need to restore esp since 'set_current_pass' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 12; // return immediately to caller function, not back to eEffect::SetCurrentPass; note that this is a __thiscall
         }
     }
 
@@ -371,9 +442,9 @@ namespace hyper
             push [esp + 0x20]; // repush 'entry'
             push [esp + 0x20]; // repush 'blend_matrices'
 
-            mov ecx, shader_lib::current_effect;
+            call effect::get_current_effect;
 
-            mov ecx, [ecx];
+            mov ecx, eax;
 
             call effect::set_blend_matrices; // call custom set_blend_matrices
 
@@ -427,31 +498,31 @@ namespace hyper
         }
     }
 
-    __declspec(naked) void detour_e_effect_set_diffuse_map()
+    __declspec(naked) void detour_e_effect_set_texture_maps()
     {
         __asm
         {
             // [esp + 0x00] is 'return address'
-            // [esp + 0x04] is 'texture'
-            // [esp + 0x08] is 'model'
+            // [esp + 0x04] is 'model'
+            // [esp + 0x08] is 'flags'
             // ecx contains pointer to effect
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
 
-            push eax; // 'model' is now at [esp + 0x0C]
-            push ebx; // 'model' is now at [esp + 0x10]
-            push ecx; // 'model' is now at [esp + 0x14]
-            push edx; // 'model' is now at [esp + 0x18]
-            push esi; // 'model' is now at [esp + 0x1C]
-            push edi; // 'model' is now at [esp + 0x20]
+            push eax; // 'flags' is now at [esp + 0x0C]
+            push ebx; // 'flags' is now at [esp + 0x10]
+            push ecx; // 'flags' is now at [esp + 0x14]
+            push edx; // 'flags' is now at [esp + 0x18]
+            push esi; // 'flags' is now at [esp + 0x1C]
+            push edi; // 'flags' is now at [esp + 0x20]
 
+            push [esp + 0x20]; // repush 'flags'
             push [esp + 0x20]; // repush 'model'
-            push [esp + 0x20]; // repush 'texture'
 
-            call effect::set_diffuse_map; // call custom set_diffuse_map
+            call effect::set_texture_maps; // call custom set_texture_maps
 
-            // no need to restore esp since 'set_diffuse_map' is a __thiscall
+            // no need to restore esp since 'set_texture_maps' is a __thiscall
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -460,7 +531,83 @@ namespace hyper
             pop ebx; // restore saved register
             pop eax; // restore saved register
 
-            retn 8; // return immediately to caller function, not back to eEffect::SetDiffuseMap; note that this is a __thiscall
+            retn 8; // return immediately to caller function, not back to eEffect::SetTextureMaps; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_e_effect_set_texture_animation()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'info'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'info' is now at [esp + 0x08]
+            push ebx; // 'info' is now at [esp + 0x0C]
+            push ecx; // 'info' is now at [esp + 0x10]
+            push edx; // 'info' is now at [esp + 0x14]
+            push esi; // 'info' is now at [esp + 0x18]
+            push edi; // 'info' is now at [esp + 0x1C]
+
+            push [esp + 0x1C]; // repush 'info'
+
+            call effect::set_texture_animation; // call custom set_texture_animation
+
+            // no need to restore esp since 'set_texture_animation' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 4; // return immediately to caller function, not back to eEffect::SetTextureAnimation; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_e_effect_commit_and_draw_indexed()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'vertex_count'
+            // [esp + 0x08] is 'index_start'
+            // [esp + 0x0C] is 'index_count'
+            // [esp + 0x10] is 'model'
+            // ecx contains pointer to effect
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'model' is now at [esp + 0x14]
+            push ebx; // 'model' is now at [esp + 0x18]
+            push ecx; // 'model' is now at [esp + 0x1C]
+            push edx; // 'model' is now at [esp + 0x20]
+            push esi; // 'model' is now at [esp + 0x24]
+            push edi; // 'model' is now at [esp + 0x28]
+
+            push [esp + 0x28]; // repush 'model'
+            push [esp + 0x28]; // repush 'index_count'
+            push [esp + 0x28]; // repush 'index_start'
+            push [esp + 0x28]; // repush 'vertex_count'
+
+            call effect::commit_and_draw_indexed; // call custom commit_and_draw_indexed
+
+            // no need to restore esp since 'commit_and_draw_indexed' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 16; // return immediately to caller function, not back to eEffect::CommitAndDrawIndexed; note that this is a __thiscall
         }
     }
 
@@ -584,8 +731,14 @@ namespace hyper
         // eEffect::ResetFilterParams
         hook::jump(0x00713EE0, &detour_e_effect_reset_filter_params);
 
+        // eEffect::LoadEffectFromBuffer
+        hook::jump(0x0072B660, &detour_e_effect_load_effect_from_buffer);
+
         // eEffect::RecomputeTechniquesByDetail
         hook::jump(0x00730250, &detour_e_effect_recompute_techniques_by_detail);
+
+        // eEffect::SetCurrentPass
+        hook::jump(0x00723600, &detour_e_effect_set_current_pass);
 
         // eEffect::SetPCABlendData
         hook::jump(0x0071E540, &detour_e_effect_set_pca_blend_data);
@@ -596,8 +749,14 @@ namespace hyper
         // eEffect::SetLightContext
         hook::jump(0x0071DFA0, &detour_e_effect_set_light_context);
 
-        // eEffect::SetDiffuseMap
-        hook::jump(0x0071DCE0, &detour_e_effect_set_diffuse_map);
+        // eEffect::SetTextureMaps
+        hook::jump(0x007234A0, &detour_e_effect_set_texture_maps);
+
+        // eEffect::SetTextureAnimation
+        hook::jump(0x0071DEB0, &detour_e_effect_set_texture_animation);
+
+        // eEffect::CommitAndDrawIndexed
+        hook::jump(0x0071ECB0, &detour_e_effect_commit_and_draw_indexed);
 
 
 

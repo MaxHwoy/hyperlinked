@@ -15,6 +15,8 @@ namespace hyper
         {
             void initialize(info* texture);
 
+            operator std::uint32_t();
+
             /* 0b00000001 */ std::uint32_t z_write_enabled : 1;
             /* 0b00000002 */ std::uint32_t is_backface_culled : 1;
             /* 0b00000004 */ std::uint32_t alpha_test_enabled : 1;
@@ -234,6 +236,12 @@ namespace hyper
         static auto get_texture_page_range(std::uint32_t key, std::int32_t bucket) -> page_range*;
 
         static void set_e_texture_key(e_texture& texture, std::uint32_t key);
+
+        static auto get_scroll_s(const info& info, float delta_time) -> float;
+
+        static auto get_scroll_t(const info& info, float delta_time) -> float;
+
+        static auto get_scroll(float delta_time, float speed, scroll_type scroll, float step) -> float;
 
     public:
         static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);

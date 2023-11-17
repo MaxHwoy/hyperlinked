@@ -7,6 +7,8 @@
 #include <hyperlib/renderer/effect.hpp>
 #include <hyperlib/renderer/drawing.hpp>
 
+#pragma warning (disable : 26813)
+
 namespace hyper
 {
     /// *************************************************************************************************************
@@ -82,6 +84,7 @@ namespace hyper
         this->low_lod_technique_number_ = -1;
         this->has_zero_offset_scale_ = -1;
         this->has_fog_disabled_ = -1;
+        this->main_technique_number_ = -1;
         this->__3__ = -1;
         this->__4__ = -1;
         this->__5__ = -1;
@@ -221,7 +224,7 @@ namespace hyper
 
     void effect::set_transforms(const matrix4x4& local_to_world, const render_view& view, bool use_nonjittered)
     {
-        if (&local_to_world != effect::last_submitted_matrix_ || shader_lib::current_effect != effect::last_submitted_effect_ || view.id != effect::last_submitted_view_id_)
+        if (&local_to_world != effect::last_submitted_matrix_ || effect::current_effect_ != effect::last_submitted_effect_ || view.id != effect::last_submitted_view_id_)
         {
             const matrix4x4* view_matrix = &view.view_matrix;
             const matrix4x4* proj_matrix = &view.projection_matrix;
@@ -231,7 +234,7 @@ namespace hyper
 
             if (view.id == effect::last_submitted_view_id_)
             {
-                if (shader_lib::current_effect != effect::last_submitted_effect_ && !this->active_)
+                if (effect::current_effect_ != effect::last_submitted_effect_ && !this->active_)
                 {
                     directx::device()->SetTransform(::D3DTS_VIEW, reinterpret_cast<const ::D3DMATRIX*>(view_matrix));
                     directx::device()->SetTransform(::D3DTS_PROJECTION, reinterpret_cast<const ::D3DMATRIX*>(proj_matrix));
@@ -248,7 +251,7 @@ namespace hyper
                 effect::last_submitted_view_id_ = view.id;
             }
 
-            effect::last_submitted_effect_ = shader_lib::current_effect;
+            effect::last_submitted_effect_ = effect::current_effect_;
             effect::last_submitted_matrix_ = &local_to_world;
 
             if (this->has_parameter(parameter_type::cmWorldMatTranspose))
@@ -507,7 +510,7 @@ namespace hyper
 
         this->stride_ = stride;
 
-        this->load_effect_from_buffer(input);
+        this->load_effect_from_input(input);
 
         std::uint32_t max_detail = 3u; // #TODO move this as part of settings
 
@@ -544,7 +547,7 @@ namespace hyper
 
                 if (string::length(tech_desc.Name) == lowlod_size && !::memcmp(tech_desc.Name, lowlod, lowlod_size))
                 {
-                    this->low_lod_technique_number_ = i;
+                    this->low_lod_technique_number_ = static_cast<std::int32_t>(i);
                 }
                 else
                 {
@@ -571,7 +574,7 @@ namespace hyper
             {
                 ::D3DXTECHNIQUE_DESC tech_desc;
 
-                this->main_technique_number_ = i;
+                this->main_technique_number_ = static_cast<std::int32_t>(i);
                 this->main_technique_handle_ = tech;
 
                 this->effect_->GetTechniqueDesc(tech, &tech_desc);
@@ -584,6 +587,14 @@ namespace hyper
 
         this->active_ = this->effect_ != nullptr;
         this->has_main_technique_ = this->main_technique_handle_ != nullptr;
+    }
+
+    void effect::reset()
+    {
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
     }
 
     void effect::connect_parameters()
@@ -638,12 +649,14 @@ namespace hyper
         }
     }
 
-    void effect::load_effect_from_buffer(const effect::input* input)
+    void effect::load_effect()
     {
-        this->has_zero_offset_scale_ = -1;
-        this->has_fog_disabled_ = -1;
-        this->last_used_light_material_ = nullptr;
-        this->last_used_light_context_ = nullptr;
+        this->load_effect_from_input(shader_lib::find_input(this->id_));
+    }
+
+    void effect::load_effect_from_input(const effect::input* input)
+    {
+        this->reset();
 
         if (this->effect_ != nullptr)
         {
@@ -728,6 +741,44 @@ namespace hyper
         }
     }
 
+    void effect::set_current_pass(std::uint32_t pass, const char* technique, bool use_low_lod)
+    {
+        std::int32_t index = -1;
+
+        if (technique != nullptr)
+        {
+            if (effect::technique* tech = this->find_techique(technique))
+            {
+                index = static_cast<std::int32_t>(tech->technique_index);
+            }
+        }
+        else if ((renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
+        {
+            index = this->low_lod_technique_number_;
+        }
+        else
+        {
+            index = static_cast<std::int32_t>(this->supported_table_.front().technique_index);
+        }
+
+        if (index < 0)
+        {
+            PRINT_FATAL("Unable to find requested technique or lowlod/main technique is missing");
+        }
+
+        this->effect_->SetTechnique(this->effect_->GetTechnique(index));
+
+        effect::current_effect_ = this;
+
+        this->start();
+
+        directx::device()->SetVertexDeclaration(this->vertex_decl_);
+
+        this->effect_->Begin(&this->pass_count_, 0u);
+
+        this->effect_->BeginPass(pass);
+    }
+
     void effect::set_pca_blend_data(const pca::blend_data& data)
     {
         if (data.ucap_weight != nullptr)
@@ -809,9 +860,74 @@ namespace hyper
         }
     }
 
-    void effect::set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model)
+    void effect::set_texture_maps(rendering_model& model, draw_flags flags)
     {
-        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+        uintptr_t state_change = 0u;
+
+        state_change |= static_cast<uintptr_t>(static_cast<std::uint32_t>(effect::last_submitted_draw_flags_) - static_cast<std::uint32_t>(flags));
+        state_change |= static_cast<uintptr_t>(static_cast<std::uint32_t>(effect::last_submitted_render_state_) - static_cast<std::uint32_t>(model.render_bits));
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_effect_) - reinterpret_cast<uintptr_t>(this);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_diffuse_map_) - reinterpret_cast<uintptr_t>(model.d3d9_diffuse_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_normal_map_) - reinterpret_cast<uintptr_t>(model.d3d9_normal_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_height_map_) - reinterpret_cast<uintptr_t>(model.d3d9_height_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_specular_map_) - reinterpret_cast<uintptr_t>(model.d3d9_specular_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_opacity_map_) - reinterpret_cast<uintptr_t>(model.d3d9_opacity_texture);
+
+        if (state_change != 0u)
+        {
+            effect::last_submitted_effect_ = this;
+            effect::last_submitted_draw_flags_ = flags;
+            effect::last_submitted_render_state_ = model.render_bits;
+            effect::last_submitted_diffuse_map_ = model.d3d9_diffuse_texture;
+            effect::last_submitted_normal_map_ = model.d3d9_normal_texture;
+            effect::last_submitted_height_map_ = model.d3d9_height_texture;
+            effect::last_submitted_specular_map_ = model.d3d9_specular_texture;
+            effect::last_submitted_opacity_map_ = model.d3d9_opacity_texture;
+
+            std::int32_t cull_mode;
+
+            if (model.render_bits.is_backface_culled && renderer::cull_backfaces)
+            {
+                cull_mode = ::D3DCULL_CCW - ((renderer::current_cull_mode == ::D3DCULL_CW) != ((flags & draw_flags::inverted_culling) != 0));
+            }
+            else
+            {
+                cull_mode = ::D3DCULL_NONE;
+            }
+
+            directx::device()->SetRenderState(::D3DRS_CULLMODE, static_cast<::DWORD>(cull_mode));
+
+            this->set_diffuse_map(model);
+
+            if (model.render_bits.wants_auxiliary_textures)
+            {
+                this->set_auxiliary_maps(model);
+            }
+
+            this->set_texture_animation(*model.base_texture_info);
+
+            if (this->has_fog_disabled_ != model.render_bits.is_additive_blend)
+            {
+                this->has_fog_disabled_ = model.render_bits.is_additive_blend;
+
+                if (this->has_parameter(parameter_type::cfFogEnable))
+                {
+                    float enable_fog = 0.0f;
+
+                    if (!model.render_bits.is_additive_blend)
+                    {
+                        enable_fog = 1.0f;
+                    }
+
+                    this->set_float_unchecked(parameter_type::cfFogEnable, enable_fog);
+                }
+            }
+        }
+    }
+
+    void effect::set_diffuse_map(rendering_model& model)
+    {
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, model.d3d9_diffuse_texture);
 
         texture::render_state state = model.render_bits;
 
@@ -825,6 +941,123 @@ namespace hyper
         directx::device()->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
         directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
         directx::device()->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+    }
+
+    void effect::set_auxiliary_maps(rendering_model& model)
+    {
+        if (model.d3d9_normal_texture != nullptr)
+        {
+            this->set_texture(parameter_type::NORMALMAP_TEXTURE, model.d3d9_normal_texture);
+        }
+
+        if (model.d3d9_height_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEIGHTMAP_TEXTURE, model.d3d9_height_texture);
+        }
+
+        if (model.d3d9_specular_texture != nullptr)
+        {
+            this->set_texture(parameter_type::SPECULARMAP_TEXTURE, model.d3d9_specular_texture);
+        }
+
+        if (model.d3d9_opacity_texture != nullptr)
+        {
+            this->set_texture(parameter_type::OPACITYMAP_TEXTURE, model.d3d9_opacity_texture);
+        }
+    }
+
+    void effect::set_texture_animation(const texture::info& info)
+    {
+        if (this->has_parameter(parameter_type::cvTextureOffset))
+        {
+            vector4 scroll{};
+
+            if (info.scroll == texture::scroll_type::none)
+            {
+                if (this->has_zero_offset_scale_ != 1)
+                {
+                    this->set_vector_unchecked(parameter_type::cvTextureOffset, scroll);
+                }
+
+                this->has_zero_offset_scale_ = true;
+            }
+            else
+            {
+                if (info.scroll == texture::scroll_type::offset_scale)
+                {
+                    scroll.x = static_cast<float>(info.offset_s) * -0.0009765625f; // 1 / -1024.0f
+                    scroll.y = static_cast<float>(info.offset_t) * -0.0009765625f; // 1 / -1024.0f
+                    scroll.z = static_cast<float>(info.scale_s) * 0.00390625f; // 1 / 256.0f
+                    scroll.w = static_cast<float>(info.scale_t) * 0.00390625f; // 1 / 256.0f
+                }
+                else
+                {
+                    float delta_time = utils::get_render_time();
+
+                    scroll.x = texture::get_scroll_s(info, delta_time);
+                    scroll.y = texture::get_scroll_t(info, delta_time);
+                }
+
+                this->set_vector_unchecked(parameter_type::cvTextureOffset, scroll);
+
+                this->has_zero_offset_scale_ = false;
+            }
+        }
+    }
+
+    void effect::commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model)
+    {
+        if (model.render_bits.multi_pass_blend)
+        {
+            if (renderer::world_detail == 3u)
+            {
+                directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_GREATEREQUAL);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, false);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, true);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+
+                directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_LESS);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, true);
+
+                directx::device()->SetRenderState(::D3DRS_SRCBLEND, ::D3DBLEND_SRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_DESTBLEND, ::D3DBLEND_INVSRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, false);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+            }
+            else
+            {
+                directx::set_alpha_render_state(false, 0u, ::D3DCMP_GREATER);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, true);
+
+                directx::device()->SetRenderState(::D3DRS_SRCBLEND, ::D3DBLEND_SRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_DESTBLEND, ::D3DBLEND_INVSRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, false);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+            }
+        }
+        else
+        {
+            this->effect_->CommitChanges();
+
+            directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+        }
     }
 
     /// *************************************************************************************************************
@@ -1533,6 +1766,11 @@ namespace hyper
         return reinterpret_cast<const effect::param_index_pair*>(entry);
     }
 
+    auto shader_lib::find_input(shader_type type) -> const effect::input*
+    {
+        return &shader_lib::inputs_[type];
+    }
+
     auto shader_lib::find_input(const char* name) -> const effect::input*
     {
         for (size_t i = 0u; i < shader_lib::inputs_.length(); ++i)
@@ -1560,7 +1798,7 @@ namespace hyper
         eff.end();
         eff.end_effect();
 
-        shader_lib::current_effect = nullptr;
+        effect::set_current_effect(nullptr);
     }
 
     void shader_lib::recompute_techniques_by_detail(std::uint32_t detail_level)

@@ -2,8 +2,6 @@
 
 namespace hyper
 {
-    pca::ucap_binder pca::ucap_bind = nullptr;
-
     auto pca::blend_ucap(const ucap_frame_weights& weights, std::uint8_t type, std::uint32_t curr_frame, std::uint32_t next_frame, float blend) -> float*
     {
         const pca::channel_info& info = weights.channel_infos[type];

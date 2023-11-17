@@ -1,6 +1,7 @@
 #include <d3dx9.h>
 #include <d3dtypes.h>
 #include <hyperlib/renderer/directx.hpp>
+#include <hyperlib/renderer/drawing.hpp>
 #include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
@@ -153,7 +154,7 @@ namespace hyper
         xdevice->SetRenderState(::D3DRS_FOGENABLE, FALSE);
         xdevice->SetRenderState(::D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGB);
 
-        directx::default_cull = ::D3DCULL_CW;
+        renderer::current_cull_mode = ::D3DCULL_CW;
 
         ::D3DTEXTUREFILTERTYPE min_filter = ::D3DTEXF_LINEAR;
         ::D3DTEXTUREFILTERTYPE mag_filter = ::D3DTEXF_LINEAR;
@@ -216,5 +217,16 @@ namespace hyper
         effect_world::instance->set_int(effect::parameter_type::ColorWriteMode, D3DCOLORWRITEENABLE_RGB);
 
         directx::last_textures_used.clear();
+    }
+
+    void directx::set_alpha_render_state(bool enabled, ::DWORD alpha_ref, ::D3DCMPFUNC alpha_func)
+    {
+        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, enabled);
+
+        if (enabled)
+        {
+            directx::device()->SetRenderState(::D3DRS_ALPHAREF, alpha_ref);
+            directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, alpha_func);
+        }
     }
 }

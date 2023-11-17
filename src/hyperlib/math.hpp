@@ -425,6 +425,11 @@ namespace hyper
 
         auto normalized() const -> vector4;
 
+        inline static auto zero() -> const vector4&
+        {
+            return vector4::zero_;
+        }
+
         inline static auto dot(const vector4& lhs, const vector4& rhs) -> float
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
@@ -456,6 +461,9 @@ namespace hyper
         {
             return { origin.x + direction.x * scale, origin.y + direction.y * scale, origin.z + direction.z * scale, origin.w + direction.w * scale };
         }
+
+    private:
+        static vector4 zero_;
     };
 
     struct vector3pad

@@ -122,6 +122,11 @@ namespace hyper
         this->has_texture_animation = texture->scroll != texture::scroll_type::none;
     }
 
+    texture::render_state::operator std::uint32_t()
+    {
+        return *reinterpret_cast<std::uint32_t*>(this);
+    }
+
     auto texture::get_texture_info(std::uint32_t key, bool default_if_not_found, bool include_unloaded) -> texture::info*
     {
         return call_function<texture::info*(__cdecl*)(std::uint32_t, bool, bool)>(0x0055CFD0)(key, default_if_not_found, include_unloaded);
@@ -135,5 +140,30 @@ namespace hyper
     void texture::set_e_texture_key(e_texture& texture, std::uint32_t texture_key)
     {
         call_function<void(__thiscall*)(e_texture*, std::uint32_t)>(0x0055DF50)(&texture, texture_key);
+    }
+
+    auto texture::get_scroll_s(const texture::info& info, float delta_time) -> float
+    {
+        return texture::get_scroll(delta_time, info.scroll_speed_s * 0.00024414062f, info.scroll, info.scroll_time_step * 0.00390625f);
+    }
+
+    auto texture::get_scroll_t(const texture::info& info, float delta_time) -> float
+    {
+        return texture::get_scroll(delta_time, info.scroll_speed_t * 0.00024414062f, info.scroll, info.scroll_time_step * 0.00390625f);
+    }
+
+    auto texture::get_scroll(float delta_time, float speed, scroll_type scroll, float step) -> float
+    {
+        if (scroll == scroll_type::none)
+        {
+            return 0.0f;
+        }
+
+        if (scroll == scroll_type::snap)
+        {
+            delta_time = static_cast<std::int32_t>(delta_time / step);
+        }
+
+        return delta_time * speed - static_cast<std::int32_t>(delta_time * speed);
     }
 }
