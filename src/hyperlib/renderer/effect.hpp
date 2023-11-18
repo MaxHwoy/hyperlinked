@@ -316,6 +316,8 @@ namespace hyper
 
         void initialize(const effect::input* input);
 
+        void reinitialize();
+
         void reset();
 
         void connect_parameters();
@@ -367,6 +369,11 @@ namespace hyper
             return this->stride_;
         }
 
+        inline bool has_effect() const
+        {
+            return this->effect_ != nullptr;
+        }
+        
         inline auto pass_count() const -> std::uint32_t
         {
             return this->pass_count_;
@@ -386,9 +393,21 @@ namespace hyper
         {
             if (this->effect_ != nullptr)
             {
+                this->effect_->OnLostDevice();
+
                 this->effect_->Release();
 
                 this->effect_ = nullptr;
+            }
+        }
+
+        inline void release_vertdecl()
+        {
+            if (this->vertex_decl_ != nullptr)
+            {
+                this->vertex_decl_->Release();
+
+                this->vertex_decl_ = nullptr;
             }
         }
 
@@ -1222,6 +1241,10 @@ namespace hyper
         static void init();
 
         static void close();
+
+        static void reset();
+
+        static void reinit();
 
         static auto find_input(shader_type type) -> const effect::input*;
 

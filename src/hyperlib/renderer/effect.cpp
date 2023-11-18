@@ -60,44 +60,16 @@ namespace hyper
     /// *************************************************************************************************************
 
     effect::effect(shader_type type, effect::flags flags, const effect::param_index_pair* indices, const effect::input* input) : 
+        name_(input->effect_name),
         id_(type), 
+        flags_(flags),
         index_pairs_(indices), 
         unsupported_table_{}, 
-        supported_table_{}
+        supported_table_{},
+        effect_(nullptr),
+        vertex_decl_(nullptr)
     {
-        for (size_t i = 0u; i < std::size(this->params_); ++i)
-        {
-            parameter& param = this->params_[i];
-
-            param.name[0] = 0;
-            param.key = 0u;
-            param.handle = nullptr;
-        }
-
-        this->name_ = input->effect_name;
-        this->flags_ = flags;
-        this->last_used_light_material_ = nullptr;
-        this->last_used_light_context_ = nullptr;
-        this->active_ = false;
-        this->effect_ = nullptr;
-
-        this->low_lod_technique_number_ = -1;
-        this->has_zero_offset_scale_ = -1;
-        this->has_fog_disabled_ = -1;
-        this->main_technique_number_ = -1;
-        this->__3__ = -1;
-        this->__4__ = -1;
-        this->__5__ = -1;
-        this->__6__ = -1;
-        this->__7__ = -1;
-        this->__8__ = -1;
-        this->__9__ = -1;
-        this->__10__ = -1;
-        this->__11__ = 0;
-        this->__14__ = 0;
-
-        this->initialize(input);
-        this->connect_parameters();
+        this->reinitialize();
     }
 
     effect::~effect()
@@ -475,13 +447,6 @@ namespace hyper
 
     void effect::initialize(const effect::input* input)
     {
-        if (this->effect_ != nullptr)
-        {
-            this->effect_->Release();
-
-            this->effect_ = nullptr;
-        }
-
         ::D3DVERTEXELEMENT9 elements[0x10];
 
         ::WORD stride = 0u;
@@ -529,6 +494,7 @@ namespace hyper
 
         this->effect_->GetDesc(&eff_desc);
 
+        this->unsupported_table_.clear();
         this->supported_table_.clear();
         this->supported_table_.reserve(eff_desc.Techniques);
 
@@ -587,6 +553,52 @@ namespace hyper
 
         this->active_ = this->effect_ != nullptr;
         this->has_main_technique_ = this->main_technique_handle_ != nullptr;
+    }
+
+    void effect::reinitialize()
+    {
+        for (size_t i = 0u; i < std::size(this->params_); ++i)
+        {
+            parameter& param = this->params_[i];
+
+            param.name[0] = 0;
+            param.key = 0u;
+            param.handle = nullptr;
+        }
+
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
+        this->active_ = false;
+        this->stride_ = 0u;
+
+        this->low_lod_technique_number_ = -1;
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+
+        this->main_technique_number_ = -1;
+        this->main_technique_handle_ = nullptr;
+        this->has_main_technique_ = false;
+        this->pass_count_ = 0u;
+        
+        this->__3__ = -1;
+        this->__4__ = -1;
+        this->__5__ = -1;
+        this->__6__ = -1;
+        this->__7__ = -1;
+        this->__8__ = -1;
+        this->__9__ = -1;
+        this->__10__ = -1;
+        this->__11__ = 0;
+        this->__14__ = 0;
+
+        this->supported_table_.clear();
+        this->unsupported_table_.clear();
+
+        this->release_effect();
+        this->release_vertdecl();
+
+        this->initialize(shader_lib::find_input(this->id_));
+        this->connect_parameters();
     }
 
     void effect::reset()
@@ -1751,6 +1763,30 @@ namespace hyper
         }
     }
 
+    void shader_lib::reset()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->reset();
+            }
+        }
+    }
+
+    void shader_lib::reinit()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->reinitialize();
+            }
+        }
+
+        shader_lib::recompute_techniques_by_detail(directx::shader_detail);
+    }
+
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
     {
         const auto& list = shader_lib::effect_param_list;
@@ -1782,7 +1818,10 @@ namespace hyper
     {
         for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
         {
-            shader_lib::effects_[i]->lose_device();
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->release_effect();
+            }
         }
     }
 
