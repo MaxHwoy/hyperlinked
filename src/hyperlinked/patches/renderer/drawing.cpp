@@ -5,6 +5,35 @@
 
 namespace hyper
 {
+    __declspec(naked) void detour_render_world_in_game()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call renderer::render_world_in_game; // call custom render_world_in_game
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to RenderWorldInGame
+        }
+    }
+
     __declspec(naked) void detour_create_rendering_model()
     {
         __asm
@@ -153,8 +182,40 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_sort_models_and_draw_world()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call renderer::sort_models_and_draw_world; // call custom sort_models_and_draw_world
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to SortModelsAndDrawWorld
+        }
+    }
+
     void drawing_patches::init()
     {
+        // RenderWorldInGame
+        hook::jump(0x00727230, &detour_render_world_in_game);
+
         // CreateRenderingModel
         hook::jump(0x00727930, &detour_create_rendering_model);
 
@@ -166,5 +227,8 @@ namespace hyper
 
         // UpdateRenderViews
         hook::jump(0x0074EB90, &detour_update_render_views);
+
+        // SortModelsAndDrawWorld
+        hook::jump(0x0072C9B0, &detour_sort_models_and_draw_world);
     }
 }

@@ -21,7 +21,5 @@ namespace hyper
 
         // HotPosition Load Blocking
         // hook::set<std::uint8_t>(0x007D5246, 0x00);
-
-        int breaker = 0;
     }
 }

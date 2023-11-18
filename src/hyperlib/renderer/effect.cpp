@@ -116,13 +116,13 @@ namespace hyper
         }
     }
 
-    void effect::handle_material_data(const light_material::instance* material, draw_flags flags)
+    void effect::handle_material_data(const light_material::instance& material, draw_flags flags)
     {
-        if (material != nullptr && this->has_parameter(parameter_type::cvDiffuseMin) && material != this->last_used_light_material_)
+        if (this->has_parameter(parameter_type::cvDiffuseMin) && &material != this->last_used_light_material_)
         {
-            this->last_used_light_material_ = material;
+            this->last_used_light_material_ = &material;
 
-            const light_material::data& data = material->material;
+            const light_material::data& data = material.material;
 
             float min_clamp = light_material::min_clamp;
             float spec_scale = light_material::spec_scale;
@@ -838,25 +838,19 @@ namespace hyper
         }
     }
 
-    void effect::set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world)
+    void effect::set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world)
     {
-        if (context != nullptr)
+        if (context.type == 0 && &context != this->last_used_light_context_)
         {
-            if (context->type == 0 && context != this->last_used_light_context_)
-            {
-                this->last_used_light_context_ = context;
+            this->last_used_light_context_ = &context;
 
-                this->set_vector_array(parameter_type::cavHarmonicCoeff, context->harmonics, std::size(context->harmonics));
+            this->set_vector_array(parameter_type::cavHarmonicCoeff, context.harmonics, std::size(context.harmonics));
 
-                this->set_matrix(parameter_type::cmLocalColourMatrix, context->local_color);
+            this->set_matrix(parameter_type::cmLocalColourMatrix, context.local_color);
 
-                this->set_matrix(parameter_type::cmLocalDirectionMatrix, context->local_direction);
+            this->set_matrix(parameter_type::cmLocalDirectionMatrix, context.local_direction);
 
-                if (local_to_world != nullptr)
-                {
-                    this->set_matrix(parameter_type::cmLocalPositionMatrix, *local_to_world);
-                }
-            }
+            this->set_matrix(parameter_type::cmLocalPositionMatrix, local_to_world);
         }
     }
 
@@ -906,7 +900,7 @@ namespace hyper
 
             this->set_texture_animation(*model.base_texture_info);
 
-            if (this->has_fog_disabled_ != model.render_bits.is_additive_blend)
+            if (this->has_fog_disabled_ != static_cast<std::int32_t>(model.render_bits.is_additive_blend))
             {
                 this->has_fog_disabled_ = model.render_bits.is_additive_blend;
 

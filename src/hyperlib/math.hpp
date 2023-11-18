@@ -748,7 +748,11 @@ namespace hyper
         }
 
     private:
+#if defined(USE_HYPER_IDENTITY_MATRIX)
         static matrix4x4 identity_;
+#else
+        static inline matrix4x4& identity_ = *reinterpret_cast<matrix4x4*>(0x00B1DEF0);
+#endif
     };
 
     struct plane

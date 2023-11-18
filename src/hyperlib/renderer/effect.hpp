@@ -305,7 +305,7 @@ namespace hyper
 
     public:
         virtual ~effect();
-        virtual void handle_material_data(const light_material::instance* material, draw_flags flags);
+        virtual void handle_material_data(const light_material::instance& material, draw_flags flags);
         virtual void set_transforms(const matrix4x4& local_to_world, const struct render_view& view, bool use_nonjittered);
         virtual void draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert);
         virtual void start();
@@ -340,7 +340,7 @@ namespace hyper
 
         void set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry);
 
-        void set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world);
+        void set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world);
 
         void set_texture_maps(rendering_model& model, draw_flags flags);
 
@@ -360,6 +360,16 @@ namespace hyper
         inline bool active() const
         {
             return this->active_;
+        }
+
+        inline auto stride() const -> std::uint32_t
+        {
+            return this->stride_;
+        }
+
+        inline auto pass_count() const -> std::uint32_t
+        {
+            return this->pass_count_;
         }
 
         inline bool has_low_lod_technique() const
@@ -390,6 +400,11 @@ namespace hyper
         inline void end_effect()
         {
             this->effect_->End();
+        }
+
+        inline void commit_changes()
+        {
+            this->effect_->CommitChanges();
         }
 
         inline bool has_parameter(parameter_type type)
