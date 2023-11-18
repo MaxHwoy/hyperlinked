@@ -557,14 +557,7 @@ namespace hyper
 
     void effect::reinitialize()
     {
-        for (size_t i = 0u; i < std::size(this->params_); ++i)
-        {
-            parameter& param = this->params_[i];
-
-            param.name[0] = 0;
-            param.key = 0u;
-            param.handle = nullptr;
-        }
+        ::memset(this->params_, 0, sizeof(this->params_));
 
         this->last_used_light_material_ = nullptr;
         this->last_used_light_context_ = nullptr;
