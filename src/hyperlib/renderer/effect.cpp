@@ -421,14 +421,14 @@ namespace hyper
 
             const auto in_frontend = game_flow::manager::instance.current_state == game_flow::state::in_frontend;
 
-#if defined(ABOMINATOR)
+#if defined(NFSCO)
             // copy the vector.
             auto vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
 #else
             const auto& vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
 #endif
 
-#if defined(ABOMINATOR)
+#if defined(NFSCO)
             const auto render_target = render_target::current;
 
             if (render_target->view_id >= view_id::env_z_pos)
@@ -480,7 +480,7 @@ namespace hyper
 
         ::LPD3DXBUFFER errors;
 
-#if defined(ABOMINATOR)
+#if defined(NFSCO)
         auto& buffer = effect::buffer_;
 
         const auto size = std::size(buffer);
@@ -992,12 +992,7 @@ namespace hyper
 
                 if (this->has_parameter(parameter_type::cfFogEnable))
                 {
-                    float enable_fog = 0.0f;
-
-                    if (!model.render_bits.is_additive_blend)
-                    {
-                        enable_fog = 1.0f;
-                    }
+                    float enable_fog = !model.render_bits.is_additive_blend;
 
                     this->set_float_unchecked(parameter_type::cfFogEnable, enable_fog);
                 }
@@ -1011,16 +1006,18 @@ namespace hyper
 
         texture::render_state state = model.render_bits;
 
-        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
-        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
-        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
-        directx::device()->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
-        directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
-        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
-        directx::device()->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
-        directx::device()->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
-        directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
-        directx::device()->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+        const auto device = directx::device();
+
+        device->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
+        device->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
+        device->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
+        device->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
+        device->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
+        device->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
+        device->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
+        device->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
+        device->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
+        device->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
     }
 
     void effect::set_auxiliary_maps(rendering_model& model)
@@ -1524,16 +1521,8 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        if (game_flow::manager::instance.current_state == game_flow::state::racing)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
-        }
-        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
-        }
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
     }
 
     void effect_car_normal_map::start()
@@ -1543,16 +1532,8 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        if (game_flow::manager::instance.current_state == game_flow::state::racing)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
-        }
-        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
-        }
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
     }
 
     void effect_fe::start()

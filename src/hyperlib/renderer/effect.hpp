@@ -745,7 +745,7 @@ namespace hyper
             "cmWorldMatTranspose",
         };
 
-#if defined(ABOMINATOR)
+#if defined(NFSCO)
         static inline char buffer_[MAX_PATH];
 #endif
     };
