@@ -17,6 +17,8 @@ namespace hyper
 
         static auto get_world_time() -> float;
 
+        static auto get_render_time() -> float;
+
         static void thread_yield(std::uint32_t ms);
 
         static auto scan_hash_table_key16(std::uint16_t key, const void* table_ptr, size_t table_size, size_t key_offset, size_t entry_size) -> void*;

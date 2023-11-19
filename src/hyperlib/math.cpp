@@ -28,6 +28,8 @@ namespace hyper
 
     vector3 vector3::forward_(0.0f, +1.0f, 0.0f);
     
+    vector4 vector4::zero_(0.0f, 0.0f, 0.0f, 0.0f);
+
     color color::clear_(0.0f, 0.0f, 0.0f, 0.0f);
 
     color color::black_(0.0f, 0.0f, 0.0f, 1.0f);
@@ -40,7 +42,9 @@ namespace hyper
 
     color32 color32::white_(std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max(), std::numeric_limits<std::uint8_t>::max());
 
+#if defined(USE_HYPER_IDENTITY_MATRIX)
     matrix4x4 matrix4x4::identity_(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+#endif
 
     std::uint16_t math::a_tan_table_[258] =
     {
