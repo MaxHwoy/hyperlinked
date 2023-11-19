@@ -1,5 +1,6 @@
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
+#include <hyperlib/assets/track.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
@@ -419,32 +420,31 @@ namespace hyper
             lighting::ingame_light_params.y = lighting::default_ingame_light_y;
             lighting::ingame_light_params.w = lighting::default_ingame_light_w;
 
-            const auto in_frontend = game_flow::manager::instance.current_state == game_flow::state::in_frontend;
-
-#if defined(NFSCO)
-            // copy the vector.
-            auto vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
-#else
-            const auto& vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
-#endif
-
-#if defined(NFSCO)
             const auto render_target = render_target::current;
+
+            ASSERT(render_target);
+
+            vector2 subtraction = {};
 
             if (render_target->view_id >= view_id::env_z_pos)
             {
-                if (in_frontend)
+                if (const auto track_info = track_info::current)
                 {
-                    vector.x += 2.5f;
-                    vector.y -= 1.0f;
-                }
-                else
-                {
-                    vector.y -= 0.4f;
+                    const auto x_subtraction = track_info->traffic_oncoming_fraction[0];
+                    const auto y_subtraction = track_info->traffic_oncoming_fraction[1];
+
+                    subtraction = { x_subtraction, y_subtraction };
                 }
             }
-#endif
-            this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, vector);
+
+            if (game_flow::manager::instance.current_state == game_flow::state::racing)
+            {
+                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params - subtraction);
+            }
+            else
+            {
+                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params - subtraction);
+            }
         }
     }
 
@@ -1511,7 +1511,34 @@ namespace hyper
 
     void effect_world_normal_map::start()
     {
-        this->reset_lighting_params();
+        lighting::ingame_light_params.y = lighting::default_ingame_light_y;
+        lighting::ingame_light_params.w = lighting::default_ingame_light_w;
+
+        const auto render_target = render_target::current;
+
+        ASSERT(render_target);
+
+        vector2 subtraction = {};
+
+        if (render_target->view_id >= view_id::env_z_pos)
+        {
+            if (const auto track_info = track_info::current)
+            {
+                const auto x_subtraction = track_info->traffic_oncoming_fraction[2];
+                const auto y_subtraction = track_info->traffic_oncoming_fraction[3];
+
+                subtraction = { x_subtraction, y_subtraction };
+            }
+        }
+
+        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        {
+            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params - subtraction);
+        }
+        else
+        {
+            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params - subtraction);
+        }
     }
 
     void effect_car::start()
@@ -1521,8 +1548,27 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-        this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        const auto state = game_flow::manager::instance.current_state;
+
+        if (state == game_flow::state::racing)
+        {
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        }
+        else
+        {
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+
+        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        {
+            // if we are maxed out, or racing, use the cube map texture.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        }
+        else
+        {
+            // anything else, use the frontend environment maps.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+        }
     }
 
     void effect_car_normal_map::start()
@@ -1532,8 +1578,27 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-        this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        const auto state = game_flow::manager::instance.current_state;
+
+        if (state == game_flow::state::racing)
+        {
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+        }
+        else
+        {
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+
+        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        {
+            // if we are maxed out, or racing, use the cube map texture.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        }
+        else
+        {
+            // anything else, use the frontend environment maps.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+        }
     }
 
     void effect_fe::start()
