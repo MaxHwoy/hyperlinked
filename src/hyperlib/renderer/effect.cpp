@@ -417,34 +417,7 @@ namespace hyper
 
         if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
         {
-            lighting::ingame_light_params.y = lighting::default_ingame_light_y;
-            lighting::ingame_light_params.w = lighting::default_ingame_light_w;
-
-            const auto render_target = render_target::current;
-
-            ASSERT(render_target);
-
-            vector2 subtraction = {};
-
-            if (render_target->view_id >= view_id::env_z_pos)
-            {
-                if (const auto track_info = track_info::current)
-                {
-                    const auto x_subtraction = track_info->traffic_oncoming_fraction[0];
-                    const auto y_subtraction = track_info->traffic_oncoming_fraction[1];
-
-                    subtraction = { x_subtraction, y_subtraction };
-                }
-            }
-
-            if (game_flow::manager::instance.current_state == game_flow::state::racing)
-            {
-                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params - subtraction);
-            }
-            else
-            {
-                this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params - subtraction);
-            }
+            this->reset_lighting_params();
         }
     }
 
@@ -840,6 +813,8 @@ namespace hyper
         }
         else if ((renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
         {
+            effect_car::instance->low_lod_technique_number_ = 2;
+
             index = this->low_lod_technique_number_;
         }
         else
@@ -1511,34 +1486,7 @@ namespace hyper
 
     void effect_world_normal_map::start()
     {
-        lighting::ingame_light_params.y = lighting::default_ingame_light_y;
-        lighting::ingame_light_params.w = lighting::default_ingame_light_w;
-
-        const auto render_target = render_target::current;
-
-        ASSERT(render_target);
-
-        vector2 subtraction = {};
-
-        if (render_target->view_id >= view_id::env_z_pos)
-        {
-            if (const auto track_info = track_info::current)
-            {
-                const auto x_subtraction = track_info->traffic_oncoming_fraction[2];
-                const auto y_subtraction = track_info->traffic_oncoming_fraction[3];
-
-                subtraction = { x_subtraction, y_subtraction };
-            }
-        }
-
-        if (game_flow::manager::instance.current_state == game_flow::state::racing)
-        {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params - subtraction);
-        }
-        else
-        {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params - subtraction);
-        }
+        this->reset_lighting_params();
     }
 
     void effect_car::start()
