@@ -12,11 +12,11 @@
 #include <hyperlinked/patches/renderer/camera.hpp>
 #include <hyperlinked/patches/renderer/culling.hpp>
 #include <hyperlinked/patches/renderer/directx.hpp>
-#include <hyperlinked/patches/renderer/drawing.hpp>
 #include <hyperlinked/patches/renderer/effect.hpp>
-#include <hyperlinked/patches/renderer/flare_pool.hpp>
+#include <hyperlinked/patches/renderer/flare_renderer.hpp>
 #include <hyperlinked/patches/renderer/lighting.hpp>
 #include <hyperlinked/patches/renderer/view.hpp>
+#include <hyperlinked/patches/renderer/world_renderer.hpp>
 
 #include <hyperlinked/patches/streamer/sections.hpp>
 #include <hyperlinked/patches/streamer/streamer.hpp>
@@ -40,11 +40,11 @@ namespace hyper
         camera_patches::init();
         culling_patches::init();
         directx_patches::init();
-        drawing_patches::init();
+        flare_renderer_patches::init();
         effect_patches::init();
-        flare_pool_patches::init();
         lighting_patches::init();
         view_patches::init();
+        world_renderer_patches::init();
         
         section_patches::init();
         streamer_patches::init();

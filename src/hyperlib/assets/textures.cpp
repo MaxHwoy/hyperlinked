@@ -161,7 +161,7 @@ namespace hyper
 
         if (scroll == scroll_type::snap)
         {
-            delta_time = static_cast<std::int32_t>(delta_time / step);
+            delta_time = static_cast<float>(static_cast<std::int32_t>(delta_time / step));
         }
 
         return delta_time * speed - static_cast<std::int32_t>(delta_time * speed);

@@ -6,14 +6,13 @@
 #include <hyperlib/streamer/parameter_map.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
-#include <hyperlib/renderer/streak.hpp>
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
 
 namespace hyper
 {
-    void renderer::render_world_in_game()
+    void world_renderer::render_internal()
     {
-        std::uint32_t count = renderer::rendering_model_count_;
+        std::uint32_t count = world_renderer::rendering_model_count_;
 
         effect* effect = nullptr;
 
@@ -21,7 +20,7 @@ namespace hyper
 
         for (std::uint32_t i = 0u; i < count; ++i)
         {
-            rendering_model& model = renderer::rendering_models_[renderer::rendering_orders_[i].model_index];
+            rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_orders_[i].model_index];
 
             if (effect != model.effect || use_low_lod != static_cast<std::int32_t>(model.use_low_lod))
             {
@@ -36,7 +35,7 @@ namespace hyper
 
                 effect = model.effect;
 
-                renderer::total_pass_swaps_++;
+                world_renderer::total_pass_swaps_++;
             }
 
             ASSERT(effect != nullptr);
@@ -45,11 +44,11 @@ namespace hyper
 
             effect->set_transforms(*model.local_to_world, view, model.base_texture_info->bias_level != 0u);
 
-            renderer::total_transforms_set_++;
+            world_renderer::total_transforms_set_++;
 
             if (model.local_to_world == &matrix4x4::identity())
             {
-                renderer::total_identity_matrices_encountered_++;
+                world_renderer::total_identity_matrices_encountered_++;
             }
 
             if (model.light_context != nullptr)
@@ -78,7 +77,7 @@ namespace hyper
                 directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
                 directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, 0u);
 
-                renderer::currently_set_vertex_buffer_ = nullptr;
+                world_renderer::currently_set_vertex_buffer_ = nullptr;
 
                 effect->commit_changes();
 
@@ -89,7 +88,7 @@ namespace hyper
 
                 directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, 1u);
 
-                renderer::total_strips_drawn_++;
+                world_renderer::total_strips_drawn_++;
 
                 strip::pool->free(model.mesh.strip);
             }
@@ -108,30 +107,30 @@ namespace hyper
 
                 if (entry.d3d_vertex_buffer == nullptr && entry.vertex_count != 0u)
                 {
-                    if (renderer::vertex_buffers_created_this_frame_ >= 3 || info->d3d_index_buffer == nullptr)
+                    if (world_renderer::vertex_buffers_created_this_frame_ >= 3 || info->d3d_index_buffer == nullptr)
                     {
                         continue;
                     }
 
                     info->create_vertex_buffers();
 
-                    renderer::vertex_buffers_created_this_frame_++;
+                    world_renderer::vertex_buffers_created_this_frame_++;
                 }
 
-                if (entry.d3d_vertex_buffer != renderer::currently_set_vertex_buffer_)
+                if (entry.d3d_vertex_buffer != world_renderer::currently_set_vertex_buffer_)
                 {
-                    renderer::total_vertex_buffer_swaps_++;
+                    world_renderer::total_vertex_buffer_swaps_++;
 
-                    renderer::currently_set_vertex_buffer_ = entry.d3d_vertex_buffer;
+                    world_renderer::currently_set_vertex_buffer_ = entry.d3d_vertex_buffer;
 
                     directx::device()->SetStreamSource(0u, entry.d3d_vertex_buffer, 0u, effect->stride());
                 }
 
-                if (info->d3d_index_buffer != renderer::currently_set_index_buffer_)
+                if (info->d3d_index_buffer != world_renderer::currently_set_index_buffer_)
                 {
-                    renderer::total_index_buffer_swaps_++;
+                    world_renderer::total_index_buffer_swaps_++;
 
-                    renderer::currently_set_index_buffer_ = info->d3d_index_buffer;
+                    world_renderer::currently_set_index_buffer_ = info->d3d_index_buffer;
 
                     directx::device()->SetIndices(info->d3d_index_buffer);
                 }
@@ -151,19 +150,19 @@ namespace hyper
             shader_lib::end_effect(*effect);
         }
 
-        renderer::currently_set_index_buffer_ = nullptr;
-        renderer::currently_set_vertex_buffer_ = nullptr;
-        renderer::rendering_model_count_ = 0u;
-        renderer::some_value_00AB0BEC = 0u;
+        world_renderer::currently_set_index_buffer_ = nullptr;
+        world_renderer::currently_set_vertex_buffer_ = nullptr;
+        world_renderer::rendering_model_count_ = 0u;
+        world_renderer::some_value_00AB0BEC = 0u;
     }
 
-    void renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
+    void world_renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
     {
         BENCHMARK();
 
-        if (renderer::rendering_model_count_ < renderer::rendering_models_.length())
+        if (world_renderer::rendering_model_count_ < world_renderer::rendering_models_.length())
         {
-            rendering_model& model = renderer::rendering_models_[renderer::rendering_model_count_];
+            rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_model_count_];
 
             model.base_texture_info = textures[0];
             model.diffuse_texture_info = textures[0];
@@ -192,16 +191,16 @@ namespace hyper
             model.use_low_lod = effect->has_low_lod_technique() && (flags & draw_flags::use_low_lod) != 0u;
             model.render_bits.wants_auxiliary_textures = true;
 
-            renderer::compute_sort_key(model);
+            world_renderer::compute_sort_key(model);
 
-            rendering_order& order = renderer::rendering_orders_[renderer::rendering_model_count_];
+            rendering_order& order = world_renderer::rendering_orders_[world_renderer::rendering_model_count_];
 
-            order.model_index = renderer::rendering_model_count_++;
+            order.model_index = world_renderer::rendering_model_count_++;
             order.sort_flags = model.sort_flags;
         }
     }
 
-    void renderer::compute_sort_key(rendering_model& model)
+    void world_renderer::compute_sort_key(rendering_model& model)
     {
         if (model.is_tri_stripped)
         {
@@ -243,78 +242,19 @@ namespace hyper
         }
     }
 
-    void renderer::init_render_targets()
+    void world_renderer::render()
     {
-        vt_render_target::init();
-        player_render_target::init();
-        reflection_render_target::init();
-        flailer_render_target::init();
-        rvm_render_target::init();
-        shadowmap_render_target::init();
-        pip_render_target::init();
-        motion_blur_render_target::init();
-        env_x_pos_render_target::init();
-        env_x_neg_render_target::init();
-        env_y_pos_render_target::init();
-        env_y_neg_render_target::init();
-        env_z_pos_render_target::init();
-        env_z_neg_render_target::init();
-    }
-
-    void renderer::set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color)
-    {
-        renderer::sort_models_and_draw_world();
-
-        directx::device()->SetRenderTarget(0u, target.d3d_target);
-        directx::device()->SetDepthStencilSurface(target.d3d_depth_stencil);
-
-        if (clear)
+        if (world_renderer::rendering_model_count_ == 0u)
         {
-            if (target.target_id == render_target_id::flailer)
-            {
-                directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET, clear_color, 1.0f, 0u);
-            }
-            else
-            {
-                directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL, clear_color, 1.0f, 0u);
-            }
-        }
-
-        ::D3DVIEWPORT9 viewport;
-
-        viewport.Width = target.resolution_x;
-        viewport.Height = target.resolution_y;
-        viewport.X = 0u;
-        viewport.Y = 0u;
-        viewport.MinZ = 0.0f;
-        viewport.MaxZ = 1.0f;
-
-        directx::device()->SetViewport(&viewport);
-
-        render_target::current = &target;
-    }
-
-    void renderer::update_render_views()
-    {
-        for (view_id i = view_id::first; i < view_id::count; ++i)
-        {
-            render_view::views[i].update(view::instance::views[i]);
-        }
-    }
-
-    void renderer::sort_models_and_draw_world()
-    {
-        if (renderer::rendering_model_count_ == 0u)
-        {
-            renderer::some_value_00AB0BE8 = 0u;
+            world_renderer::some_value_00AB0BE8 = 0u;
         }
         else
         {
-            std::sort(renderer::rendering_orders_, renderer::rendering_orders_ + renderer::rendering_model_count_);
+            std::sort(world_renderer::rendering_orders_, world_renderer::rendering_orders_ + world_renderer::rendering_model_count_);
 
-            renderer::render_world_in_game();
+            world_renderer::render_internal();
 
-            renderer::some_value_00A65240 = -1;
+            world_renderer::some_value_00A65240 = -1;
         }
     }
 }

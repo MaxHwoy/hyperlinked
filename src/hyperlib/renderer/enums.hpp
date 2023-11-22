@@ -20,15 +20,6 @@ namespace hyper
         inside,
     };
 
-    enum class poly_flags : std::uint8_t
-    {
-        apply_aspect = 1u << 0,
-        apply_z_sort = 1u << 1,
-        multi_text_mas = 1u << 2,
-        no_tex_fix = 1u << 3,
-        use_native_screen_size = 1u << 4,
-    };
-
     enum class view_mode : std::uint32_t
     {
         none,

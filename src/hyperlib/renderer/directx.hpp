@@ -16,6 +16,11 @@ namespace hyper
             return *reinterpret_cast<::IDirect3DDevice9**>(0x00AB0ABC);
         }
 
+        static inline auto query() -> ::IDirect3DQuery9*
+        {
+            return directx::query_;
+        }
+
         static auto get_mag_filter() -> ::D3DTEXTUREFILTERTYPE;
 
         static auto get_min_filter() -> ::D3DTEXTUREFILTERTYPE;
@@ -24,13 +29,22 @@ namespace hyper
 
         static auto get_max_anisotropy() -> ::DWORD;
 
+        static auto reset_parameters() -> ::HRESULT;
+
+        static void create_query(::D3DQUERYTYPE type);
+
+        static void release_query();
+
         static void recalculate_pixel_ratio(bool use_device_full_screen);
-        
+
         static void create_d3d_present_params(std::uint32_t res_x, std::uint32_t res_y);
 
         static void reset_rendering_states();
 
         static void set_alpha_render_state(bool enabled, ::DWORD alpha_ref, ::D3DCMPFUNC alpha_func);
+
+    private:
+        static inline ::IDirect3DQuery9*& query_ = *reinterpret_cast<::IDirect3DQuery9**>(0x00AB0AC4);
 
     public:
         static inline float pixel_aspect_ratio = 1.0f;

@@ -5,7 +5,9 @@
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/renderer.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
 
 #pragma warning (disable : 26813)
 
@@ -757,7 +759,7 @@ namespace hyper
                 index = static_cast<std::int32_t>(tech->technique_index);
             }
         }
-        else if ((renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
+        else if ((world_renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
         {
             index = this->low_lod_technique_number_;
         }
@@ -1008,7 +1010,7 @@ namespace hyper
     {
         if (model.render_bits.multi_pass_blend)
         {
-            if (renderer::world_detail == 3u)
+            if (world_renderer::world_detail == 3u)
             {
                 directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_GREATEREQUAL);
 
@@ -1375,7 +1377,7 @@ namespace hyper
             rain_intensity = view.rain->rain_intensity;
         }
 
-        if (renderer::use_lowlod_pass)
+        if (world_renderer::use_lowlod_pass)
         {
             this->set_technique("lowlod");
         }
@@ -1411,15 +1413,15 @@ namespace hyper
 
         effect::start();
 
-        if (renderer::shadow_detail > 0 && view.id == view_id::player1)
+        if (world_renderer::shadow_detail > 0 && view.id == view_id::player1)
         {
             if (shadowmap_render_target::shadow_target_type == shadowmap_render_target::target_type::render_target)
             {
-                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::render_target_cubemap);
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::render_target_texture);
             }
             else
             {
-                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::depth_stencil_cubemap);
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::depth_stencil_texture);
             }
 
             this->set_float(parameter_type::SHADOWMAPSCALE, 1.0f / static_cast<float>(shadowmap_render_target::resolution_x));
@@ -1450,7 +1452,7 @@ namespace hyper
         }
         else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
         }
     }
@@ -1469,7 +1471,7 @@ namespace hyper
         }
         else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
         }
     }
@@ -1808,6 +1810,30 @@ namespace hyper
     }
 
     void shader_lib::lose_device()
+    {
+        for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->lose_device();
+            }
+        }
+    }
+
+    void shader_lib::reconnect_device()
+    {
+        for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->get_device();
+
+                ptr->connect_parameters();
+            }
+        }
+    }
+
+    void shader_lib::release()
     {
         for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
         {

@@ -1,8 +1,9 @@
 #include <d3dx9.h>
 #include <d3dtypes.h>
 #include <hyperlib/renderer/directx.hpp>
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/renderer.hpp>
 
 namespace hyper
 {
@@ -51,6 +52,26 @@ namespace hyper
         else
         {
             return 1u;
+        }
+    }
+
+    auto directx::reset_parameters() -> ::HRESULT
+    {
+        return directx::device()->Reset(&directx::present);
+    }
+
+    void directx::create_query(::D3DQUERYTYPE type)
+    {
+        directx::device()->CreateQuery(type, &directx::query_);
+    }
+
+    void directx::release_query()
+    {
+        if (directx::query_ != nullptr)
+        {
+            directx::query_->Release();
+
+            directx::query_ = nullptr;
         }
     }
 

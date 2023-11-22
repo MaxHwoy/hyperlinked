@@ -54,7 +54,13 @@ namespace hyper
             );
         }
 
+        static void open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB08FC);
+
         static inline ::IDirect3DSurface9*& render_target_surface_standalone = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB08F8);
 
         static inline ::IDirect3DSurface9*& render_target_surface_postprocess = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0900);
@@ -116,6 +122,8 @@ namespace hyper
                 reflection_render_target::depth_stencil_surface
             );
         }
+
+        static void close();
 
     public:
         static inline ::D3DFORMAT& format = *reinterpret_cast<::D3DFORMAT*>(0x00A63AF0);
@@ -186,7 +194,13 @@ namespace hyper
             );
         }
 
+        static void open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0914);
+
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0918);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB091C);
@@ -231,14 +245,18 @@ namespace hyper
             );
         }
 
+        static void open();
+
+        static void close();
+
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0C00);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0C08);
 
-        static inline ::IDirect3DCubeTexture9*& render_target_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C04);
+        static inline ::IDirect3DTexture9*& render_target_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0C04);
 
-        static inline ::IDirect3DCubeTexture9*& depth_stencil_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C0C);
+        static inline ::IDirect3DTexture9*& depth_stencil_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0C0C);
 
         static inline std::uint32_t& resolution_x = *reinterpret_cast<std::uint32_t*>(0x00715091);
 
@@ -273,6 +291,8 @@ namespace hyper
                 pip_render_target::depth_stencil_surface
             );
         }
+
+        static void close();
 
     public:
         static inline ::D3DFORMAT& format = *reinterpret_cast<::D3DFORMAT*>(0x00A63B08);
@@ -315,7 +335,15 @@ namespace hyper
             );
         }
 
+        static void open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB2140);
+
+        static inline ::IDirect3DTexture9*& fuzzz_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0908);
+
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB090C);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0910);
@@ -324,9 +352,12 @@ namespace hyper
     class env_map_render_target : public render_target
     {
     public:
+        static void close();
+
+    public:
         static inline ::IDirect3DCubeTexture9*& cube_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0920);
 
-        static inline ::IDirect3DCubeTexture9*& unk_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
+        static inline ::IDirect3DCubeTexture9*& fe_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
 
         static inline ::IDirect3DVolumeTexture9*& car_volume = *reinterpret_cast<::IDirect3DVolumeTexture9**>(0x00AB09E8);
 
@@ -359,6 +390,8 @@ namespace hyper
                 env_x_pos_render_target::depth_stencil_surface
             );
         }
+
+        static void close();
 
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0924);
@@ -393,6 +426,8 @@ namespace hyper
             );
         }
 
+        static void close();
+
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0928);
 
@@ -425,6 +460,8 @@ namespace hyper
                 env_y_pos_render_target::depth_stencil_surface
             );
         }
+
+        static void close();
 
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB092C);
@@ -459,6 +496,8 @@ namespace hyper
             );
         }
 
+        static void close();
+
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0930);
 
@@ -492,6 +531,8 @@ namespace hyper
             );
         }
 
+        static void close();
+
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0934);
 
@@ -524,6 +565,8 @@ namespace hyper
                 env_z_neg_render_target::depth_stencil_surface
             );
         }
+
+        static void close();
 
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0938);

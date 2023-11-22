@@ -1005,6 +1005,18 @@ namespace hyper
             return value & ~(round - 1);
         }
 
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto floor_pow_2(T value) -> T
+        {
+            value |= value >> 1;
+            value |= value >> 2;
+            value |= value >> 4;
+            value |= value >> 8;
+            value |= value >> 16;
+            value -= value >> 1;
+
+            return value;
+        }
+
         template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static bool is_pow_2(T value)
         {
             return (value & (value - 1)) == 0 && value > 0;

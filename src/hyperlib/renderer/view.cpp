@@ -2,8 +2,10 @@
 #include <hyperlib/memory/frame_pool.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/view.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/targets.hpp>
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/lighting.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
 
 namespace hyper
 {

@@ -3,24 +3,25 @@
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/streamer/parameter_map.hpp>
 #include <hyperlib/renderer/directx.hpp>
-#include <hyperlib/renderer/drawing.hpp>
-#include <hyperlib/renderer/flare_pool.hpp>
+#include <hyperlib/renderer/camera.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/flare_renderer.hpp>
 
 #define RANDOMIZE_FLARE_TIMINGS
 
 namespace hyper
 {
-    bool flare_pool::flare_pool_inited_ = false;
+    bool flare_renderer::flare_pool_inited_ = false;
 
-    std::uint32_t flare_pool::active_flare_count_ = 0u;
+    std::uint32_t flare_renderer::active_flare_count_ = 0u;
 
-    bool flare_pool::active_flare_types_[4]{};
+    bool flare_renderer::active_flare_types_[4]{};
 
-    float flare_pool::active_flare_times_[4]{};
+    float flare_renderer::active_flare_times_[4]{};
 
-    float flare_pool::active_flare_blink_[4] { 0.5f, 0.4f, 0.45f, 1.0f / 3.0f };
+    float flare_renderer::active_flare_blink_[4] { 0.5f, 0.4f, 0.45f, 1.0f / 3.0f };
 
-    std::uint32_t flare_pool::flare_texture_keys_[5] {
+    std::uint32_t flare_renderer::flare_texture_keys_[5] {
         hashing::bin_const("HEADLIGHTFLAREINNER"),
         hashing::bin_const("HEADLIGHTFLAREOUTER"),
         hashing::bin_const("HEADLIGHTGLOW"),
@@ -28,11 +29,11 @@ namespace hyper
         hashing::bin_const("LAMPPOSTFLARE"),
     };
 
-    array<flare::params*, static_cast<size_t>(flare::type::count) * 2u> flare_pool::flare_params_(0x00A6BF88);
+    array<flare::params*, static_cast<size_t>(flare::type::count) * 2u> flare_renderer::flare_params_(0x00A6BF88);
 
-    bitset<static_cast<size_t>(view_id::count)> flare_pool::flare_mask_{};
+    bitset<static_cast<size_t>(view_id::count)> flare_renderer::flare_mask_{};
 
-    bitset<static_cast<size_t>(view_id::count)> flare_pool::view_to_flare_({
+    bitset<static_cast<size_t>(view_id::count)> flare_renderer::view_to_flare_({
         static_cast<size_t>(view_id::player1),
         static_cast<size_t>(view_id::player2),
         static_cast<size_t>(view_id::player1_rvm),
@@ -46,7 +47,7 @@ namespace hyper
         static_cast<size_t>(view_id::env_y_neg),
     });
 
-    flare_pool::flare_pool(std::uint32_t max_flares) : poly_manager<flare_vertex>(max_flares)
+    flare_renderer::flare_renderer(std::uint32_t max_flares) : poly_manager<flare_vertex>(max_flares)
     {
         this->texture_page_ = texture::get_texture_info(hashing::bin_const("FLARE_TEXTURE_PAGE"), true, false);
         this->streak_flares_texture = texture::get_texture_info(hashing::bin_const("STREAKFLARES_I"), true, false);
@@ -57,7 +58,7 @@ namespace hyper
         }
     }
 
-    void flare_pool::commit(const vector3& position, std::uint32_t texture_key, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
+    void flare_renderer::commit(const vector3& position, std::uint32_t texture_key, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle)
     {
         poly* rect = this->allocate();
 
@@ -116,77 +117,77 @@ namespace hyper
         }
     }
 
-    void flare_pool::ctor(flare_pool* pool)
+    void flare_renderer::ctor(flare_renderer& renderer)
     {
-        new (pool) flare_pool(0x80u); // by default, flare pool is initialized to 0x80 flares
+        new (&renderer) flare_renderer(0x80u); // by default, flare pool is initialized to 0x80 flares
     }
 
-    void flare_pool::dtor(flare_pool* pool)
+    void flare_renderer::dtor(flare_renderer& renderer)
     {
-        pool->~flare_pool();
+        renderer.~flare_renderer();
     }
 
-    auto flare_pool::create_flare_view_mask(view_id id) -> std::uint32_t
+    auto flare_renderer::create_flare_view_mask(view_id id) -> std::uint32_t
     {
         return (1u << static_cast<std::uint32_t>(id)) | ((id == view_id::player1) * 0x50u) | ((id == view_id::player2) * 0x80u);
     }
 
-    bool flare_pool::can_render_flares_in_view(view_id id)
+    bool flare_renderer::can_render_flares_in_view(view_id id)
     {
-        return flare_pool::view_to_flare_.get(id);
+        return flare_renderer::view_to_flare_.get(id);
     }
 
-    bool flare_pool::is_friend_flare_view_already_committed(view_id id)
+    bool flare_renderer::is_friend_flare_view_already_committed(view_id id)
     {
-        flare_pool::flare_mask_.set(id, true);
+        flare_renderer::flare_mask_.set(id, true);
 
         switch (id)
         {
             case view_id::player1:
-                return flare_pool::flare_mask_.get(view_id::player1_reflection);
+                return flare_renderer::flare_mask_.get(view_id::player1_reflection);
 
             case view_id::player2:
-                return flare_pool::flare_mask_.get(view_id::player2_reflection);
+                return flare_renderer::flare_mask_.get(view_id::player2_reflection);
 
             case view_id::player1_reflection:
-                return flare_pool::flare_mask_.get(view_id::player1);
+                return flare_renderer::flare_mask_.get(view_id::player1);
 
             case view_id::player2_reflection:
-                return flare_pool::flare_mask_.get(view_id::player2);
+                return flare_renderer::flare_mask_.get(view_id::player2);
 
             default:
                 return false;
         }
     }
 
-    auto flare_pool::get_next_flare(std::uint32_t mask) -> flare::instance*
+    auto flare_renderer::get_next_flare(std::uint32_t mask) -> flare::instance*
     {
-        std::uint32_t& count = flare_pool::active_flare_count_;
+        std::uint32_t& count = flare_renderer::active_flare_count_;
 
-        if (count < std::size(flare_pool::flare_pool_))
+        if (count < std::size(flare_renderer::flare_pool_))
         {
-            flare_pool::flare_bits_[count] = mask;
+            flare_renderer::flare_bits_[count] = mask;
 
-            return &flare_pool::flare_pool_[count++];
+            return &flare_renderer::flare_pool_[count++];
         }
 
         return nullptr;
     }
 
-    void flare_pool::remove_current_flare()
+    void flare_renderer::remove_current_flare()
     {
-        --flare_pool::active_flare_count_;
+        --flare_renderer::active_flare_count_;
     }
 
-    void flare_pool::init()
+    void flare_renderer::init()
     {
-        if (!flare_pool::flare_pool_inited_)
+        if (!flare_renderer::flare_pool_inited_)
         {
-            flare_pool::flare_pool_inited_ = true;
+            flare_renderer::flare_pool_inited_ = true;
 
-            for (std::uint32_t i = 0u; i < std::size(flare_pool::flare_pool_); ++i)
+            for (std::uint32_t i = 0u; i < std::size(flare_renderer::flare_pool_); ++i)
             {
-                flare::instance& flare = flare_pool::flare_pool_[i];
+                flare::instance& flare = flare_renderer::flare_pool_[i];
 
                 flare.prev() = nullptr;
                 flare.next() = nullptr;
@@ -202,31 +203,31 @@ namespace hyper
         }
     }
 
-    void flare_pool::reset()
+    void flare_renderer::reset()
     {
-        for (std::uint32_t i = 0u; i < std::size(flare_pool::active_flare_times_); ++i)
+        for (std::uint32_t i = 0u; i < std::size(flare_renderer::active_flare_times_); ++i)
         {
-            float& time = flare_pool::active_flare_times_[i];
+            float& time = flare_renderer::active_flare_times_[i];
 
             time += global::world_time_elapsed;
 
-            if (time > flare_pool::active_flare_blink_[i])
+            if (time > flare_renderer::active_flare_blink_[i])
             {
                 time = 0.0f;
 
-                flare_pool::active_flare_types_[i] = !flare_pool::active_flare_types_[i];
+                flare_renderer::active_flare_types_[i] = !flare_renderer::active_flare_types_[i];
             }
         }
 
-        flare_pool::flare_mask_.clear();
-        flare_pool::active_flare_count_ = 0u;
+        flare_renderer::flare_mask_.clear();
+        flare_renderer::active_flare_count_ = 0u;
     }
 
-    void flare_pool::render(const view::instance* view)
+    void flare_renderer::render(const view::instance* view)
     {
         BENCHMARK();
 
-        if (flare_pool::flare_pool_off || view == nullptr)
+        if (flare_renderer::flare_pool_off || view == nullptr)
         {
             return;
         }
@@ -241,9 +242,9 @@ namespace hyper
 
         float horiz_scaling = scaling * scaling;
 
-        for (std::uint32_t i = 0u; i < flare_pool::active_flare_count_; ++i)
+        for (std::uint32_t i = 0u; i < flare_renderer::active_flare_count_; ++i)
         {
-            flare::instance& flare = flare_pool::flare_pool_[i];
+            flare::instance& flare = flare_renderer::flare_pool_[i];
 
             bool can_render = true;
 
@@ -264,33 +265,33 @@ namespace hyper
                     break;
 
                 case flare::type::blinking_red:
-                    can_render = not_glow && flare_pool::active_flare_types_[0];
+                    can_render = not_glow && flare_renderer::active_flare_types_[0];
                     break;
 
                 case flare::type::blinking_green:
-                    can_render = not_glow && flare_pool::active_flare_types_[2];
+                    can_render = not_glow && flare_renderer::active_flare_types_[2];
                     break;
 
 #if defined(RANDOMIZE_FLARE_TIMINGS)
                 case flare::type::blinking_amber:
-                    can_render = not_glow && flare_pool::active_flare_types_[static_cast<std::uint32_t>(::fabs(flare.position.x)) & 0x03u];
+                    can_render = not_glow && flare_renderer::active_flare_types_[static_cast<std::uint32_t>(::fabs(flare.position.x)) & 0x03u];
                     break;
 
                 case flare::type::generic_8:
-                    can_render = not_glow && flare_pool::active_flare_types_[static_cast<std::uint32_t>(::fabs(flare.position.x)) & 0x03u];
+                    can_render = not_glow && flare_renderer::active_flare_types_[static_cast<std::uint32_t>(::fabs(flare.position.x)) & 0x03u];
                     break;
 #else
                 case flare::type::blinking_amber:
-                    can_render = not_glow && flare_pool::active_flare_types_[1];
+                    can_render = not_glow && flare_renderer::active_flare_types_[1];
                     break;
 
                 case flare::type::generic_8:
-                    can_render = not_glow && flare_pool::active_flare_types_[2];
+                    can_render = not_glow && flare_renderer::active_flare_types_[2];
                     break;
 #endif
             }
 
-            if (can_render && (flare_pool::flare_bits_[i] & mask) != 0)
+            if (can_render && (flare_renderer::flare_bits_[i] & mask) != 0)
             {
                 float intensity = flare.type == flare::type::sun_flare ? view::instance::views[view_id::player1].get_flare_intensity() : 1.0f;
 
@@ -303,27 +304,27 @@ namespace hyper
                     case view_id::env_x_neg:
                     case view_id::env_y_pos:
                     case view_id::env_y_neg:
-                        flare_pool::render_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::render_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     case view_id::player1_reflection:
                     case view_id::player2_reflection:
-                        flare_pool::render_flare(view, flare, nullptr, intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::render_flare(view, flare, nullptr, intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     default:
-                        flare_pool::render_flare(view, flare, nullptr, 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::render_flare(view, flare, nullptr, 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
                 }
             }
         }
     }
 
-    void flare_pool::render_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
+    void flare_renderer::render_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
     {
         BENCHMARK();
 
-        if (flare_pool::draw_light_flares && view != nullptr)
+        if (flare_renderer::draw_light_flares && view != nullptr)
         {
             float dampness = 0.0f;
 
@@ -538,7 +539,7 @@ namespace hyper
 
                 for (std::uint32_t i = 0u; i < 2u; ++i)
                 {
-                    const flare::params* params = flare_pool::flare_params_[static_cast<std::uint32_t>(type) * 2u + i];
+                    const flare::params* params = flare_renderer::flare_params_[static_cast<std::uint32_t>(type) * 2u + i];
 
                     if (params != nullptr)
                     {
@@ -557,7 +558,7 @@ namespace hyper
                             tex_id = 2u; // HEADLIGHTGLOW forced
                         }
 
-                        std::uint32_t texture_key = flare_pool::flare_texture_keys_[tex_id];
+                        std::uint32_t texture_key = flare_renderer::flare_texture_keys_[tex_id];
 
                         float intensity = intensity_scale;
 
@@ -657,7 +658,7 @@ namespace hyper
                                 }
                             }
 
-                            flare_pool::instance.commit(true_flare_pos, texture_key, type, flare_color, horizontal_scale, vertical_scale, degree_angle);
+                            flare_renderer::instance.commit(true_flare_pos, texture_key, type, flare_color, horizontal_scale, vertical_scale, degree_angle);
                         }
                     }
                 }

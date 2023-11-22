@@ -7,6 +7,25 @@
 
 namespace hyper
 {
+    enum class e_poly_flags : std::uint8_t
+    {
+        apply_aspect           = 1u << 0,
+        apply_z_sort           = 1u << 1,
+        multi_text_mas         = 1u << 2,
+        no_tex_fix             = 1u << 3,
+        use_native_screen_size = 1u << 4,
+    };
+
+    struct __declspec(align(0x10)) e_poly
+    {
+        vector3pad vertices[4];
+        float uvs[4][2];
+        float uvs_mask[4][2];
+        color32 colors[4];
+        e_poly_flags flags;
+        char flailer;
+    };
+
     template <typename Vertex> class poly_manager
     {
     public:
@@ -41,6 +60,10 @@ namespace hyper
         poly* polies_;
         bool locked_;
     };
+
+    CREATE_ENUM_FLAG_OPERATORS(e_poly_flags);
+
+    ASSERT_SIZE(e_poly, 0xA0);
 }
 
 namespace hyper

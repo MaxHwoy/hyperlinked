@@ -1,12 +1,4 @@
 #include <hyperlib/shared.hpp>
-
-#include <hyperlib/assets/textures.hpp>
-#include <hyperlib/renderer/directx.hpp>
-#include <hyperlib/renderer/culling.hpp>
-#include <hyperlib/renderer/lighting.hpp>
-#include <hyperlib/renderer/streak.hpp>
-
-#include <hyperlib/bench.hpp>
 #include <hyperlinked/tests.hpp>
 
 namespace hyper

@@ -1,4 +1,5 @@
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/view.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/lighting.hpp>
 
 #pragma warning (disable : 6001)

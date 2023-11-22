@@ -3,7 +3,6 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/scenery.hpp>
 #include <hyperlib/renderer/view.hpp>
-#include <hyperlib/renderer/drawing.hpp>
 
 namespace hyper
 {

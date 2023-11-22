@@ -1,5 +1,5 @@
-#include <hyperlib/renderer/flare_pool.hpp>
-#include <hyperlinked/patches/renderer/flare_pool.hpp>
+#include <hyperlib/renderer/flare_renderer.hpp>
+#include <hyperlinked/patches/renderer/flare_renderer.hpp>
 
 namespace hyper
 {
@@ -40,7 +40,7 @@ namespace hyper
             push [esp + 0x40]; // repush 'flare'
             push [esp + 0x40]; // repush 'view'
 
-            call flare_pool::render_flare; // call custom render_flare
+            call flare_renderer::render_flare; // call custom render_flare
 
             add esp, 0x28; // since we repushed all arguments
 
@@ -74,7 +74,7 @@ namespace hyper
 
             push [esp + 0x1C]; // repush 'view'
 
-            call flare_pool::render; // call custom render
+            call flare_renderer::render; // call custom render
 
             add esp, 0x04; // since we repushed all arguments
 
@@ -105,7 +105,7 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call flare_pool::init; // call custom init
+            call flare_renderer::init; // call custom init
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -134,7 +134,7 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            call flare_pool::reset; // call custom reset
+            call flare_renderer::reset; // call custom reset
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -166,7 +166,7 @@ namespace hyper
 
             push ecx; // push pointer to flare_pool
 
-            call flare_pool::ctor; // call custom ctor
+            call flare_renderer::ctor; // call custom ctor
 
             add esp, 0x04; // since we pushed pointer to flare_pool
 
@@ -200,7 +200,7 @@ namespace hyper
 
             push ecx; // push pointer to flare_pool
 
-            call flare_pool::dtor; // call custom dtor
+            call flare_renderer::dtor; // call custom dtor
 
             add esp, 0x04; // since we pushed pointer to flare_pool
 
@@ -233,7 +233,7 @@ namespace hyper
             push esi; // 'view' is now at [esp + 0x18]
             push edi; // 'view' is now at [esp + 0x1C]
 
-            call flare_pool::lock; // call custom lock
+            call flare_renderer::lock; // call custom lock
 
             // no need to restore esp since 'lock' is a __thiscall
 
@@ -266,7 +266,7 @@ namespace hyper
             push esi; // 'view' is now at [esp + 0x18]
             push edi; // 'view' is now at [esp + 0x1C]
 
-            call flare_pool::unlock; // call custom unlock
+            call flare_renderer::unlock; // call custom unlock
 
             // no need to restore esp since 'unlock' is a __thiscall
 
@@ -281,7 +281,7 @@ namespace hyper
         }
     }
 
-    void flare_pool_patches::init()
+    void flare_renderer_patches::init()
     {
         // eRenderLightFlare
         hook::jump(0x0074D330, &detour_render_light_flare);

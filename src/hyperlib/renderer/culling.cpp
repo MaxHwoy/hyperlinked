@@ -4,9 +4,13 @@
 #include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/gameplay/g_race.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/culling.hpp>
-#include <hyperlib/renderer/flare_pool.hpp>
+#include <hyperlib/renderer/renderer.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/flare_renderer.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
 
 namespace hyper
 {
@@ -81,7 +85,7 @@ namespace hyper
 
         game_flow::state state = game_flow::manager::instance.current_state;
 
-        if (renderer::draw_world && state != game_flow::state::loading_region && state != game_flow::state::loading_track)
+        if (world_renderer::draw_world && state != game_flow::state::loading_region && state != game_flow::state::loading_track)
         {
             for (view_id i = view_id::player1; i <= view_id::player1_rvm; ++i)
             {
@@ -99,7 +103,7 @@ namespace hyper
 
                 if (current.active && current.attached_target->active)
                 {
-                    if (renderer::shadow_detail >= 2u)
+                    if (world_renderer::shadow_detail >= 2u)
                     {
                         this->setup_scenery_cull_info(current, instance_flags::environment_map);
                     }
@@ -112,7 +116,7 @@ namespace hyper
 
             view::instance& reflection = view::instance::views[view_id::player1_reflection];
 
-            if (renderer::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
+            if (world_renderer::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }
@@ -330,7 +334,7 @@ namespace hyper
             instance_flags include = instance.flags;
             instance_flags exclude = cull_info.flags;
 
-            if ((include & instance_flags::envmap_shadow) == 0 || renderer::shadow_detail < 2)
+            if ((include & instance_flags::envmap_shadow) == 0 || world_renderer::shadow_detail < 2)
             {
                 if ((include & instance_flags::include_reflection) != 0 || (include & instance_flags::include_reflection_ng) != 0)
                 {
@@ -417,7 +421,7 @@ namespace hyper
                                         }
                                     }
 
-                                    if (renderer::world_detail < 2)
+                                    if (world_renderer::world_detail < 2)
                                     {
                                         return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
                                     }
@@ -591,7 +595,7 @@ namespace hyper
 
         matrix4x4 stack(matrix);
 
-        float sin = math::sin(math::to_uint16_degrees(degrees + renderer::wind_angle));
+        float sin = math::sin(math::to_uint16_degrees(degrees + world_renderer::wind_angle));
 
         vector3 direction(1.0f, 0.0f, 0.0f);
 
@@ -620,15 +624,15 @@ namespace hyper
 
         view_id id = cull_info.view->id;
 
-        if (flare_pool::can_render_flares_in_view(id) && !flare_pool::is_friend_flare_view_already_committed(id))
+        if (flare_renderer::can_render_flares_in_view(id) && !flare_renderer::is_friend_flare_view_already_committed(id))
         {
-            std::uint32_t mask = flare_pool::create_flare_view_mask(id);
+            std::uint32_t mask = flare_renderer::create_flare_view_mask(id);
 
             for (std::uint32_t i = 0u; i < solid.position_marker_count; ++i)
             {
                 const geometry::position_marker& marker = solid.position_markers[i];
 
-                flare::instance* pool_flare = flare_pool::get_next_flare(mask);
+                flare::instance* pool_flare = flare_renderer::get_next_flare(mask);
 
                 if (pool_flare != nullptr)
                 {
@@ -688,7 +692,7 @@ namespace hyper
                     }
                     else
                     {
-                        flare_pool::remove_current_flare();
+                        flare_renderer::remove_current_flare();
                     }
                 }
             }

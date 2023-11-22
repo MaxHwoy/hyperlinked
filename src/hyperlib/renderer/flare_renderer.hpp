@@ -3,7 +3,7 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/view.hpp>
-#include <hyperlib/renderer/streak.hpp>
+#include <hyperlib/renderer/poly_manager.hpp>
 
 namespace hyper
 {
@@ -16,18 +16,18 @@ namespace hyper
         float adder;
     };
 
-    class flare_pool : public poly_manager<flare_vertex>
+    class flare_renderer : public poly_manager<flare_vertex>
     {
     private:
         void commit(const vector3& position, std::uint32_t texture_key, flare::type type, color32 color, float horizontal_scale, float vertical_scale, float degree_angle);
 
     public:
-        flare_pool(std::uint32_t max_flares);
+        flare_renderer(std::uint32_t max_flares);
 
     public:
-        static void ctor(flare_pool* pool);
+        static void ctor(flare_renderer& renderer);
 
-        static void dtor(flare_pool* pool);
+        static void dtor(flare_renderer& renderer);
 
         static auto create_flare_view_mask(view_id id) -> std::uint32_t;
 
@@ -51,7 +51,7 @@ namespace hyper
         texture::info* streak_flares_texture;
 
     public:
-        static inline flare_pool& instance = *reinterpret_cast<flare_pool*>(0x00B4CF28);
+        static inline flare_renderer& instance = *reinterpret_cast<flare_renderer*>(0x00B4CF28);
 
         static inline bool& flare_pool_off = *reinterpret_cast<bool*>(0x00B42F1C);
 
@@ -82,6 +82,6 @@ namespace hyper
     };
 
     ASSERT_SIZE(flare_vertex, 0x2C);
-    ASSERT_SIZE(flare_pool::poly, 0xB0);
-    ASSERT_SIZE(flare_pool, 0x28);
+    ASSERT_SIZE(flare_renderer::poly, 0xB0);
+    ASSERT_SIZE(flare_renderer, 0x28);
 }

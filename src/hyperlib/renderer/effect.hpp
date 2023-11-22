@@ -384,6 +384,15 @@ namespace hyper
             return this->low_lod_technique_number_ > 0u;
         }
 
+        inline void get_device()
+        {
+            ::IDirect3DDevice9* device;
+
+            ::HRESULT result = this->effect_->GetDevice(&device);
+
+            ASSERT(SUCCEEDED(result));
+        }
+
         inline void lose_device()
         {
             this->effect_->OnLostDevice();
@@ -1253,6 +1262,10 @@ namespace hyper
         static auto find_param_index(std::uint32_t key) -> const effect::param_index_pair*;
 
         static void lose_device();
+
+        static void reconnect_device();
+
+        static void release();
 
         static void end_effect(effect& eff);
 
