@@ -15,7 +15,6 @@
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #include <d3dx9.h>
-#include <d3d9.h>
 #endif
 
 #if defined(hyper)

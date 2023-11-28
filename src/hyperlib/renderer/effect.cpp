@@ -461,7 +461,7 @@ namespace hyper
 
         ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
 
-        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+        auto _result = shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
 
         if (FAILED(_result))
         {
@@ -469,7 +469,7 @@ namespace hyper
             ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
 
             // pray to god this works as printing from hyperlinked doesn't work in NFSCO.
-            ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+            shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
         }
 #else
         ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
@@ -1772,6 +1772,14 @@ namespace hyper
 
     void shader_lib::init()
     {
+        // maybe this isn't the correct DLL to use? the game uses it, but sometimes it uses a higher one.
+        const auto handle = GetModuleHandleA("d3dx9_30.dll");
+        const auto procedure = GetProcAddress(handle, "D3DXCreateEffectFromFileA");
+        
+        ASSERT(handle && procedure);
+
+        shader_lib::create_effect_from_file = reinterpret_cast<decltype(&::D3DXCreateEffectFromFileA)>(procedure);
+
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
         {
             shader_lib::effect_param_list[static_cast<std::uint32_t>(i)].index = static_cast<std::uint32_t>(i);

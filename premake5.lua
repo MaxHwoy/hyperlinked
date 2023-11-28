@@ -148,7 +148,6 @@ workspace "hyperlinked"
 
 		links {
 			"d3d9",
-			"d3dx9"
 		}
 
 	project "hyperconsole"
@@ -204,5 +203,4 @@ workspace "hyperlinked"
 		links {
 			"hyperlib",
 			"d3d9",
-			"d3dx9"
 		}
