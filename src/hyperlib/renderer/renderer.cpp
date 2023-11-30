@@ -1,7 +1,12 @@
+#include <hyperlib/global_vars.hpp>
+#include <hyperlib/memory/frame_pool.hpp>
+#include <hyperlib/gameplay/movie.hpp>
+#include <hyperlib/gameplay/photo.hpp>
 #include <hyperlib/renderer/renderer.hpp>
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/window.hpp>
 #include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/gamma.hpp>
 #include <hyperlib/renderer/post_process.hpp>
 #include <hyperlib/renderer/fe_renderer.hpp>
 #include <hyperlib/renderer/blur_renderer.hpp>
@@ -137,6 +142,24 @@ namespace hyper
         render_target::current = &target;
     }
 
+    void renderer::setup_car_env_map()
+    {
+        call_function<void(__cdecl*)()>(0x007D5C60)();
+    }
+
+    void renderer::update_view_instances()
+    {
+        for (size_t i = 0u; i < view::instance::views.length(); ++i)
+        {
+            view::instance& instance = view::instance::views[i];
+
+            if (instance.active || instance.is_env_map())
+            {
+                instance.calculate_view_matrices(0.0f, 0.0f, true);
+            }
+        }
+    }
+
     void renderer::update_render_views()
     {
         for (view_id i = view_id::first; i < view_id::count; ++i)
@@ -145,8 +168,97 @@ namespace hyper
         }
     }
 
+    void renderer::update_headlight_views()
+    {
+        call_function<void(__cdecl*)()>(0x0074A4E0)();
+    }
+
+    void renderer::update_world_lights()
+    {
+        for (const view_id id :
+        {
+            view_id::player1,
+            view_id::player2,
+            view_id::player1_rvm,
+        })
+        {
+            view::instance& instance = view::instance::views[id];
+
+            if (instance.active)
+            {
+                instance.setup_world_light_context();
+            }
+        }
+    }
+
+    void renderer::update_animations()
+    {
+        call_function<void(__cdecl*)()>(0x0073A3B0)();
+    }
+
+    void renderer::reset_renderer_state()
+    {
+        directx::reset_rendering_states();
+    }
+
+    bool renderer::wants_renderer_reset()
+    {
+        return directx::device()->TestCooperativeLevel() == D3DERR_DEVICENOTRESET;
+    }
+
+    void renderer::begin_scene()
+    {
+        directx::device()->BeginScene();
+    }
+
+    void renderer::end_scene()
+    {
+        directx::device()->EndScene();
+    }
+
+    void renderer::render_world()
+    {
+        call_function<void(__cdecl*)()>(0x0072EBA0)();
+    }
+
+    void renderer::render_fe()
+    {
+        call_function<void(__cdecl*)()>(0x00730CB0)();
+    }
+
+    void renderer::wait_render()
+    {
+        char data[0x04];
+
+        while (directx::query()->GetData(data, sizeof(data), D3DGETDATA_FLUSH) == S_FALSE)
+        {
+        }
+
+        directx::query()->Issue(D3DISSUE_END);
+
+        if (directx::device()->Present(nullptr, nullptr, nullptr, nullptr) == D3DERR_DEVICELOST &&
+            directx::device()->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+        {
+            renderer::reset();
+        }
+    }
+
+    void renderer::make_screenshot(const char* name)
+    {
+        call_function<void(__cdecl*)(const char*)>(0x00710750)(name);
+    }
+
+    void renderer::handle_cursor()
+    {
+        call_function<void(__thiscall*)(void*)>(0x007316A0)(reinterpret_cast<void*>(0x00B1F634));
+    }
+
     bool renderer::reset()
     {
+        return SUCCEEDED(call_function<::HRESULT(__cdecl*)()>(0x0072B370)());
+
+
+
         call_function<void(__cdecl*)()>(0x00729A90)();
         
         shader_lib::lose_device();
@@ -193,7 +305,7 @@ namespace hyper
 
         rain_renderer::ctor(rain_renderer::instance);
 
-        directx::reset_rendering_states();
+        renderer::reset_renderer_state();
         
         directx::create_query(::D3DQUERYTYPE_EVENT);
         
@@ -212,6 +324,124 @@ namespace hyper
 
     void renderer::render()
     {
+        shader_lib::reset();
 
+        effect::set_current_effect(nullptr);
+
+        if (renderer::time_of_day_not_inited)
+        {
+            lighting::time_of_day::init();
+
+            renderer::time_of_day_not_inited = false;
+        }
+
+        if (renderer::reinit_renderer)
+        {
+            shader_lib::release();
+
+            shader_lib::create_pool();
+
+            shader_lib::reinit();
+
+            std::uint32_t x, y;
+
+            window::get_resolution(x, y);
+
+            directx::create_d3d_present_params(x, y);
+
+            renderer::reset();
+
+            renderer::reinit_renderer = false;
+        }
+
+        view::mode::maybe_change();
+
+        texture::mipmap_strip_count = 3u - options::world_detail;
+
+        if (options::vehicle_reflection_rate)
+        {
+            renderer::setup_car_env_map();
+        }
+
+        renderer::update_headlight_views();
+
+        renderer::update_view_instances();
+
+        renderer::update_render_views();
+
+        shader_lib::set_headlights();
+
+        renderer::reset_renderer_state();
+
+        bool wants_reset = renderer::wants_renderer_reset();
+
+        if (wants_reset)
+        {
+            wants_reset = !renderer::reset();
+        }
+
+        if (wants_reset)
+        {
+            std::uint32_t ticker = utils::get_ticker();
+
+            while (utils::get_ticker_difference(ticker) < 50.0f)
+            {
+                ::Sleep(1u);
+            }
+        }
+        else
+        {
+            renderer::begin_scene();
+
+            renderer::set_render_target(render_target::targets[render_target_id::player], true, color32::black());
+
+            renderer::current_cull_mode = ::D3DCULL_CW;
+
+            if (movie::instance == nullptr || !movie::instance->is_playing())
+            {
+                renderer::update_world_lights();
+
+                if (!global::should_exit_game)
+                {
+                    renderer::reset_renderer_state();
+                }
+
+                renderer::render_world();
+
+                world_renderer::render();
+            }
+
+            if (photo::mode::instance.get_state() == photo::state::initializing)
+            {
+                photo::mode::instance.take_photo();
+            }
+
+            renderer::render_fe();
+
+            renderer::end_scene();
+        }
+
+        if (renderer::take_screenshot)
+        {
+            renderer::make_screenshot(options::screenshot_directory.pointer());
+
+            renderer::take_screenshot = 0;
+        }
+
+        renderer::wait_render();
+
+        renderer::update_animations();
+
+        frame_pool::reset_buffers();
+
+        global::frame_counter++;
+
+        world_renderer::reset();
+
+        renderer::handle_cursor();
+
+        gamma::instance->set_brightness_level(options::brightness * 0.01f);
+
+        gamma::instance->set_brightness();
     }
 }

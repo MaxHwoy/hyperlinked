@@ -83,6 +83,8 @@ namespace hyper
 
         static void compute_sort_key(rendering_model& model);
 
+        static void reset();
+
         static void render();
 
     public:

@@ -352,6 +352,8 @@ namespace hyper
 
         void set_texture_animation(const texture::info& info);
 
+        void set_headlights();
+
         void commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model);
 
         inline auto id() const -> shader_type
@@ -1255,6 +1257,8 @@ namespace hyper
 
         static void reinit();
 
+        static void create_pool();
+
         static auto find_input(shader_type type) -> const effect::input*;
 
         static auto find_input(const char* name) -> const effect::input*;
@@ -1274,6 +1278,8 @@ namespace hyper
         static void bind_pca_weights(pca::weights& weights);
 
         static void bind_ucap_weights(pca::ucap_frame_weights& weights);
+
+        static void set_headlights();
 
         inline static auto get_shader_name(shader_type type) -> const char*
         {

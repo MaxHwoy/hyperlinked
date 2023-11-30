@@ -33,7 +33,7 @@ namespace hyper
 
         memory_patches::init();
         
-        loader_patches::init();
+        //loader_patches::init();
         scenery_patches::init();
         texture_patches::init();
         world_anim_patches::init();

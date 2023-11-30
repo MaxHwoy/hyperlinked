@@ -244,6 +244,8 @@ namespace hyper
         static auto get_scroll(float delta_time, float speed, scroll_type scroll, float step) -> float;
 
     public:
+        static inline std::uint32_t& mipmap_strip_count = *reinterpret_cast<std::uint32_t*>(0x00AB09CC);
+
         static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);
 
         static inline info*& headlights_texture = *reinterpret_cast<info**>(0x00B43040);

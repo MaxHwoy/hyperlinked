@@ -53,6 +53,23 @@ namespace hyper
 
         struct base : public platform_interface
         {
+        public:
+            inline bool is_player()
+            {
+                return this->id == view_id::player1 || this->id == view_id::player2;
+            }
+
+            inline bool is_reflection()
+            {
+                return this->id == view_id::player1_reflection || this->id == view_id::player2_reflection;
+            }
+
+            inline bool is_env_map()
+            {
+                return this->id >= view_id::env_z_pos && this->id <= view_id::env_y_neg;
+            }
+
+        public:
             const char* name;
             view_id id;
             bool active;
@@ -106,6 +123,19 @@ namespace hyper
             static array<instance, static_cast<size_t>(view_id::count)> views;
 
             static inline matrix4x4& super_rotation = *reinterpret_cast<matrix4x4*>(0x00B1F5F0);
+        };
+
+        class mode final
+        {
+        public:
+            static auto current() -> view_mode;
+
+            static void update();
+
+            static void maybe_change();
+
+        private:
+            static inline view_mode& current_ = *reinterpret_cast<view_mode*>(0x00AB0A38);
         };
     };
 

@@ -323,6 +323,10 @@ namespace hyper
         {
         }
 
+        inline vector4(const vector3& vector, float w) : x(vector.x), y(vector.y), z(vector.z), w(w)
+        {
+        }
+
         inline vector4() = default;
 
         inline vector4(const vector4& other) = default;
@@ -638,6 +642,11 @@ namespace hyper
         inline bool operator!=(const color32& other) const
         {
             return *reinterpret_cast<const std::uint32_t*>(this) != *reinterpret_cast<const std::uint32_t*>(&other);
+        }
+
+        inline operator std::uint32_t()
+        {
+            return *reinterpret_cast<std::uint32_t*>(this);
         }
 
         inline static auto clear() -> color32

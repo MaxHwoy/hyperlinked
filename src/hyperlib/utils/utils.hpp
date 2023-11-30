@@ -11,6 +11,8 @@ namespace hyper
 
         static auto get_ticker() -> std::uint32_t;
 
+        static auto get_ticker_difference(std::uint32_t start_ticks) -> float;
+
         static auto get_ticker_difference(std::uint32_t start_ticks, std::uint32_t end_ticks) -> float;
 
         static auto get_real_time() -> float;

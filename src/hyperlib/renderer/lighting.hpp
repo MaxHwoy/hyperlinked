@@ -45,8 +45,9 @@ namespace hyper
             static inline fog_shader_params*& instance = *reinterpret_cast<fog_shader_params**>(0x00B4295C);
         };
 
-        struct time_of_day
+        class time_of_day
         {
+        public:
             struct __declspec(align(0x10)) params
             {
                 color diffuse_color;
@@ -60,11 +61,22 @@ namespace hyper
                 color fog_haze_color;
                 float fog_sky_color_scale;
                 float fog_haze_color_scale;
-                float fog_inLight_scatter;
+                float fog_in_light_scatter;
                 float fog_sun_falloff;
                 float fog_distance_scale;
             };
 
+        public:
+            time_of_day();
+
+            void update(float intensity);
+
+            void update_time();
+
+        public:
+            static void init();
+
+        public:
             float update_rate;
             std::int32_t update_direction;
             float current_time_of_day;
@@ -80,11 +92,13 @@ namespace hyper
             attrib::gen::timeofdaylighting _0x0E1C797C;
             attrib::gen::timeofdaylighting _0x94ABDFF0;
             attrib::gen::timeofdaylighting _0x919B6689;
-            float overcast_value;
-            std::int32_t pad[3];
+            float cloud_intensity;
+            float cloud_desired;
+            std::int32_t pad[2];
             vector4 sun_position;
             vector4 sun_direction;
 
+        public:
             static inline time_of_day*& instance = *reinterpret_cast<time_of_day**>(0x00B77F34);
         };
 

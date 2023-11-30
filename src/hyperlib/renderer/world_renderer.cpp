@@ -242,6 +242,12 @@ namespace hyper
         }
     }
 
+    void world_renderer::reset()
+    {
+        world_renderer::currently_set_index_buffer_ = nullptr;
+        world_renderer::currently_set_vertex_buffer_ = nullptr;
+    }
+
     void world_renderer::render()
     {
         if (world_renderer::rendering_model_count_ == 0u)

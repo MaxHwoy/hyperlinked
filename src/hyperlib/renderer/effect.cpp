@@ -1007,6 +1007,51 @@ namespace hyper
         }
     }
 
+    void effect::set_headlights()
+    {
+        if (this->has_parameter(parameter_type::cavWorldHeadlightPosition) &&
+            this->has_parameter(parameter_type::cavWorldHeadlightDirection) &&
+            this->has_parameter(parameter_type::cavWorldHeadlightUpDirection))
+        {
+            vector4 positions[2];
+            vector4 directions[2];
+            vector4 up_vectors[2];
+
+            float& offset = *reinterpret_cast<float*>(0x009E8B20);
+
+            const render_view& p1_view = render_view::views[view_id::player1_headlight];
+            const render_view& p2_view = render_view::views[view_id::player2_headlight];
+
+            directions[0] = vector4(p1_view.camera_forward, 0.0f);
+            directions[1] = vector4(p2_view.camera_forward, 0.0f);
+
+            up_vectors[0] = vector4(p1_view.camera_up, 0.0f);
+            up_vectors[1] = vector4(p2_view.camera_up, 0.0f);
+
+            positions[0] = vector4(p1_view.camera_position + p1_view.camera_forward * offset, 0.0f);
+            positions[1] = vector4(p2_view.camera_position + p2_view.camera_forward * offset, 0.0f);
+
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightPosition, positions, std::size(positions));
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightDirection, directions, std::size(directions));
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightUpDirection, up_vectors, std::size(up_vectors));
+        }
+
+        if (texture::headlights_xenon_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_TEXTURE, texture::headlights_xenon_texture->pinfo->texture);
+        }
+
+        if (texture::headlights_clip_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_CLIP_TEXTURE, texture::headlights_clip_texture->pinfo->texture);
+        }
+
+        if (texture::headlights_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_TEXTURE_OLD, texture::headlights_texture->pinfo->texture);
+        }
+    }
+
     void effect::commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model)
     {
         if (model.render_bits.multi_pass_blend)
@@ -1783,6 +1828,14 @@ namespace hyper
         shader_lib::recompute_techniques_by_detail(options::shader_detail);
     }
 
+    void shader_lib::create_pool()
+    {
+        if (shader_lib::effect_pool == nullptr)
+        {
+            ::D3DXCreateEffectPool(&shader_lib::effect_pool);
+        }
+    }
+
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
     {
         const auto& list = shader_lib::effect_param_list;
@@ -1886,5 +1939,16 @@ namespace hyper
         weights.feature_heights_param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavFeatureHeights);
 
         shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
+    }
+
+    void shader_lib::set_headlights()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->set_headlights();
+            }
+        }
     }
 }

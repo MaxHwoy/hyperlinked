@@ -340,4 +340,19 @@ namespace hyper
 			this->world_light_context = context;
 		}
 	}
+
+	auto view::mode::current() -> view_mode
+	{
+		return view::mode::current_;
+	}
+
+	void view::mode::update()
+	{
+		call_function<void(__cdecl*)()>(0x0071BBE0)();
+	}
+
+	void view::mode::maybe_change()
+	{
+		call_function<void(__cdecl*)()>(0x0071BCA0)();
+	}
 }

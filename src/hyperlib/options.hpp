@@ -31,6 +31,8 @@ namespace hyper
 
         static inline bool& envmap_textures_enabled = *reinterpret_cast<bool*>(0x00A63E77);
 
+        static inline std::uint32_t& brightness = *reinterpret_cast<std::uint32_t*>(0x00B1EBA0);
+
         static inline std::uint32_t& vehicle_reflection_rate = *reinterpret_cast<std::uint32_t*>(0x00A65340);
 
         static inline std::uint32_t& max_vehicle_reflection_rate = *reinterpret_cast<std::uint32_t*>(0x00A653A8);
@@ -38,5 +40,7 @@ namespace hyper
         static inline std::uint32_t& pc_rain_option = *reinterpret_cast<std::uint32_t*>(0x00A653E8);
 
         static inline std::uint32_t& pc_motion_blur_option = *reinterpret_cast<std::uint32_t*>(0x00A653C8);
+
+        static inline array<char, 260u> screenshot_directory = array<char, 260u>(0x00AB0738);
     };
 }

@@ -18,7 +18,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        view_mode mode = renderer::mode;
+        view_mode mode = view::mode::current();
 
         scenery_cull_info& cull_info = this->scenery_cull_infos[this->cull_info_count++];
 
@@ -398,7 +398,7 @@ namespace hyper
                                 return false;
                             }
 
-                            if (renderer::mode < view_mode::two_h)
+                            if (view::mode::current() < view_mode::two_h)
                             {
                                 if (pixel_size >= 18)
                                 {
