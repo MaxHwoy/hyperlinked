@@ -15,6 +15,8 @@ namespace hyper
 
         static void init_render_targets();
 
+        static void open_render_targets();
+
         static void close_render_targets();
 
         static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
@@ -22,7 +24,7 @@ namespace hyper
         static void update_render_views();
 
     public:
-        static void reset();
+        static bool reset();
 
         static void render();
 
@@ -32,5 +34,7 @@ namespace hyper
         static inline bool& cull_backfaces = *reinterpret_cast<bool*>(0x00A650E4);
 
         static inline ::D3DCULL& current_cull_mode = *reinterpret_cast<::D3DCULL*>(0x00A6523C);
+
+        static inline bool& envmap_calibration = *reinterpret_cast<bool*>(0x00AB0AA8);
     };
 }

@@ -43,6 +43,8 @@ namespace hyper
 
         static void set_alpha_render_state(bool enabled, ::DWORD alpha_ref, ::D3DCMPFUNC alpha_func);
 
+        static void fill_with_color(::IDirect3DTexture9* texture, unsigned char color);
+
     private:
         static inline ::IDirect3DQuery9*& query_ = *reinterpret_cast<::IDirect3DQuery9**>(0x00AB0AC4);
 
@@ -72,18 +74,6 @@ namespace hyper
         static inline ::D3DCAPS9& device_caps = *reinterpret_cast<::D3DCAPS9*>(0x00AB0348);
 
         static inline bool& use_16bit_depth = *reinterpret_cast<bool*>(0x00AB0A54);
-
-        static inline std::uint32_t& texture_filtering = *reinterpret_cast<std::uint32_t*>(0x00A65384);
-
-        static inline bool& allow_antialias = *reinterpret_cast<bool*>(0x00A63D2C);
-
-        static inline std::int32_t& antialias_level = *reinterpret_cast<std::int32_t*>(0x00A6537C);
-
-        static inline bool& vsync_on = *reinterpret_cast<bool*>(0x00A65390);
-
-        static inline bool& visual_treatment = *reinterpret_cast<bool*>(0x00A65394);
-
-        static inline std::int32_t& shader_detail = *reinterpret_cast<std::int32_t*>(0x00A63E60);
 
         static inline array<texture::info*, 5u> last_textures_used = array<texture::info*, 5u>(0x00AB0BC8);
 

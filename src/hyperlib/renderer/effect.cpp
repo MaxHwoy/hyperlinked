@@ -1,3 +1,4 @@
+#include <hyperlib/options.hpp>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
@@ -1010,7 +1011,7 @@ namespace hyper
     {
         if (model.render_bits.multi_pass_blend)
         {
-            if (world_renderer::world_detail == 3u)
+            if (options::world_detail == 3u)
             {
                 directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_GREATEREQUAL);
 
@@ -1413,7 +1414,7 @@ namespace hyper
 
         effect::start();
 
-        if (world_renderer::shadow_detail > 0 && view.id == view_id::player1)
+        if (options::shadow_detail > 0 && view.id == view_id::player1)
         {
             if (shadowmap_render_target::shadow_target_type == shadowmap_render_target::target_type::render_target)
             {
@@ -1779,7 +1780,7 @@ namespace hyper
             }
         }
 
-        shader_lib::recompute_techniques_by_detail(directx::shader_detail);
+        shader_lib::recompute_techniques_by_detail(options::shader_detail);
     }
 
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*

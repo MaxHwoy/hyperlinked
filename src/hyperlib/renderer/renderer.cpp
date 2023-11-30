@@ -2,8 +2,11 @@
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/window.hpp>
 #include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/post_process.hpp>
 #include <hyperlib/renderer/fe_renderer.hpp>
+#include <hyperlib/renderer/blur_renderer.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/gauss_renderer.hpp>
 #include <hyperlib/renderer/flare_renderer.hpp>
 #include <hyperlib/renderer/world_renderer.hpp>
 
@@ -11,13 +14,15 @@ namespace hyper
 {
     bool renderer::reinit_window_params()
     {
-        directx::reset_parameters(); // #TODO do we REALLY need a double call here?
+        ::HRESULT result;
 
-        if (FAILED(directx::reset_parameters()))
+        if (FAILED(result = directx::reset_parameters()))
         {
-            if (directx::antialias_level > 0)
+            PRINT_FATAL("Unable to reset device, error code 0x%08X", result);
+
+            if (options::antialias_level > 0)
             {
-                directx::antialias_level = 0;
+                options::antialias_level = 0;
             }
 
             std::uint32_t x;
@@ -28,7 +33,7 @@ namespace hyper
 
             directx::create_d3d_present_params(x, y);
 
-            while (FAILED(directx::reset_parameters()))
+            while (FAILED(result = directx::reset_parameters()))
             {
                 if (++f >= 3)
                 {
@@ -77,6 +82,17 @@ namespace hyper
         env_z_neg_render_target::init();
     }
 
+    void renderer::open_render_targets()
+    {
+        player_render_target::open();
+        rvm_render_target::open();
+        shadowmap_render_target::open();
+        env_map_render_target::open();
+        motion_blur_render_target::open();
+        reflection_render_target::open();
+        pip_render_target::open();
+    }
+
     void renderer::close_render_targets()
     {
         player_render_target::close();
@@ -85,12 +101,6 @@ namespace hyper
         shadowmap_render_target::close();
         pip_render_target::close();
         motion_blur_render_target::close();
-        env_x_pos_render_target::close();
-        env_x_neg_render_target::close();
-        env_y_pos_render_target::close();
-        env_y_neg_render_target::close();
-        env_z_pos_render_target::close();
-        env_z_neg_render_target::close();
         env_map_render_target::close();
     }
 
@@ -135,40 +145,50 @@ namespace hyper
         }
     }
 
-    void renderer::reset()
+    bool renderer::reset()
     {
         call_function<void(__cdecl*)()>(0x00729A90)();
-
+        
         shader_lib::lose_device();
-        
+
         renderer::close_render_targets();
-        
-        call_function<void(__cdecl*)()>(0x0073C410)();
-        
+
+        gauss_renderer::dtor(gauss_renderer::instance);
+
+        blur_renderer::dtor(blur_renderer::instance);
+
         fe_renderer::dtor(fe_renderer::instance);
         
         flare_renderer::dtor(flare_renderer::instance);
         
         prelit_pool::dtor(prelit_pool::instance);
         
-        call_function<void(__cdecl*)()>(0x00712E90);
-        
-        directx::release_query();
+        post_process::dtor(post_process::instance);
         
         rain_renderer::dtor(rain_renderer::instance);
+        
+        directx::release_query();
 
-        if (!renderer::reinit_window_params())
+        bool result = renderer::reinit_window_params();
+
+        if (!result)
         {
-            return;
+            return false;
         }
         
-        player_render_target::open();
-        rvm_render_target::open();
-        motion_blur_render_target::open();
-        
-        if (world_renderer::shadow_detail > 0u)
+        renderer::open_render_targets();
+
+        renderer::init_render_targets();
+
+        post_process::ctor(post_process::instance);
+
+        gauss_renderer::ctor(gauss_renderer::instance);
+
+        call_function<void(__cdecl*)()>(0x0070FCF0)(); // eInitFEEnvMapPlat
+
+        if (options::visual_treatment || options::motion_blur_enabled || options::road_reflection_enabled)
         {
-            shadowmap_render_target::open();
+            blur_renderer::ctor(blur_renderer::instance);
         }
 
         rain_renderer::ctor(rain_renderer::instance);
@@ -186,6 +206,8 @@ namespace hyper
         fe_renderer::ctor(fe_renderer::instance);
         
         flare_renderer::ctor(flare_renderer::instance);
+
+        return true;
     }
 
     void renderer::render()

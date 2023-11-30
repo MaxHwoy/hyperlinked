@@ -9,7 +9,7 @@ namespace hyper
 {
     auto directx::get_mag_filter() -> ::D3DTEXTUREFILTERTYPE
     {
-        if (directx::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
+        if (options::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
         {
             return ::D3DTEXF_ANISOTROPIC;
         }
@@ -21,7 +21,7 @@ namespace hyper
 
     auto directx::get_min_filter() -> ::D3DTEXTUREFILTERTYPE
     {
-        if (directx::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
+        if (options::texture_filtering == 2u && (directx::device_caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0 && directx::adapter.VendorId != 4139u)
         {
             return ::D3DTEXF_ANISOTROPIC;
         }
@@ -33,7 +33,7 @@ namespace hyper
 
     auto directx::get_mip_filter() -> ::D3DTEXTUREFILTERTYPE
     {
-        if (directx::texture_filtering != 0u)
+        if (options::texture_filtering != 0u)
         {
             return ::D3DTEXF_LINEAR;
         }
@@ -45,7 +45,7 @@ namespace hyper
 
     auto directx::get_max_anisotropy() -> ::DWORD
     {
-        if (directx::texture_filtering == 2u)
+        if (options::texture_filtering == 2u)
         {
             return directx::device_caps.MaxAnisotropy;
         }
@@ -125,7 +125,7 @@ namespace hyper
         directx::present.BackBufferWidth = res_x;
         directx::present.BackBufferHeight = res_y;
 
-        if ((directx::device_caps.Caps3 & D3DCAPS3_ALPHA_FULLSCREEN_FLIP_OR_DISCARD) != 0 || directx::dword_00AB0AEC || directx::antialias_level > 0u)
+        if ((directx::device_caps.Caps3 & D3DCAPS3_ALPHA_FULLSCREEN_FLIP_OR_DISCARD) != 0 || directx::dword_00AB0AEC || options::antialias_level > 0u)
         {
             directx::present.SwapEffect = ::D3DSWAPEFFECT_DISCARD;
         }
@@ -135,7 +135,7 @@ namespace hyper
         }
 
         directx::present.AutoDepthStencilFormat = directx::use_16bit_depth ? ::D3DFMT_D16 : ::D3DFMT_D24S8;
-        directx::present.PresentationInterval = directx::vsync_on ? 1u : 0x80000000u;
+        directx::present.PresentationInterval = options::vsync_on ? 1u : 0x80000000u;
         directx::present.hDeviceWindow = directx::window;
         directx::present.BackBufferFormat = ::D3DFMT_X8R8G8B8;
         directx::present.EnableAutoDepthStencil = TRUE;
@@ -144,10 +144,10 @@ namespace hyper
         directx::resolution_x = res_x;
         directx::resolution_y = res_y;
 
-        if (directx::antialias_level > 0u)
+        if (options::antialias_level > 0u)
         {
             directx::present.MultiSampleType = ::D3DMULTISAMPLE_NONMASKABLE;
-            directx::present.MultiSampleQuality = directx::antialias_level;
+            directx::present.MultiSampleQuality = options::antialias_level;
         }
         else
         {
@@ -182,9 +182,9 @@ namespace hyper
         ::D3DTEXTUREFILTERTYPE mip_filter = ::D3DTEXF_POINT;
         ::DWORD max_anisotropy = 1u;
 
-        if (directx::texture_filtering != 0u)
+        if (options::texture_filtering != 0u)
         {
-            if (directx::texture_filtering == 2u)
+            if (options::texture_filtering == 2u)
             {
                 max_anisotropy = caps.MaxAnisotropy;
 
@@ -218,7 +218,7 @@ namespace hyper
         effect_world::instance->set_int(effect::parameter_type::BaseMipTextureFilter, static_cast<std::int32_t>(mip_filter));
         effect_world::instance->set_int(effect::parameter_type::BaseTextureFilterParam, static_cast<std::int32_t>(caps.MaxAnisotropy));
 
-        if (directx::allow_antialias && directx::antialias_level > 0)
+        if (options::allow_antialias && options::antialias_level > 0)
         {
             xdevice->SetRenderState(::D3DRS_MULTISAMPLEANTIALIAS, TRUE);
         }
@@ -248,6 +248,21 @@ namespace hyper
         {
             directx::device()->SetRenderState(::D3DRS_ALPHAREF, alpha_ref);
             directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, alpha_func);
+        }
+    }
+
+    void directx::fill_with_color(::IDirect3DTexture9* texture, unsigned char color)
+    {
+        ::D3DSURFACE_DESC desc;
+        ::D3DLOCKED_RECT rect;
+
+        texture->GetLevelDesc(0u, &desc);
+
+        if (SUCCEEDED(texture->LockRect(0u, &rect, nullptr, 0u)))
+        {
+            ::memset(rect.pBits, color, desc.Height * rect.Pitch);
+
+            texture->UnlockRect(0u);
         }
     }
 }

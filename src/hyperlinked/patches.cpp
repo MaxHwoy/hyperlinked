@@ -15,6 +15,7 @@
 #include <hyperlinked/patches/renderer/effect.hpp>
 #include <hyperlinked/patches/renderer/flare_renderer.hpp>
 #include <hyperlinked/patches/renderer/lighting.hpp>
+#include <hyperlinked/patches/renderer/renderer.hpp>
 #include <hyperlinked/patches/renderer/view.hpp>
 #include <hyperlinked/patches/renderer/world_renderer.hpp>
 
@@ -43,6 +44,7 @@ namespace hyper
         flare_renderer_patches::init();
         effect_patches::init();
         lighting_patches::init();
+        renderer_patches::init();
         view_patches::init();
         world_renderer_patches::init();
         

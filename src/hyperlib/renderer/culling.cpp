@@ -103,7 +103,7 @@ namespace hyper
 
                 if (current.active && current.attached_target->active)
                 {
-                    if (world_renderer::shadow_detail >= 2u)
+                    if (options::shadow_detail >= 2u)
                     {
                         this->setup_scenery_cull_info(current, instance_flags::environment_map);
                     }
@@ -116,7 +116,7 @@ namespace hyper
 
             view::instance& reflection = view::instance::views[view_id::player1_reflection];
 
-            if (world_renderer::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
+            if (options::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }
@@ -334,7 +334,7 @@ namespace hyper
             instance_flags include = instance.flags;
             instance_flags exclude = cull_info.flags;
 
-            if ((include & instance_flags::envmap_shadow) == 0 || world_renderer::shadow_detail < 2)
+            if ((include & instance_flags::envmap_shadow) == 0 || options::shadow_detail < 2)
             {
                 if ((include & instance_flags::include_reflection) != 0 || (include & instance_flags::include_reflection_ng) != 0)
                 {
@@ -421,7 +421,7 @@ namespace hyper
                                         }
                                     }
 
-                                    if (world_renderer::world_detail < 2)
+                                    if (options::world_detail < 2)
                                     {
                                         return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
                                     }

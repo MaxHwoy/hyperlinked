@@ -88,12 +88,6 @@ namespace hyper
     public:
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);
 
-        static inline std::uint32_t& world_detail = *reinterpret_cast<std::uint32_t*>(0x00A65370);
-
-        static inline std::uint32_t& shadow_detail = *reinterpret_cast<std::uint32_t*>(0x00A65398);
-
-        static inline bool& road_reflection_enabled = *reinterpret_cast<bool*>(0x00A65358);
-
         static inline float& wind_angle = *reinterpret_cast<float*>(0x00B74D48);
 
         static inline bool& use_lowlod_pass = *reinterpret_cast<bool*>(0x00AB0B98);
