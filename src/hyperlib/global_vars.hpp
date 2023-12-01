@@ -32,5 +32,7 @@ namespace hyper
         static inline bool& dirty_textures = *reinterpret_cast<bool*>(0x00A8FF9C);
 
         static inline bool& dirty_animations = *reinterpret_cast<bool*>(0x00A8FFA0);
+
+        static inline std::uint32_t& fac_flush = *reinterpret_cast<std::uint32_t*>(0x00B69C58);
     };
 }

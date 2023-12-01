@@ -193,7 +193,13 @@ namespace hyper
 
     void renderer::update_animations()
     {
-        call_function<void(__cdecl*)()>(0x0073A3B0)();
+        texture::update_animations();
+
+        call_function<void(__cdecl*)()>(0x007A1330)();
+
+        flare_renderer::reset();
+
+        global::fac_flush = 0u;
     }
 
     void renderer::reset_renderer_state()

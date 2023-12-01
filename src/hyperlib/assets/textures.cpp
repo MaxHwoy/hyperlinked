@@ -1,5 +1,7 @@
+#include <hyperlib/options.hpp>
+#include <hyperlib/utils/utils.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/assets/textures.hpp>
-
 #include <hyperlib/renderer/directx.hpp>
 
 #define CHECK_BARRIER_STRINGS
@@ -165,5 +167,36 @@ namespace hyper
         }
 
         return delta_time * speed - static_cast<std::int32_t>(delta_time * speed);
+    }
+
+    void texture::update_animations()
+    {
+        if (options::texture_animations_enabled)
+        {
+            float real_time = utils::get_real_time();
+            float world_time = game_flow::manager::instance.current_state == game_flow::state::in_frontend
+                ? real_time
+                : utils::get_world_time();
+
+            for (animation* i = animation::list.begin(); i != animation::list.end(); i = i->next())
+            {
+                if (i->valid)
+                {
+                    float time = i->base == animation::time_base::world ? world_time : real_time;
+
+                    std::uint8_t base_frame = static_cast<std::uint8_t>(static_cast<std::int32_t>(i->fps * time) % i->frame_count);
+
+                    if (base_frame != i->current_frame)
+                    {
+                        i->current_frame = base_frame;
+
+                        for (std::uint8_t k = 0u; k < i->frame_count; ++k)
+                        {
+                            i->table[k].texture->pinfo->texture = i->table[(base_frame + k) % i->frame_count].data->attached;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

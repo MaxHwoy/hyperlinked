@@ -41,6 +41,8 @@ namespace hyper
 
         static inline std::uint32_t& pc_motion_blur_option = *reinterpret_cast<std::uint32_t*>(0x00A653C8);
 
+        static inline bool& texture_animations_enabled = *reinterpret_cast<bool*>(0x00A65368);
+
         static inline array<char, 260u> screenshot_directory = array<char, 260u>(0x00AB0738);
     };
 }
