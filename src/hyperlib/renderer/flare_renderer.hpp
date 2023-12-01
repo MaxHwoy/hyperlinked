@@ -48,7 +48,8 @@ namespace hyper
         static void render_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
 
     private:
-        texture::info* streak_flares_texture;
+        bool pool_locked_;
+        texture::info* streak_flares_texture_;
 
     public:
         static inline flare_renderer& instance = *reinterpret_cast<flare_renderer*>(0x00B4CF28);

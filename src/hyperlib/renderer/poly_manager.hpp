@@ -56,14 +56,14 @@ namespace hyper
         texture::info* texture_page_;
 
     private:
-        bool _0x18_;
-        poly* polies_;
         bool locked_;
+        poly* polies_;
     };
 
     CREATE_ENUM_FLAG_OPERATORS(e_poly_flags);
 
     ASSERT_SIZE(e_poly, 0xA0);
+    ASSERT_SIZE(poly_manager<char>, 0x20);
 }
 
 namespace hyper
@@ -72,10 +72,9 @@ namespace hyper
     {
         this->max_polies_ = max_polies;
         this->poly_count_ = 0u;
-        this->_0x18_ = false;
+        this->locked_ = false;
         this->vertex_count_ = max_polies * 4u;
         this->polies_ = nullptr;
-        this->locked_ = false;
 
         directx::device()->CreateVertexBuffer(sizeof(poly) * max_polies, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0u, ::D3DPOOL_DEFAULT, &this->vertex_buffer_, nullptr);
         directx::device()->CreateIndexBuffer(sizeof(std::uint16_t) * 6u * max_polies, D3DUSAGE_WRITEONLY, ::D3DFMT_INDEX16, ::D3DPOOL_MANAGED, &this->index_buffer_, nullptr);
@@ -103,37 +102,39 @@ namespace hyper
         if (this->vertex_buffer_ != nullptr)
         {
             this->vertex_buffer_->Release();
+
             this->vertex_buffer_ = nullptr;
         }
 
         if (this->index_buffer_ != nullptr)
         {
             this->index_buffer_->Release();
+
             this->index_buffer_ = nullptr;
         }
     }
 
     template <typename Vertex> void poly_manager<Vertex>::lock()
     {
-        HRESULT result = this->vertex_buffer_->Lock(0u, 0u, reinterpret_cast<void**>(&this->polies_), D3DLOCK_DISCARD);
+        ::HRESULT result = this->vertex_buffer_->Lock(0u, 0u, reinterpret_cast<void**>(&this->polies_), D3DLOCK_DISCARD);
 
         ASSERT(SUCCEEDED(result));
 
         this->poly_count_ = 0u;
-        this->_0x18_ = true;
+
         this->locked_ = true;
     }
 
     template <typename Vertex> void poly_manager<Vertex>::unlock()
     {
-        if (this->_0x18_ && this->vertex_buffer_ != nullptr)
+        if (this->locked_ && this->vertex_buffer_ != nullptr)
         {
-            this->_0x18_ = false; // whyyyyy do we even neeeeed this thing???
-        }
+            this->vertex_buffer_->Unlock();
 
-        this->vertex_buffer_->Unlock();
-        this->polies_ = nullptr;
-        this->locked_ = false;
+            this->polies_ = nullptr;
+
+            this->locked_ = false;
+        }
     }
 
     template <typename Vertex> auto poly_manager<Vertex>::allocate() -> poly_manager<Vertex>::poly*

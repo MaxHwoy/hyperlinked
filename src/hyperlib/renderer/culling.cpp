@@ -116,7 +116,7 @@ namespace hyper
 
             view::instance& reflection = view::instance::views[view_id::player1_reflection];
 
-            if (options::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
+            if (options::road_reflection_detail && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }

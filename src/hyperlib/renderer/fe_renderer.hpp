@@ -47,5 +47,5 @@ namespace hyper
 
     ASSERT_SIZE(prelit_vertex, 0x18);
     ASSERT_SIZE(prelit_pool::poly, 0x60);
-    ASSERT_SIZE(prelit_pool, 0x24);
+    ASSERT_SIZE(prelit_pool, 0x20);
 }

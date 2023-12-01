@@ -31,9 +31,11 @@ namespace hyper
 
         if (options::visual_treatment)
         {
-            ::D3DMULTISAMPLE_TYPE multisample = static_cast<::D3DMULTISAMPLE_TYPE>(options::antialias_level);
+            ::D3DMULTISAMPLE_TYPE multisample = static_cast<::D3DMULTISAMPLE_TYPE>(options::antialias_level > 0);
 
-            if (FAILED(directx::device()->CreateRenderTarget(directx::resolution_x, directx::resolution_y, ::D3DFMT_A8R8G8B8, multisample, options::antialias_level, false, &player_render_target::render_target_surface_standalone, nullptr)))
+            ::HRESULT result;
+
+            if (FAILED(result = directx::device()->CreateRenderTarget(directx::resolution_x, directx::resolution_y, ::D3DFMT_A8R8G8B8, multisample, options::antialias_level, false, &player_render_target::render_target_surface_standalone, nullptr)))
             {
                 return ::assert_return(false);
             }
@@ -46,24 +48,24 @@ namespace hyper
     {
         reflection_render_target::close();
 
-        if (options::road_reflection_enabled)
+        if (options::road_reflection_detail)
         {
             std::uint32_t x = reflection_render_target::resolution_x = math::floor_pow_2(directx::resolution_x >> 1); // originally directx::resolution_x / 3
             std::uint32_t y = reflection_render_target::resolution_y = math::floor_pow_2(directx::resolution_y >> 1); // originally directx::resolution_y / 3
 
             if (FAILED(directx::device()->CreateTexture(x, y, 1u, D3DUSAGE_RENDERTARGET, ::D3DFMT_A8R8G8B8, ::D3DPOOL_DEFAULT, &reflection_render_target::d3d_texture, nullptr)))
             {
-                return options::road_reflection_enabled = assert_return(false);
+                return options::road_reflection_detail = assert_return(false);
             }
 
             if (FAILED(directx::device()->CreateDepthStencilSurface(x, y, ::D3DFMT_D24S8, ::D3DMULTISAMPLE_NONE, 0u, false, &reflection_render_target::depth_stencil_surface, nullptr)))
             {
-                return options::road_reflection_enabled = assert_return(false);
+                return options::road_reflection_detail = assert_return(false);
             }
 
             if (FAILED(reflection_render_target::d3d_texture->GetSurfaceLevel(0u, &reflection_render_target::render_target_surface)))
             {
-                return options::road_reflection_enabled = assert_return(false);
+                return options::road_reflection_detail = assert_return(false);
             }
         }
         else

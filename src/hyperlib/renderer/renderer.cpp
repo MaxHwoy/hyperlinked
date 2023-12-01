@@ -255,10 +255,9 @@ namespace hyper
 
     bool renderer::reset()
     {
+#if !defined(HYPER_USE_CUSTOM_RENDERER_RESET)
         return SUCCEEDED(call_function<::HRESULT(__cdecl*)()>(0x0072B370)());
-
-
-
+#else
         call_function<void(__cdecl*)()>(0x00729A90)();
         
         shader_lib::lose_device();
@@ -298,7 +297,7 @@ namespace hyper
 
         call_function<void(__cdecl*)()>(0x0070FCF0)(); // eInitFEEnvMapPlat
 
-        if (options::visual_treatment || options::motion_blur_enabled || options::road_reflection_enabled)
+        if (options::visual_treatment || options::motion_blur_enabled || options::road_reflection_detail)
         {
             blur_renderer::ctor(blur_renderer::instance);
         }
@@ -320,6 +319,7 @@ namespace hyper
         flare_renderer::ctor(flare_renderer::instance);
 
         return true;
+#endif
     }
 
     void renderer::render()

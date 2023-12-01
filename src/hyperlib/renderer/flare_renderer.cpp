@@ -49,8 +49,9 @@ namespace hyper
 
     flare_renderer::flare_renderer(std::uint32_t max_flares) : poly_manager<flare_vertex>(max_flares)
     {
+        this->pool_locked_ = false;
         this->texture_page_ = texture::get_texture_info(hashing::bin_const("FLARE_TEXTURE_PAGE"), true, false);
-        this->streak_flares_texture = texture::get_texture_info(hashing::bin_const("STREAKFLARES_I"), true, false);
+        this->streak_flares_texture_ = texture::get_texture_info(hashing::bin_const("STREAKFLARES_I"), true, false);
         
         if (this->texture_page_ != nullptr)
         {
