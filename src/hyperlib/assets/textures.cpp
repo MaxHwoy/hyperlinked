@@ -184,15 +184,17 @@ namespace hyper
                 {
                     float time = i->base == animation::time_base::world ? world_time : real_time;
 
-                    std::uint8_t base_frame = static_cast<std::uint8_t>(static_cast<std::int32_t>(i->fps * time) % i->frame_count);
+                    std::uint8_t count = i->frame_count;
+
+                    std::uint8_t base_frame = static_cast<std::uint8_t>(static_cast<std::int32_t>(i->fps * time) % count);
 
                     if (base_frame != i->current_frame)
                     {
                         i->current_frame = base_frame;
 
-                        for (std::uint8_t k = 0u; k < i->frame_count; ++k)
+                        for (std::uint8_t k = 0u; k < count; ++k)
                         {
-                            i->table[k].texture->pinfo->texture = i->table[(base_frame + k) % i->frame_count].data->attached;
+                            i->table[k].texture->pinfo->texture = i->table[(base_frame + k) % count].data->attached;
                         }
                     }
                 }
