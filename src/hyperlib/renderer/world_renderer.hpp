@@ -2,11 +2,11 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/pca.hpp>
+#include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/view.hpp>
-#include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
@@ -46,7 +46,7 @@ namespace hyper
         geometry::solid* solid;
         draw_flags flags;
         effect* effect;
-        const lighting::dynamic_context* light_context;
+        const light::context::dynamic* light_context;
         const light_material::instance* light_material;
         const matrix4x4* local_to_world;
         const matrix4x4* blending_matrices;
@@ -79,7 +79,7 @@ namespace hyper
         static void render_internal();
 
     public:
-        static void create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca);
+        static void create_rendering_model(geometry::mesh_entry& entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca);
 
         static void compute_sort_key(rendering_model& model);
 

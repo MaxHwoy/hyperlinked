@@ -7,6 +7,7 @@
 #include <hyperlib/renderer/window.hpp>
 #include <hyperlib/renderer/effect.hpp>
 #include <hyperlib/renderer/gamma.hpp>
+#include <hyperlib/renderer/time_of_day.hpp>
 #include <hyperlib/renderer/post_process.hpp>
 #include <hyperlib/renderer/fe_renderer.hpp>
 #include <hyperlib/renderer/blur_renderer.hpp>
@@ -224,16 +225,22 @@ namespace hyper
 
     void renderer::render_world()
     {
+        BENCHMARK();
+
         call_function<void(__cdecl*)()>(0x0072EBA0)();
     }
 
     void renderer::render_fe()
     {
+        BENCHMARK();
+
         call_function<void(__cdecl*)()>(0x00730CB0)();
     }
 
     void renderer::wait_render()
     {
+        BENCHMARK();
+
         char data[0x04];
 
         while (directx::query()->GetData(data, sizeof(data), D3DGETDATA_FLUSH) == S_FALSE)
@@ -261,6 +268,8 @@ namespace hyper
 
     bool renderer::reset()
     {
+        BENCHMARK();
+
 #if !defined(HYPER_USE_CUSTOM_RENDERER_RESET)
         return SUCCEEDED(call_function<::HRESULT(__cdecl*)()>(0x0072B370)());
 #else
@@ -330,13 +339,15 @@ namespace hyper
 
     void renderer::render()
     {
+        BENCHMARK();
+
         shader_lib::reset();
 
         effect::set_current_effect(nullptr);
 
         if (renderer::time_of_day_not_inited)
         {
-            lighting::time_of_day::init();
+            time_of_day::init();
 
             renderer::time_of_day_not_inited = false;
         }

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/pca.hpp>
+#include <hyperlib/assets/lights.hpp>
+#include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/renderer/enums.hpp>
 
 namespace hyper
@@ -49,6 +52,8 @@ namespace hyper
             auto get_visible_state_sb(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> visible_state;
 
             void get_screen_position(const vector3& world_pos, vector3& screen_pos) const;
+
+            auto shadow_map_cull(const vector3& bbox_min, const vector3& bbox_max) const -> visible_state;
         };
 
         struct base : public platform_interface
@@ -86,7 +91,7 @@ namespace hyper
             std::uint32_t pad04;
             class camera* camera;
             linked_list<struct camera_mover> camera_mover_list;
-            void* world_light_context; // fuck you c++
+            const light::context::dynamic* world_light_context;
             class render_target* attached_target;
             char pad0C[0x0C];
         };
@@ -110,6 +115,8 @@ namespace hyper
             auto get_screen_depth(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> float;
 
             void setup_world_light_context();
+
+            void render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca);
 
         public:
             std::uint32_t num_cops_in_view;

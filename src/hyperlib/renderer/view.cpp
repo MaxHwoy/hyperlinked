@@ -4,8 +4,11 @@
 #include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/targets.hpp>
-#include <hyperlib/renderer/lighting.hpp>
+#include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
+#include <hyperlib/renderer/renderer.hpp>
 
 namespace hyper
 {
@@ -86,6 +89,8 @@ namespace hyper
 	{
 		BENCHMARK();
 
+		visible_state result = call_function<visible_state(__thiscall*)(const view::platform_interface*, const vector3&, const vector3&, const matrix4x4*)>(0x0071B630)(this, bbox_min, bbox_max, trs);
+
 		std::uint32_t lod_increment = 1;
 
 		vector3 center(bbox_min);
@@ -143,6 +148,11 @@ namespace hyper
 		screen_pos.x = (local.x * inverse + 1.0f) * directx::resolution_x * +0.5f;
 		screen_pos.y = (local.y * inverse - 1.0f) * directx::resolution_y * -0.5f;
 		screen_pos.z = (local.z * inverse);
+	}
+
+	auto view::platform_interface::shadow_map_cull(const vector3& bbox_min, const vector3& bbox_max) const -> visible_state
+	{
+		return call_function<visible_state(__cdecl*)(const vector3&, const vector3&)>(0x0071EF30)(bbox_min, bbox_max);
 	}
 
 	auto view::instance::calculate_pixelation(std::uint16_t horizontal_fov) -> float
@@ -320,7 +330,7 @@ namespace hyper
 	{
 		this->world_light_context = nullptr;
 
-		lighting::dynamic_context* context = frame_pool::instance.malloc<lighting::dynamic_context>();
+		light::context::dynamic* context = frame_pool::instance.malloc<light::context::dynamic>();
 
 		if (context != nullptr)
 		{
@@ -333,11 +343,125 @@ namespace hyper
 			center.y = camera_pos.y - camera_trs.m23 * 10.0f; // direction.y denormalized
 			center.z = camera_pos.z - camera_trs.m33 * 10.0f + 4.0f; // direction.z denormalized
 
-			lighting::setup_light_context(*context, lighting::shaper_light_rigorous::world, &matrix4x4::identity(), &view::instance::super_rotation, &center, this);
+			light_renderer::setup_light_context(*context, light::shaper_rigorous::world, &matrix4x4::identity(), &view::instance::super_rotation, &center, this);
 
 			math::create_look_at_matrix(sun_info::sun_origin, vector3::zero(), vector3::up(), context->local_eye);
 
 			this->world_light_context = context;
+		}
+	}
+
+	void view::instance::render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca)
+	{
+		BENCHMARK();
+
+		if (geometry::solid* solid = model.solid)
+		{
+			geometry::platform_info* info = solid->pinfo;
+
+			if (info->d3d_index_buffer != nullptr)
+			{
+				matrix4x4 shadow_trs;
+
+				if (renderer::shadow_map_cull)
+				{
+					if (local_world == nullptr)
+					{
+						shadow_trs = *renderer::shadow_map_trs;
+					}
+					else
+					{
+						math::multiply_matrix(*local_world, *renderer::shadow_map_trs, shadow_trs);
+					}
+
+					vector3 min = solid->bbox_min;
+					vector3 max = solid->bbox_max;
+
+					math::transform_bound(shadow_trs, min, max);
+
+					if (this->shadow_map_cull(min, max) == visible_state::outside)
+					{
+						return;
+					}
+				}
+
+				geometry::replacement_texture_handle replace_table[0x40];
+
+				model.apply_replacement_texture_table(replace_table, (flags & draw_flags::dont_fix_replacement_tex) == 0);
+
+				bool not_fully_visible = (flags & draw_flags::fully_visible) == 0;
+
+				for (std::uint32_t i = 0u; i < info->submesh_count; ++i)
+				{
+					geometry::mesh_entry& entry = info->mesh_entry_table[i];
+
+					if (not_fully_visible && (entry.flags & 1) == 0)
+					{
+						if (this->get_visible_state_sb(entry.bbox_min, entry.bbox_max, local_world) == visible_state::outside)
+						{
+							continue;
+						}
+
+						if (renderer::shadow_map_cull)
+						{
+							vector3 min = entry.bbox_min;
+							vector3 max = entry.bbox_max;
+
+							math::transform_bound(shadow_trs, min, max);
+
+							if (this->shadow_map_cull(min, max) == visible_state::outside)
+							{
+								continue;
+							}
+						}
+					}
+
+					geometry::texture_entry* texture_table = solid->textures;
+
+					texture::info* textures[5]
+					{
+						texture_table[entry.diffuse_texture_index].texture_info,
+						texture_table[entry.normal_texture_index].texture_info,
+						texture_table[entry.height_texture_index].texture_info,
+						texture_table[entry.specular_texture_index].texture_info,
+						texture_table[entry.opacity_texture_index].texture_info,
+					};
+
+					if (textures[0]->key != hashing::bin_const("DEFAULTALPHA"))
+					{
+						effect* effect = entry.effect;
+
+						texture::info** info_table = textures;
+
+						const light_material::instance* material;
+
+						if ((flags & draw_flags::use_ghost_shader) != 0 && effect->id() == shader_type::CarShader)
+						{
+							effect = effect_ghost_car::instance;
+
+							info_table = texture::ghost_car_textures.pointer();
+						}
+
+						if (entry.light_material_table_index == std::numeric_limits<std::uint8_t>::max())
+						{
+							material = light_material::instance::deafault;
+						}
+						else
+						{
+							material = solid->light_materials[entry.light_material_table_index].light_material;
+						}
+
+						if (context == nullptr && effect->id() == shader_type::CarShader)
+						{
+							context = this->world_light_context;
+						}
+
+						world_renderer::create_rendering_model(entry, solid, flags, effect, info_table, local_world, context, material, blend_trs, pca);
+					}
+				}
+
+				model.restore_replacement_texture_table(replace_table);
+			}
 		}
 	}
 

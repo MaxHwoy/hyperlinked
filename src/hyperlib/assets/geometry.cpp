@@ -50,7 +50,7 @@ namespace hyper
 
         if (this->replacement_textures != nullptr)
         {
-            call_function<void(__cdecl*)(geometry::replacement_texture_table*)>(0x005587D0)(this->replacement_textures); // #TODO
+            call_function<void(__cdecl*)(geometry::replacement_texture_entry*)>(0x005587D0)(this->replacement_textures); // #TODO
         }
 
         this->key = 0u;
@@ -76,6 +76,62 @@ namespace hyper
             }
 
             this->solid = solid_to_connect;
+        }
+    }
+
+    void geometry::model::apply_replacement_texture_table(geometry::replacement_texture_handle* handle, bool fixup)
+    {
+        if (this->replacement_textures != nullptr && this->replacement_texture_count != 0u)
+        {
+            if (fixup)
+            {
+                for (std::uint16_t i = 0u; i < this->replacement_texture_count; ++i)
+                {
+                    replacement_texture_entry& entry = this->replacement_textures[i];
+
+                    if (entry.texture == nullptr || reinterpret_cast<intptr_t>(entry.texture) == -1 || entry.texture->key != entry.new_key)
+                    {
+                        entry.texture = texture::get_texture_info(entry.new_key, true, false);
+                    }
+                }
+            }
+
+            texture_entry* entries = this->solid->textures;
+
+            std::uint32_t entry_count = this->solid->texture_count;
+
+            for (std::uint32_t i = 0u; i < entry_count; ++i)
+            {
+                texture_entry& current = entries[i];
+
+                for (std::uint32_t k = 0u; k < this->replacement_texture_count; ++k)
+                {
+                    replacement_texture_entry& entry = this->replacement_textures[k];
+
+                    if (entry.new_key != 0u && current.key == entry.old_key)
+                    {
+                        handle->entry = &current;
+                        handle->original = current.texture_info;
+
+                        current.texture_info = entry.texture;
+
+                        handle++;
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        handle->entry = nullptr;
+        handle->original = nullptr;
+    }
+
+    void geometry::model::restore_replacement_texture_table(geometry::replacement_texture_handle* handle)
+    {
+        while (handle->entry != nullptr)
+        {
+            handle++->entry->texture_info = handle->original;
         }
     }
 

@@ -14,7 +14,7 @@
 #include <hyperlinked/patches/renderer/directx.hpp>
 #include <hyperlinked/patches/renderer/effect.hpp>
 #include <hyperlinked/patches/renderer/flare_renderer.hpp>
-#include <hyperlinked/patches/renderer/lighting.hpp>
+#include <hyperlinked/patches/renderer/light_renderer.hpp>
 #include <hyperlinked/patches/renderer/renderer.hpp>
 #include <hyperlinked/patches/renderer/view.hpp>
 #include <hyperlinked/patches/renderer/world_renderer.hpp>
@@ -41,9 +41,9 @@ namespace hyper
         camera_patches::init();
         culling_patches::init();
         directx_patches::init();
-        flare_renderer_patches::init();
         effect_patches::init();
-        lighting_patches::init();
+        flare_renderer_patches::init();
+        light_renderer_patches::init();
         renderer_patches::init();
         view_patches::init();
         world_renderer_patches::init();

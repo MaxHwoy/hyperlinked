@@ -2,7 +2,7 @@
 
 namespace hyper
 {
-    class lighting_patches final
+    class light_renderer_patches final
     {
     public:
         static void init();

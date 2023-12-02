@@ -4,10 +4,12 @@
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
-#include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
+#include <hyperlib/renderer/time_of_day.hpp>
 #include <hyperlib/renderer/renderer.hpp>
+#include <hyperlib/renderer/fog_renderer.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
 #include <hyperlib/renderer/world_renderer.hpp>
 
 #pragma warning (disable : 26813)
@@ -291,7 +293,7 @@ namespace hyper
 
                 if (this->has_parameter(parameter_type::cvLocalLightVec))
                 {
-                    vector4 sun_direction(lighting::time_of_day::instance->sun_direction);
+                    vector4 sun_direction(time_of_day::instance->sun_direction);
 
                     math::transform_point(inverted, sun_direction);
 
@@ -415,7 +417,7 @@ namespace hyper
 
     void effect::start()
     {
-        this->set_float(parameter_type::cfSpecularPower, lighting::default_spec_power);
+        this->set_float(parameter_type::cfSpecularPower, light_renderer::default_spec_power);
 
         if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
         {
@@ -560,6 +562,8 @@ namespace hyper
 
     void effect::reinitialize()
     {
+        BENCHMARK();
+
         ::memset(this->params_, 0, sizeof(this->params_));
 
         this->last_used_light_material_ = nullptr;
@@ -607,6 +611,8 @@ namespace hyper
 
     void effect::connect_parameters()
     {
+        BENCHMARK();
+
         ::D3DXEFFECT_DESC effect_desc;
         ::D3DXPARAMETER_DESC param_desc;
 
@@ -644,16 +650,16 @@ namespace hyper
 
     void effect::reset_lighting_params()
     {
-        lighting::ingame_light_params.y = lighting::default_ingame_light_y;
-        lighting::ingame_light_params.w = lighting::default_ingame_light_w;
+        light_renderer::ingame_light_params.y = light_renderer::default_ingame_light_y;
+        light_renderer::ingame_light_params.w = light_renderer::default_ingame_light_w;
 
         if (game_flow::manager::instance.current_state == game_flow::state::racing)
         {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params);
+            this->set_vector(parameter_type::cvVertexPowerBrightness, light_renderer::ingame_light_params);
         }
         else
         {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params);
+            this->set_vector(parameter_type::cvVertexPowerBrightness, light_renderer::frontend_light_params);
         }
     }
 
@@ -846,7 +852,7 @@ namespace hyper
         }
     }
 
-    void effect::set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world)
+    void effect::set_light_context(const light::context::dynamic& context, const matrix4x4& local_to_world)
     {
         if (context.type == 0 && &context != this->last_used_light_context_)
         {
@@ -1494,12 +1500,12 @@ namespace hyper
         if (game_flow::manager::instance.current_state == game_flow::state::racing)
         {
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::ingame_envmap_pull_amount);
         }
         else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
         {
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
     }
 
@@ -1513,12 +1519,12 @@ namespace hyper
         if (game_flow::manager::instance.current_state == game_flow::state::racing)
         {
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::ingame_envmap_pull_amount);
         }
         else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
         {
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
     }
 
@@ -1552,7 +1558,7 @@ namespace hyper
 
         if (effect_sky::last_frame_updated_ != global::world_time_frames)
         {
-            float update_rate = lighting::time_of_day::instance->update_rate;
+            float update_rate = time_of_day::instance->update_rate;
 
             effect_sky::last_frame_updated_ = global::world_time_frames;
 
@@ -1561,7 +1567,7 @@ namespace hyper
 
         this->set_float(parameter_type::cfTimeTicker, effect_sky::sky_time_ticker_);
 
-        this->set_vector(parameter_type::cfSkyFogFalloff, lighting::fog_shader_params::instance->sky_fog_falloff);
+        this->set_vector(parameter_type::cfSkyFogFalloff, fog_renderer::params::instance->sky_fog_falloff);
 
         this->reset_lighting_params();
     }
@@ -1621,7 +1627,7 @@ namespace hyper
 
         if (effect_water::last_frame_updated_ != global::world_time_frames)
         {
-            float update_rate = lighting::time_of_day::instance->update_rate;
+            float update_rate = time_of_day::instance->update_rate;
 
             effect_water::last_frame_updated_ = global::world_time_frames;
 

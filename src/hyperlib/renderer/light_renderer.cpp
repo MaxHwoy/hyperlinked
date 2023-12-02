@@ -1,72 +1,24 @@
-#include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/camera.hpp>
-#include <hyperlib/renderer/lighting.hpp>
+#include <hyperlib/renderer/time_of_day.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
 
 #pragma warning (disable : 6001)
 
 namespace hyper
 {
-    lighting::time_of_day::time_of_day() :
-        sunny(hashing::vlt_const("sunny")),
-        dusk_sunny(hashing::vlt_const("dusk_sunny")),
-        overcast(hashing::vlt_const("overcast")),
-        dusk_overcast(hashing::vlt_const("dusk_overcast")),
-        _0xA01A3942(0xA01A3942u),
-        _0x0E1C797C(0x0E1C797Cu),
-        _0x94ABDFF0(0x94ABDFF0u),
-        _0x919B6689(0x919B6689u),
-        update_rate(1.0f),
-        current_time_of_day(0.45f),
-        sun_azimuth(3.28f),
-        latitude(0.5f),
-        update_direction(-1)
+    void light_renderer::reset_light_context(light::context::dynamic& context)
     {
-        this->current.diffuse_color = { 0.61f, 0.49f, 0.23f, 1.0f };
-        this->current.ambient_color = { 0.14f, 0.16f, 0.22f, 4.0f };
-        this->current.fog_sky_color = { 0.27f, 0.46f, 0.96f, 1.0f };
-        this->current.specular_color = { 0.58f, 0.53f, 0.42f, 1.0f };
-        this->current.fog_haze_color = { 0.19f, 0.25f, 0.38f, 1.0f };
-        this->current.car_spec_scale = 1.0f;
-        this->current.env_sky_brightness = 2.5f;
-        this->current.fog_sky_color_scale = 2.0f;
-        this->current.fog_haze_color_scale = 0.0f;
-        this->current.fog_in_light_scatter = 8.0f;
-        this->current.fog_sun_falloff = -0.16f;
-
-        this->update_time();
-        this->update(0.1f);
-
-        this->some_color = { 0.61f, 0.49f, 0.23f, 1.0f };
+        ::memset(&context, 0, sizeof(light::context::dynamic));
     }
 
-    void lighting::time_of_day::update_time()
+    bool light_renderer::setup_light_context(light::context::dynamic& context, const light::shaper_rigorous& shaper, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base)
     {
-        call_function<void(__thiscall*)(lighting::time_of_day*)>(0x007F1080)(this);
-    }
-
-    void lighting::time_of_day::update(float intensity)
-    {
-        call_function<void(__thiscall*)(lighting::time_of_day*, float)>(0x007F12A0)(this, intensity);
-    }
-
-    void lighting::time_of_day::init()
-    {
-        lighting::time_of_day::instance = memory::allocate<lighting::time_of_day>();
-    }
-
-    void lighting::reset_light_context(dynamic_context& context)
-    {
-        ::memset(&context, 0, sizeof(dynamic_context));
-    }
-
-    bool lighting::setup_light_context(dynamic_context& context, const shaper_light_rigorous& shaper, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base)
-    {
-        lighting::reset_light_context(context);
+        light_renderer::reset_light_context(context);
 
         if (inst_trs != nullptr)
         {
-            lighting::setup_envmap(context, *inst_trs, camera_trs, center);
-            lighting::setup_lights(context, shaper, inst_trs->row(3u).as_vector3(), inst_trs, camera_trs, base);
+            light_renderer::setup_envmap(context, *inst_trs, camera_trs, center);
+            light_renderer::setup_lights(context, shaper, inst_trs->row(3u).as_vector3(), inst_trs, camera_trs, base);
 
             return true;
         }
@@ -74,16 +26,16 @@ namespace hyper
         return false;
     }
 
-    bool lighting::clone_light_context(dynamic_context& dst, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base, const dynamic_context& src)
+    bool light_renderer::clone_light_context(light::context::dynamic& dst, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center, const view::base* base, const light::context::dynamic& src)
     {
-        lighting::rotate_light_context(dst, src, inst_trs);
+        light_renderer::rotate_light_context(dst, src, inst_trs);
 
-        lighting::setup_envmap(dst, inst_trs, camera_trs, center);
+        light_renderer::setup_envmap(dst, inst_trs, camera_trs, center);
 
         return true;
     }
 
-    void lighting::rotate_light_context(dynamic_context& dst, const dynamic_context& src, const matrix4x4& inst_trs)
+    void light_renderer::rotate_light_context(light::context::dynamic& dst, const light::context::dynamic& src, const matrix4x4& inst_trs)
     {
         matrix4x4 rotation;
 
@@ -147,10 +99,10 @@ namespace hyper
 
         irradiance& radiance = *reinterpret_cast<irradiance*>(&dst.harmonics);
 
-        lighting::transform_irradiance(radiance, rotation);
+        light_renderer::transform_irradiance(radiance, rotation);
     }
 
-    bool lighting::setup_envmap(dynamic_context& context, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center)
+    bool light_renderer::setup_envmap(light::context::dynamic& context, const matrix4x4& inst_trs, const matrix4x4* camera_trs, const vector3* center)
     {
         matrix4x4 rotation;
 
@@ -189,7 +141,7 @@ namespace hyper
         return true;
     }
 
-    void lighting::setup_lights(dynamic_context& context, const shaper_light_rigorous& shaper, const vector3& inst_pos, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const view::base* base)
+    void light_renderer::setup_lights(light::context::dynamic& context, const light::shaper_rigorous& shaper, const vector3& inst_pos, const matrix4x4* inst_trs, const matrix4x4* camera_trs, const view::base* base)
     {
         if (base != nullptr && base->camera != nullptr)
         {
@@ -200,7 +152,7 @@ namespace hyper
 
         math::invert_rotation(*camera_trs, rotation);
 
-        lighting::query query;
+        light_renderer::query query;
         color colors[19];
         vector3 truest_directions[19];
         vector3 normal_directions[19];
@@ -209,7 +161,7 @@ namespace hyper
 
         for (std::uint32_t i = 0u; i < light_count; ++i)
         {
-            const shaper_light& light = shaper.lights[i];
+            const light::shaper& light = shaper.lights[i];
 
             float scale = light.color.a;
 
@@ -217,25 +169,25 @@ namespace hyper
             {
                 switch (light.mode)
                 {
-                    case shaper_light_mode::world_space:
-                        lighting::make_world_space_light_direction(truest_directions[i], light);
-                        break;
+                case light::shaper::light_mode::world_space:
+                    light_renderer::make_world_space_light_direction(truest_directions[i], light);
+                    break;
 
-                    case shaper_light_mode::camera_space:
-                        lighting::make_camera_space_light_direction(truest_directions[i], light, rotation);
-                        break;
+                case light::shaper::light_mode::camera_space:
+                    light_renderer::make_camera_space_light_direction(truest_directions[i], light, rotation);
+                    break;
 
-                    case shaper_light_mode::sun_direction:
-                        lighting::make_sun_direction_light_direction(truest_directions[i], light);
-                        break;
+                case light::shaper::light_mode::sun_direction:
+                    light_renderer::make_sun_direction_light_direction(truest_directions[i], light);
+                    break;
 
-                    case shaper_light_mode::inverse_sun_direction:
-                        lighting::make_inverse_sun_direction_light_direction(truest_directions[i], light);
-                        break;
+                case light::shaper::light_mode::inverse_sun_direction:
+                    light_renderer::make_inverse_sun_direction_light_direction(truest_directions[i], light);
+                    break;
 
-                    case shaper_light_mode::world_position:
-                        lighting::make_world_position_light_direction(truest_directions[i], shaper, inst_pos);
-                        break;
+                case light::shaper::light_mode::world_position:
+                    light_renderer::make_world_position_light_direction(truest_directions[i], shaper, inst_pos);
+                    break;
                 }
 
                 colors[i].r = light.color.r * scale * 255.0f;
@@ -250,7 +202,7 @@ namespace hyper
             }
         }
 
-        std::uint32_t light_hits = lighting::query_light_database(query, inst_pos);
+        std::uint32_t light_hits = light_renderer::query_light_database(query, inst_pos);
 
         if (light_hits + light_count > std::size(colors))
         {
@@ -342,17 +294,17 @@ namespace hyper
 
             light_color.a = light_color.r * 0.3f + light_color.g * 0.5f + light_color.b * 0.2f;
 
-            lighting::update_irradiance(radiance, normal_directions[i], light_color);
+            light_renderer::update_irradiance(radiance, normal_directions[i], light_color);
         }
 
-        lighting::normalize_irradiance(radiance, lighting::normalize_rgb_irradiance, lighting::scale_rgb_irradiance, lighting::normalize_alpha_irradiance, lighting::scale_alpha_irradiance);
+        light_renderer::normalize_irradiance(radiance, light_renderer::normalize_rgb_irradiance, light_renderer::scale_rgb_irradiance, light_renderer::normalize_alpha_irradiance, light_renderer::scale_alpha_irradiance);
     }
 
-    auto lighting::query_light_database(lighting::query& query, const vector3& position) -> std::uint32_t
+    auto light_renderer::query_light_database(light_renderer::query& query, const vector3& position) -> std::uint32_t
     {
         constexpr std::uint32_t max_lights_allowed = 10u;
 
-        lighting::query_helper helper;
+        light_renderer::query_helper helper;
 
         query.lights[0] = nullptr;
         query.influences[0] = 0.0f;
@@ -379,7 +331,7 @@ namespace hyper
 
                     for (std::uint32_t i = 0u; i < count; ++i)
                     {
-                        lighting::query_light_internal(query, helper, pack->lights[node->children[i]], position);
+                        light_renderer::query_light_internal(query, helper, pack->lights[node->children[i]], position);
 
                         if (helper.light_hits >= max_lights_allowed)
                         {
@@ -390,13 +342,13 @@ namespace hyper
             }
         }
 
-        for (const dynamic_light_pack* pack = dynamic_light_pack::list.begin(); pack != dynamic_light_pack::list.end(); pack = pack->next())
+        for (const light::dynamic_pack* pack = light::dynamic_pack::list.begin(); pack != light::dynamic_pack::list.end(); pack = pack->next())
         {
             if (pack->enabled)
             {
-                for (const dynamic_light* light = pack->lights.begin(); light != pack->lights.end(); light = light->next())
+                for (const light::dynamic* light = pack->lights.begin(); light != pack->lights.end(); light = light->next())
                 {
-                    lighting::query_light_internal(query, helper, *light, position);
+                    light_renderer::query_light_internal(query, helper, *light, position);
                 }
             }
         }
@@ -420,48 +372,48 @@ namespace hyper
         return helper.light_hits;
     }
 
-    void lighting::make_world_space_light_direction(vector3& direction, const shaper_light& light)
+    void light_renderer::make_world_space_light_direction(vector3& direction, const light::shaper& light)
     {
-        lighting::make_light_direction_from_angles(direction, 180.0f + light.theta, 90.0f - light.phi, 1.0f);
+        light_renderer::make_light_direction_from_angles(direction, 180.0f + light.theta, 90.0f - light.phi, 1.0f);
     }
 
-    void lighting::make_camera_space_light_direction(vector3& direction, const shaper_light& light, const matrix4x4& rotation)
+    void light_renderer::make_camera_space_light_direction(vector3& direction, const light::shaper& light, const matrix4x4& rotation)
     {
-        lighting::make_light_direction_from_angles(direction, 180.0f + light.theta, 90.0f - light.phi, 1.0f);
+        light_renderer::make_light_direction_from_angles(direction, 180.0f + light.theta, 90.0f - light.phi, 1.0f);
 
         space_settings(space_axis::ny, space_axis::nz, space_axis::px).swap(direction);
 
         math::transform_vector(rotation, direction);
     }
 
-    void lighting::make_sun_direction_light_direction(vector3& direction, const shaper_light& light)
+    void light_renderer::make_sun_direction_light_direction(vector3& direction, const light::shaper& light)
     {
-        lighting::make_light_direction_from_sun(direction, time_of_day::instance->sun_direction.as_vector3());
+        light_renderer::make_light_direction_from_sun(direction, time_of_day::instance->sun_direction.as_vector3());
 
         direction.x = direction.x * 0.0054931641f + light.theta;
         direction.y = direction.y * 0.0054931641f + light.phi + 90.0f;
 
-        lighting::make_light_direction_from_angles(direction, 180.0f + direction.x, 90.0f - direction.y, 1.0f);
+        light_renderer::make_light_direction_from_angles(direction, 180.0f + direction.x, 90.0f - direction.y, 1.0f);
     }
 
-    void lighting::make_inverse_sun_direction_light_direction(vector3& direction, const shaper_light& light)
+    void light_renderer::make_inverse_sun_direction_light_direction(vector3& direction, const light::shaper& light)
     {
         vector3 inverse = -time_of_day::instance->sun_direction.as_vector3();
 
-        lighting::make_light_direction_from_sun(direction, inverse);
+        light_renderer::make_light_direction_from_sun(direction, inverse);
 
         direction.x = direction.x * 0.0054931641f + light.theta;
         direction.y = direction.y * 0.0054931641f + light.phi + 90.0f;
 
-        lighting::make_light_direction_from_angles(direction, 180.0f + direction.x, 90.0f - direction.y, 1.0f);
+        light_renderer::make_light_direction_from_angles(direction, 180.0f + direction.x, 90.0f - direction.y, 1.0f);
     }
 
-    void lighting::make_world_position_light_direction(vector3& direction, const shaper_light_rigorous& shaper, const vector3& inst_pos)
+    void light_renderer::make_world_position_light_direction(vector3& direction, const light::shaper_rigorous& shaper, const vector3& inst_pos)
     {
         direction = shaper.position - inst_pos;
     }
 
-    void lighting::make_light_direction_from_angles(vector3& direction, float theta, float phi, float scale)
+    void light_renderer::make_light_direction_from_angles(vector3& direction, float theta, float phi, float scale)
     {
         float theta_sin, theta_cos;
         float phi_sin, phi_cos;
@@ -474,21 +426,21 @@ namespace hyper
         direction.z = phi_cos * scale;
     }
 
-    void lighting::make_light_direction_from_sun(vector3& direction, const vector3& sun)
+    void light_renderer::make_light_direction_from_sun(vector3& direction, const vector3& sun)
     {
         direction.z = sun.magnitude();
         direction.x = math::arc_tan(sun.x, sun.y);
         direction.y = static_cast<std::uint16_t>(0x4000 - math::arc_sin(sun.z / direction.z));
     }
 
-    void lighting::query_light_internal(lighting::query& query, lighting::query_helper& helper, const light::instance& light, const vector3& position)
+    void light_renderer::query_light_internal(light_renderer::query& query, light_renderer::query_helper& helper, const light::instance& light, const vector3& position)
     {
         if (light.state == light::state::on)
         {
             float distance = (position - light.position).sqr_magnitude();
             float radiisqr = light.radius * light.radius;
 
-            if (distance < radiisqr || lighting::light_query_ignore_distance)
+            if (distance < radiisqr || light_renderer::light_query_ignore_distance)
             {
                 float farstart2 = light.far_start * light.far_start;
                 float influence = 1.0f;
@@ -541,21 +493,21 @@ namespace hyper
         }
     }
 
-    void lighting::update_irradiance(irradiance& radiance, const vector3& direction, const color& light_color)
+    void light_renderer::update_irradiance(light_renderer::irradiance& radiance, const vector3& direction, const color& light_color)
     {
-        lighting::update_irradiance(radiance, light_color, 1.0f, direction);
+        light_renderer::update_irradiance(radiance, light_color, 1.0f, direction);
 
-        if (lighting::enable_echo_irradiance)
+        if (light_renderer::enable_echo_irradiance)
         {
             color inverted_color = light_color * -0.05f;
 
             vector3 inverted_dir = vector3(-direction.x, -direction.y, -direction.z);
 
-            lighting::update_irradiance(radiance, inverted_color, 1.0f, inverted_dir);
+            light_renderer::update_irradiance(radiance, inverted_color, 1.0f, inverted_dir);
         }
     }
 
-    void lighting::update_irradiance(irradiance& radiance, const color& light_color, float scale, const vector3& direction)
+    void light_renderer::update_irradiance(light_renderer::irradiance& radiance, const color& light_color, float scale, const vector3& direction)
     {
         float y_mod = direction.z * direction.z * 3.0f - 1.0f;
         float p_sqr = direction.x * direction.x - direction.y * direction.y;
@@ -591,7 +543,7 @@ namespace hyper
         }
     }
 
-    void lighting::normalize_irradiance(irradiance& radiance, bool normalize_rgb, float scale_rgb, bool normalize_alpha, float scale_alpha)
+    void light_renderer::normalize_irradiance(light_renderer::irradiance& radiance, bool normalize_rgb, float scale_rgb, bool normalize_alpha, float scale_alpha)
     {
         if (normalize_rgb)
         {
@@ -642,7 +594,7 @@ namespace hyper
         }
     }
 
-    void lighting::transform_irradiance(irradiance& radiance, const matrix4x4& rotation)
+    void light_renderer::transform_irradiance(light_renderer::irradiance& radiance, const matrix4x4& rotation)
     {
         for (std::uint32_t i = 0u; i < 4u; ++i)
         {
@@ -713,19 +665,19 @@ namespace hyper
                 coeff_6 * rotation.m22 * rotation.m33 +
                 coeff_6 * rotation.m32 * rotation.m23;
 
-            radiance.coeffs[7][i] = 
-                coeff_7 * rotation.m11 + 
-                coeff_8 * rotation.m21 + 
+            radiance.coeffs[7][i] =
+                coeff_7 * rotation.m11 +
+                coeff_8 * rotation.m21 +
                 coeff_9 * rotation.m31;
 
-            radiance.coeffs[8][i] = 
-                coeff_7 * rotation.m12 + 
-                coeff_8 * rotation.m22 + 
+            radiance.coeffs[8][i] =
+                coeff_7 * rotation.m12 +
+                coeff_8 * rotation.m22 +
                 coeff_9 * rotation.m32;
 
-            radiance.coeffs[9][i] = 
-                coeff_7 * rotation.m13 + 
-                coeff_8 * rotation.m23 + 
+            radiance.coeffs[9][i] =
+                coeff_7 * rotation.m13 +
+                coeff_8 * rotation.m23 +
                 coeff_9 * rotation.m33;
         }
     }

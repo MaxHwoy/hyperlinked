@@ -66,5 +66,9 @@ namespace hyper
         static inline bool& time_of_day_not_inited = *reinterpret_cast<bool*>(0x00A65578);
 
         static inline bool& take_screenshot = *reinterpret_cast<bool*>(0x00AB0AE0);
+
+        static inline bool& shadow_map_cull = *reinterpret_cast<bool*>(0x00AB0A34);
+
+        static inline matrix4x4*& shadow_map_trs = *reinterpret_cast<matrix4x4**>(0x00AB0C18);
     };
 }

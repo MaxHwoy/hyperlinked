@@ -131,7 +131,7 @@ namespace hyper
 
         use_ghost_shader         = 1u << 25,
 
-        has_replacement_textures = 1u << 31,
+        dont_fix_replacement_tex = 1u << 31,
 
         use_low_lod              = render_ai_npc | render_ai_racer,
     };

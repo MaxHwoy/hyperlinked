@@ -171,6 +171,8 @@ namespace hyper
 
     void texture::update_animations()
     {
+        BENCHMARK();
+
         if (options::texture_animations_enabled)
         {
             float real_time = utils::get_real_time();

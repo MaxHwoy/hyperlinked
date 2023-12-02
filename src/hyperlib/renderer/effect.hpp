@@ -2,10 +2,10 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/pca.hpp>
+#include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/collections/string.hpp>
 #include <hyperlib/renderer/enums.hpp>
-#include <hyperlib/renderer/lighting.hpp>
 
 namespace hyper
 {
@@ -342,7 +342,7 @@ namespace hyper
 
         void set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry);
 
-        void set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world);
+        void set_light_context(const light::context::dynamic& context, const matrix4x4& local_to_world);
 
         void set_texture_maps(rendering_model& model, draw_flags flags);
 
@@ -577,7 +577,7 @@ namespace hyper
         std::int32_t has_zero_offset_scale_;
         std::int32_t has_fog_disabled_;
         const light_material::instance* last_used_light_material_;
-        const lighting::dynamic_context* last_used_light_context_;
+        const light::context::dynamic* last_used_light_context_;
 
     private:
         static inline effect*& current_effect_ = *reinterpret_cast<effect**>(0x00AB0BA4);

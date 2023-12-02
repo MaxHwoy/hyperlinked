@@ -27,6 +27,8 @@ namespace hyper
 
         static inline bool& rain_enabled = *reinterpret_cast<bool*>(0x00A65380);
 
+        static inline bool& sky_enabled = *reinterpret_cast<bool*>(0x00A73358);
+
         static inline std::uint32_t& road_reflection_detail = *reinterpret_cast<std::uint32_t*>(0x00A65358);
 
         static inline bool& envmap_textures_enabled = *reinterpret_cast<bool*>(0x00A63E77);

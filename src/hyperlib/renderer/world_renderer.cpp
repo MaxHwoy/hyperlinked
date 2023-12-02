@@ -12,6 +12,8 @@ namespace hyper
 {
     void world_renderer::render_internal()
     {
+        BENCHMARK();
+
         std::uint32_t count = world_renderer::rendering_model_count_;
 
         effect* effect = nullptr;
@@ -156,7 +158,7 @@ namespace hyper
         world_renderer::some_value_00AB0BEC = 0u;
     }
 
-    void world_renderer::create_rendering_model(geometry::mesh_entry* entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const lighting::dynamic_context* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
+    void world_renderer::create_rendering_model(geometry::mesh_entry& entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
     {
         BENCHMARK();
 
@@ -179,7 +181,7 @@ namespace hyper
             model.light_context = context;
             model.light_material = material;
             model.solid = solid;
-            model.mesh.entry = entry;
+            model.mesh.entry = &entry;
             model.blending_matrices = blend_trs;
             model.local_to_world = trs;
             model.is_tri_stripped = false;
@@ -250,6 +252,8 @@ namespace hyper
 
     void world_renderer::render()
     {
+        BENCHMARK();
+
         if (world_renderer::rendering_model_count_ == 0u)
         {
             world_renderer::some_value_00AB0BE8 = 0u;

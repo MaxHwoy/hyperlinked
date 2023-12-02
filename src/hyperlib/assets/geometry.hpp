@@ -66,10 +66,14 @@ namespace hyper
 
         struct instance : public platform_interface, public linked_node<instance>
         {
+        public:
             std::uint32_t key;
             std::uint32_t version;
             std::uint8_t name[64];
             data material;
+
+        public:
+            static inline instance*& deafault = *reinterpret_cast<instance**>(0x00A6B910);
         };
 
         static inline float envmap_scale = 0.5f;
@@ -210,7 +214,7 @@ namespace hyper
             std::uint32_t submesh_count;
             mesh_entry* mesh_entry_table;
             std::uint32_t vertex_buffer_count;
-            unsigned int* unknown_0;
+            std::uint32_t* effect_replacement_table;
             std::uint32_t are_chunks_loaded;
             std::uint16_t* file_index_buffer;
             ::IDirect3DIndexBuffer9* d3d_index_buffer;
@@ -296,11 +300,17 @@ namespace hyper
             static inline linked_list<list_header>& list = *reinterpret_cast<linked_list<list_header>*>(0x00A9017C);
         };
 
-        struct replacement_texture_table
+        struct replacement_texture_entry
         {
             std::uint32_t old_key;
             std::uint32_t new_key;
             texture::info* texture;
+        };
+
+        struct replacement_texture_handle
+        {
+            texture_entry* entry;
+            texture::info* original;
         };
 
         struct model : public linked_node<model>
@@ -318,10 +328,14 @@ namespace hyper
 
             void connect(solid* solid_to_connect);
 
+            void apply_replacement_texture_table(replacement_texture_handle* handle, bool fixup);
+
+            void restore_replacement_texture_table(replacement_texture_handle* handle);
+
         public:
             std::uint32_t key;
             solid* solid;
-            replacement_texture_table* replacement_textures;
+            replacement_texture_entry* replacement_textures;
             std::uint16_t replacement_texture_count;
             std::int16_t lod_level;
 
