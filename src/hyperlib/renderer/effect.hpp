@@ -1281,6 +1281,11 @@ namespace hyper
 
         static void set_headlights();
 
+        inline static auto get_effect(shader_type type) -> effect*
+        {
+            return shader_lib::effects_[type];
+        }
+
         inline static auto get_shader_name(shader_type type) -> const char*
         {
             return shader_lib::type_names_[static_cast<std::uint32_t>(type)];

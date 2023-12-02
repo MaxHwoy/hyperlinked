@@ -1,9 +1,12 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/renderer/view.hpp>
 
 namespace hyper
 {
+    class grand_scenery_cull_info;
+
     class blur_renderer final
     {
     public:
@@ -25,6 +28,10 @@ namespace hyper
         static void ctor(blur_renderer& renderer);
 
         static void dtor(blur_renderer& renderer);
+
+        static void apply(blur_renderer& renderer);
+
+        static void render(blur_renderer& renderer, const view::instance& view, const grand_scenery_cull_info& culler);
 
     private:
         ::IDirect3DSurface9* surfaces_1_[downscale_count];

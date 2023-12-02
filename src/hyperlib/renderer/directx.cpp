@@ -251,6 +251,12 @@ namespace hyper
         }
     }
 
+    void directx::set_z_write_enable(bool enabled)
+    {
+        directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, enabled);
+        directx::device()->SetRenderState(::D3DRS_ZENABLE, enabled);
+    }
+
     void directx::fill_with_color(::IDirect3DTexture9* texture, unsigned char color)
     {
         ::D3DSURFACE_DESC desc;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/renderer/view.hpp>
 
 namespace hyper
 {
@@ -18,6 +19,8 @@ namespace hyper
         static void ctor(post_process& process);
 
         static void dtor(post_process& process);
+
+        static void apply(post_process& process, const view::instance& view);
 
     private:
         ::IDirect3DSurface9* surfaces_[target_count];

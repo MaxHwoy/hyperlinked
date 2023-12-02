@@ -132,13 +132,18 @@ namespace hyper
         }
     }
 
-    auto grand_scenery_cull_info::get_cull_info_flags(const view::instance* view) const -> instance_flags
+    void grand_scenery_cull_info::stuff_scenery(const view::instance& view, std::uint32_t include_flags) const
+    {
+        call_function<void(__thiscall*)(const grand_scenery_cull_info*, const view::instance&, std::uint32_t)>(0x0079AFA0)(this, view, include_flags);
+    }
+
+    auto grand_scenery_cull_info::get_cull_info_flags(const view::instance& view) const -> instance_flags
     {
         for (std::uint32_t i = 0u; i < this->cull_info_count; ++i)
         {
             const scenery_cull_info& cull_info = this->scenery_cull_infos[i];
 
-            if (cull_info.view->id == view->id)
+            if (cull_info.view->id == view.id)
             {
                 return cull_info.flags;
             }

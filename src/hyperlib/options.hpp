@@ -45,6 +45,10 @@ namespace hyper
 
         static inline bool& texture_animations_enabled = *reinterpret_cast<bool*>(0x00A65368);
 
+        static inline bool& nis_anim_scene_disabled = *reinterpret_cast<bool*>(0x00AB0A9C);
+
+        static inline bool& bone_animations_enabled = *reinterpret_cast<bool*>(0x00A65354);
+
         static inline array<char, 260u> screenshot_directory = array<char, 260u>(0x00AB0738);
     };
 }

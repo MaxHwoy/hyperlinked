@@ -1567,7 +1567,15 @@ namespace hyper
 
         this->set_float(parameter_type::cfTimeTicker, effect_sky::sky_time_ticker_);
 
-        this->set_vector(parameter_type::cfSkyFogFalloff, fog_renderer::params::instance->sky_fog_falloff);
+        vector4 falloff =
+        {
+            fog_renderer::params::instance->sky_falloff,
+            fog_renderer::params::instance->sky_offset,
+            0.0f,
+            0.0f
+        };
+
+        this->set_vector(parameter_type::cfSkyFogFalloff, falloff);
 
         this->reset_lighting_params();
     }

@@ -1,5 +1,7 @@
 #include <hyperlib/renderer/directx.hpp>
+#include <hyperlib/renderer/culling.hpp>
 #include <hyperlib/renderer/blur_renderer.hpp>
+#include <hyperlib/renderer/model_renderer.hpp>
 
 namespace hyper
 {
@@ -76,5 +78,19 @@ namespace hyper
     void blur_renderer::dtor(blur_renderer& renderer)
     {
         renderer.~blur_renderer();
+    }
+
+    void blur_renderer::apply(blur_renderer& renderer)
+    {
+        call_function<void(__cdecl*)()>(0x007275A0)();
+    }
+
+    void blur_renderer::render(blur_renderer& renderer, const view::instance& view, const grand_scenery_cull_info& culler)
+    {
+        culler.stuff_scenery(view, 5u);
+
+        model_renderer::render(view, culler.get_cull_info_flags(view));
+
+        blur_renderer::apply(renderer);
     }
 }

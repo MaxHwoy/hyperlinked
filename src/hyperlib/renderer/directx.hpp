@@ -43,6 +43,8 @@ namespace hyper
 
         static void set_alpha_render_state(bool enabled, ::DWORD alpha_ref, ::D3DCMPFUNC alpha_func);
 
+        static void set_z_write_enable(bool enabled);
+
         static void fill_with_color(::IDirect3DTexture9* texture, unsigned char color);
 
     private:

@@ -62,7 +62,9 @@ namespace hyper
     public:
         void setup_world_culling();
 
-        auto get_cull_info_flags(const view::instance* view) const -> instance_flags;
+        auto get_cull_info_flags(const view::instance& view) const -> instance_flags;
+
+        void stuff_scenery(const view::instance& view, std::uint32_t include_flags) const;
 
     private:
         scenery_cull_info scenery_cull_infos[12];

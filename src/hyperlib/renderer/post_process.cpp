@@ -77,4 +77,9 @@ namespace hyper
     {
         process.~post_process();
     }
+
+    void post_process::apply(post_process& process, const view::instance& view)
+    {
+        call_function<void(__cdecl*)(const view::instance&)>(0x00729770)(view);
+    }
 }

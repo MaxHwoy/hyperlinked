@@ -8,6 +8,12 @@ namespace hyper
 
     class renderer final
     {
+    public:
+        enum class flags : std::uint32_t
+        {
+            exclude_high_quality = 0x800,
+        };
+
     private:
         static bool reinit_window_params();
 
@@ -16,8 +22,6 @@ namespace hyper
         static void open_render_targets();
 
         static void close_render_targets();
-
-        static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
 
         static void setup_car_env_map();
 
@@ -31,6 +35,8 @@ namespace hyper
 
         static void update_animations();
 
+        static void update_sun_moon();
+
         static void reset_renderer_state();
 
         static bool wants_renderer_reset();
@@ -38,6 +44,8 @@ namespace hyper
         static void begin_scene();
 
         static void end_scene();
+
+        static void pre_display();
 
         static void render_world();
 
@@ -50,6 +58,8 @@ namespace hyper
         static void handle_cursor();
 
     public:
+        static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
+
         static bool reset();
 
         static void render();
@@ -65,10 +75,22 @@ namespace hyper
 
         static inline bool& time_of_day_not_inited = *reinterpret_cast<bool*>(0x00A65578);
 
+        static inline bool& bone_animations_supported = *reinterpret_cast<bool*>(0x00A653BC);
+
         static inline bool& take_screenshot = *reinterpret_cast<bool*>(0x00AB0AE0);
 
         static inline bool& shadow_map_cull = *reinterpret_cast<bool*>(0x00AB0A34);
 
+        static inline bool& no_shadows = *reinterpret_cast<bool*>(0x00A4CF3C);
+
+        static inline bool& world_lod_level_low = *reinterpret_cast<bool*>(0x00A65374);
+
+        static inline vector2& moon_brightness = *reinterpret_cast<vector2*>(0x00A65234);
+
+        static inline flags& low_quality_flags = *reinterpret_cast<flags*>(0x00AB0A98);
+
         static inline matrix4x4*& shadow_map_trs = *reinterpret_cast<matrix4x4**>(0x00AB0C18);
     };
+
+    CREATE_ENUM_FLAG_OPERATORS(renderer::flags);
 }
