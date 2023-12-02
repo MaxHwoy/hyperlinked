@@ -89,8 +89,6 @@ namespace hyper
 	{
 		BENCHMARK();
 
-		visible_state result = call_function<visible_state(__thiscall*)(const view::platform_interface*, const vector3&, const vector3&, const matrix4x4*)>(0x0071B630)(this, bbox_min, bbox_max, trs);
-
 		std::uint32_t lod_increment = 1;
 
 		vector3 center(bbox_min);
@@ -328,6 +326,8 @@ namespace hyper
 
 	void view::instance::setup_world_light_context()
 	{
+		BENCHMARK();
+
 		this->world_light_context = nullptr;
 
 		light::context::dynamic* context = frame_pool::instance.malloc<light::context::dynamic>();
