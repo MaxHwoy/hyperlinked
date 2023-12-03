@@ -221,11 +221,11 @@ namespace hyper
             options::nis_anim_scene_disabled = true;
         }
 
-        renderer::low_quality_flags = static_cast<renderer::flags>(0u);
+        renderer::low_quality_flags = static_cast<prepass_flags>(0u);
 
         if (renderer::world_lod_level_low)
         {
-            renderer::low_quality_flags |= renderer::flags::exclude_high_quality;
+            renderer::low_quality_flags |= prepass_flags::exclude_high_quality;
         }
 
         renderer::no_shadows = options::shadow_detail == 0u;
@@ -583,6 +583,8 @@ namespace hyper
         renderer::update_animations();
 
         frame_pool::reset_buffers();
+
+        frame_pool::instance.reset();
 
         global::frame_counter++;
 

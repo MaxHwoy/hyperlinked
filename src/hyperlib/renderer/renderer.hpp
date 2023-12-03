@@ -6,14 +6,10 @@ namespace hyper
 {
     class render_target;
 
+    enum class prepass_flags : std::uint32_t;
+
     class renderer final
     {
-    public:
-        enum class flags : std::uint32_t
-        {
-            exclude_high_quality = 0x800,
-        };
-
     private:
         static bool reinit_window_params();
 
@@ -87,10 +83,8 @@ namespace hyper
 
         static inline vector2& moon_brightness = *reinterpret_cast<vector2*>(0x00A65234);
 
-        static inline flags& low_quality_flags = *reinterpret_cast<flags*>(0x00AB0A98);
+        static inline prepass_flags& low_quality_flags = *reinterpret_cast<prepass_flags*>(0x00AB0A98);
 
         static inline matrix4x4*& shadow_map_trs = *reinterpret_cast<matrix4x4**>(0x00AB0C18);
     };
-
-    CREATE_ENUM_FLAG_OPERATORS(renderer::flags);
 }

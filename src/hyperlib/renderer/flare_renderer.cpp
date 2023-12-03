@@ -190,8 +190,8 @@ namespace hyper
             {
                 flare::instance& flare = flare_renderer::flare_pool_[i];
 
-                flare.prev() = nullptr;
-                flare.next() = nullptr;
+                flare.prev_node() = nullptr;
+                flare.next_node() = nullptr;
                 flare.key = 0u;
                 flare.section_number = 0u;
                 flare.tint = color32::clear();

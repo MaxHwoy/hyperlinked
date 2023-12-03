@@ -116,7 +116,7 @@ namespace hyper
 
             void setup_world_light_context();
 
-            void render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca);
+            void render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca) const;
 
         public:
             std::uint32_t num_cops_in_view;

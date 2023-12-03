@@ -213,11 +213,11 @@ namespace hyper
             {
                 heap_header* next_free = reinterpret_cast<heap_header*>(reinterpret_cast<uintptr_t>(best_header) + true_size);
 
-                next_free->prev() = best_header->prev();
-                next_free->next() = best_header->next();
+                next_free->prev_node() = best_header->prev_node();
+                next_free->next_node() = best_header->next_node();
 
-                next_free->prev()->next() = next_free;
-                next_free->next()->prev() = next_free;
+                next_free->prev_node()->next_node() = next_free;
+                next_free->next_node()->prev_node() = next_free;
 
                 next_free->size = leftover;
                 next_free->prepad = 0u;
@@ -297,9 +297,9 @@ namespace hyper
                     {
                         prev->size += size + next->size;
 
-                        prev->next() = next->next();
+                        prev->next_node() = next->next_node();
 
-                        next->next()->prev() = prev;
+                        next->next_node()->prev_node() = prev;
                     }
                     else
                     {
@@ -315,22 +315,22 @@ namespace hyper
                         curr->size = size + next->size;
                         curr->prepad = 0u;
 
-                        curr->prev() = next->prev();
-                        curr->next() = next->next();
+                        curr->prev_node() = next->prev_node();
+                        curr->next_node() = next->next_node();
 
-                        next->prev()->next() = curr;
-                        next->next()->prev() = curr;
+                        next->prev_node()->next_node() = curr;
+                        next->next_node()->prev_node() = curr;
                     }
                     else
                     {
                         curr->size = size;
                         curr->prepad = 0u;
 
-                        curr->prev() = prev;
-                        curr->next() = next;
+                        curr->prev_node() = prev;
+                        curr->next_node() = next;
 
-                        prev->next() = curr;
-                        next->prev() = curr;
+                        prev->next_node() = curr;
+                        next->prev_node() = curr;
                     }
 
                     root = curr;

@@ -114,21 +114,22 @@ namespace hyper
         fully_visible            = 1u << 2,
 
 
-
+        rear_view_drawn          = 1u << 8,
         always_facing            = 1u << 9,
         render_ai_npc            = 1u << 10,
         render_ai_racer          = 1u << 11,
-
-
+        some_flag_0x1000         = 1u << 12,
+        chopped_roadway          = 1u << 13,
 
         cast_shadows             = 1u << 16,
         sky_shade                = 1u << 17,
         inverted_culling         = 1u << 18,
         dynamic_placement        = 1u << 19,
+        reflect_in_ocean         = 1u << 20,
 
         high_quality             = 1u << 22,
         dont_receive_shadows     = 1u << 23,
-
+        envmap_shadow            = 1u << 24,
         use_ghost_shader         = 1u << 25,
 
         dont_fix_replacement_tex = 1u << 31,

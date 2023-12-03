@@ -87,7 +87,7 @@ namespace hyper
 
     void blur_renderer::render(blur_renderer& renderer, const view::instance& view, const grand_scenery_cull_info& culler)
     {
-        culler.stuff_scenery(view, 5u);
+        culler.stuff_scenery(view, prepass_flags::add_draw_flag_0x1000 | prepass_flags::include_for_blurring);
 
         model_renderer::render(view, culler.get_cull_info_flags(view));
 

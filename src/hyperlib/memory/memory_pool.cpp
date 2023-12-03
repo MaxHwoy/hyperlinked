@@ -391,9 +391,9 @@ namespace hyper
                     {
                         prev->size += size + next->size;
 
-                        prev->next() = next->next();
+                        prev->next_node() = next->next_node();
 
-                        next->next()->prev() = prev;
+                        next->next_node()->prev_node() = prev;
 
                         if (this->debug_fill_enabled_)
                         {
@@ -414,11 +414,11 @@ namespace hyper
                         curr->size = size + next->size;
                         curr->magic_number = memory_pool::free_magic;
 
-                        curr->prev() = next->prev();
-                        curr->next() = next->next();
+                        curr->prev_node() = next->prev_node();
+                        curr->next_node() = next->next_node();
 
-                        next->prev()->next() = curr;
-                        next->next()->prev() = curr;
+                        next->prev_node()->next_node() = curr;
+                        next->next_node()->prev_node() = curr;
 
                         if (this->debug_fill_enabled_)
                         {
@@ -430,11 +430,11 @@ namespace hyper
                         curr->size = size;
                         curr->magic_number = memory_pool::free_magic;
 
-                        curr->prev() = prev;
-                        curr->next() = next;
+                        curr->prev_node() = prev;
+                        curr->next_node() = next;
 
-                        prev->next() = curr;
-                        next->prev() = curr;
+                        prev->next_node() = curr;
+                        next->prev_node() = curr;
                     }
 
                     root = curr;
@@ -646,11 +646,11 @@ namespace hyper
             {
                 free_block* next_free = reinterpret_cast<free_block*>(reinterpret_cast<uintptr_t>(best_block) + *new_size);
 
-                next_free->prev() = best_block->prev();
-                next_free->next() = best_block->next();
+                next_free->prev_node() = best_block->prev_node();
+                next_free->next_node() = best_block->next_node();
                 
-                next_free->prev()->next() = next_free;
-                next_free->next()->prev() = next_free;
+                next_free->prev_node()->next_node() = next_free;
+                next_free->next_node()->prev_node() = next_free;
 
                 next_free->size = leftover;
                 next_free->magic_number = memory_pool::free_magic;

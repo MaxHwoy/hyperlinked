@@ -328,6 +328,8 @@ namespace hyper
 
             void connect(solid* solid_to_connect);
 
+            bool is_lit() const;
+
             void apply_replacement_texture_table(replacement_texture_handle* handle, bool fixup);
 
             void restore_replacement_texture_table(replacement_texture_handle* handle);

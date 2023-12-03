@@ -667,7 +667,7 @@ namespace hyper
         }
         else
         {
-            const camera_mover* mover = view.camera_mover_list.begin()->vtable_fix();
+            const camera_mover* mover = view.camera_mover_list.begin();
 
             this->has_camera_mover = true;
             this->camera_mover_type = mover->type;

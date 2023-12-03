@@ -79,6 +79,16 @@ namespace hyper
         }
     }
 
+    bool geometry::model::is_lit() const
+    {
+        if (this->solid != nullptr)
+        {
+            return (this->solid->flag & (solid::flags::is_lit | solid::flags::want_spotlight_context)) != 0;
+        }
+
+        return false;
+    }
+
     void geometry::model::apply_replacement_texture_table(geometry::replacement_texture_handle* handle, bool fixup)
     {
         if (this->replacement_textures != nullptr && this->replacement_texture_count != 0u)

@@ -351,7 +351,7 @@ namespace hyper
 		}
 	}
 
-	void view::instance::render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca)
+	void view::instance::render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca) const
 	{
 		BENCHMARK();
 

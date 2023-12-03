@@ -131,17 +131,6 @@ namespace hyper
         virtual auto get_target() -> void* = 0;
 
     public:
-        inline auto vtable_fix() -> camera_mover*
-        {
-            return reinterpret_cast<camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
-        }
-
-        inline auto vtable_fix() const -> const camera_mover*
-        {
-            return reinterpret_cast<const camera_mover*>(reinterpret_cast<uintptr_t>(this) - sizeof(void*));
-        }
-
-    public:
         camera_mover_types type;
         view_id id;
         bool enabled;

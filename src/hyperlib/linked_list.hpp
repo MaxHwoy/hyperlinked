@@ -5,69 +5,74 @@
 
 namespace hyper
 {
+    template <typename T> class linked_list;
+
     template <typename T> class linked_node
     {
     public:
-        inline linked_node() : prev_(nullptr), next_(nullptr)
+        inline linked_node() : next_(nullptr), prev_(nullptr)
         {
         }
 
-        inline auto prev() -> T*&
+        inline auto next() -> T*
         {
-            return *&this->prev_;
-        }
-
-        inline auto prev() const -> const T*
-        {
-            return this->prev_;
-        }
-
-        inline auto next() -> T*&
-        {
-            return *&this->next_;
+            return static_cast<T*>(this->next_);
         }
 
         inline auto next() const -> const T*
         {
+            return static_cast<const T*>(this->next_);
+        }
+
+        inline auto prev() -> T*
+        {
+            return static_cast<T*>(this->prev_);
+        }
+
+        inline auto prev() const -> const T*
+        {
+            return static_cast<const T*>(this->prev_);
+        }
+
+        inline auto next_node() -> linked_node*&
+        {
             return this->next_;
         }
 
-        inline auto prev_node() -> linked_node*
+        inline auto prev_node() -> linked_node*&
         {
-            return reinterpret_cast<linked_node*>(this->prev_);
-        }
-
-        inline auto next_node() -> linked_node*
-        {
-            return reinterpret_cast<linked_node*>(this->next_);
+            return this->prev_;
         }
 
         inline void disconnect()
         {
             if (this->prev_ != nullptr)
             {
-                reinterpret_cast<linked_node<T>*>(this->prev_)->next_ = this->next_;
+                this->prev_->next_ = this->next_;
             }
 
             if (this->next_ != nullptr)
             {
-                reinterpret_cast<linked_node<T>*>(this->next_)->prev_ = this->prev_;
+                this->next_->prev_ = this->prev_;
             }
         }
 
-        inline auto next_ref() const -> T* const*
+        inline auto next_ref() const -> linked_node<T>* const*
         {
             return &this->next_;
         }
 
-        inline auto prev_ref() const -> T* const*
+        inline auto prev_ref() const -> linked_node<T>* const*
         {
             return &this->prev_;
         }
 
     private:
-        T* next_;
-        T* prev_;
+        linked_node* next_;
+        linked_node* prev_;
+
+    private:
+        friend class linked_list<T>;
     };
 
     template <typename T> class linked_list
@@ -75,127 +80,134 @@ namespace hyper
     public:
         inline linked_list()
         {
-            this->head_.prev() = this->end();
-            this->head_.next() = this->end();
+            this->head_.next_ = &this->head_;
+            this->head_.prev_ = &this->head_;
         }
 
         inline void null()
         {
-            this->head_.next() = nullptr;
-            this->head_.prev() = nullptr;
+            this->head_.next_ = nullptr;
+            this->head_.prev_ = nullptr;
         }
 
         inline auto head() -> T*
         {
-            return reinterpret_cast<T*>(&this->head_);
+            return static_cast<T*>(&this->head_);
         }
 
         inline auto head() const -> const T*
         {
-            return reinterpret_cast<const T*>(&this->head_);
+            return static_cast<const T*>(&this->head_);
         }
 
         inline auto begin() -> T*
         {
-            return reinterpret_cast<T*>(this->head_.next());
+            return this->head_.next();
         }
 
         inline auto begin() const -> const T*
         {
-            return reinterpret_cast<const T*>(this->head_.next());
+            return this->head_.next();
         }
 
         inline auto tail() -> T*
         {
-            return reinterpret_cast<T*>(this->head_.prev());
+            return this->head_.prev();
         }
 
         inline auto tail() const -> const T*
         {
-            return reinterpret_cast<T*>(this->head_.prev());
+            return this->head_.prev();
         }
 
         inline auto end() -> T*
         {
-            return reinterpret_cast<T*>(&this->head_);
+            return static_cast<T*>(&this->head_);
         }
 
         inline auto end() const -> const T*
         {
-            return reinterpret_cast<const T*>(&this->head_);
+            return static_cast<const T*>(&this->head_);
         }
 
         inline bool empty() const
         {
-            return this->begin() == this->end();
+            return this->head_.next_ == &this->head_;
         }
 
         inline void add(T* val)
         {
-            reinterpret_cast<linked_node<T>*>(val)->prev() = this->head_.prev();
+            linked_node<T>* node = static_cast<linked_node<T>*>(val);
 
-            this->head_.prev_node()->next() = val;
+            node->prev_ = this->head_.prev_;
 
-            this->head_.prev() = val;
+            this->head_.prev_->next_ = node;
 
-            reinterpret_cast<linked_node<T>*>(val)->next() = this->end();
+            this->head_.prev_ = node;
+
+            node->next_ = &this->head_;
         }
 
         inline void remove(T* val)
         {
-            T* prev = reinterpret_cast<linked_node<T>*>(val)->prev();
-            T* next = reinterpret_cast<linked_node<T>*>(val)->next();
+            linked_node<T>* node = static_cast<linked_node<T>*>(val);
 
-            reinterpret_cast<linked_node<T>*>(prev)->next() = reinterpret_cast<T*>(next);
-            reinterpret_cast<linked_node<T>*>(next)->prev() = reinterpret_cast<T*>(prev);
+            node->prev_->next_ = node->next_;
+            node->next_->prev_ = node->prev_;
         }
 
         inline auto remove_first() -> T*
         {
-            linked_node<T>* curr = reinterpret_cast<linked_node<T>*>(this->head_.next());
+            linked_node<T>* curr = this->head_.next_;
 
-            reinterpret_cast<linked_node<T>*>(curr->prev())->next() = curr->next();
-            reinterpret_cast<linked_node<T>*>(curr->next())->prev() = curr->prev();
-            
-            return reinterpret_cast<T*>(curr);
+            curr->prev_->next_ = curr->next_;
+            curr->next_->prev_ = curr->prev_;
+
+            return static_cast<T*>(curr);
         }
 
         inline auto remove_last() -> T*
         {
-            linked_node<T>* curr = reinterpret_cast<linked_node<T>*>(this->head_.prev());
+            linked_node<T>* curr = this->head_.prev_;
 
-            reinterpret_cast<linked_node<T>*>(curr->prev())->next() = curr->next();
-            reinterpret_cast<linked_node<T>*>(curr->next())->prev() = curr->prev();
+            curr->prev_->next_ = curr->next_;
+            curr->next_->prev_ = curr->prev_;
 
-            return reinterpret_cast<T*>(curr);
+            return static_cast<T*>(curr);
         }
 
         inline void add_after(T* val, T* node)
         {
-            reinterpret_cast<linked_node<T>*>(val)->prev() = node;
+            linked_node<T>* val_node = static_cast<linked_node<T>*>(val);
+            linked_node<T>* node_node = static_cast<linked_node<T>*>(node);
 
-            reinterpret_cast<linked_node<T>*>(val)->next() = reinterpret_cast<linked_node<T>*>(node)->next();
+            val_node->prev_ = node_node;
 
-            reinterpret_cast<linked_node<T>*>(node)->next_node()->prev() = val;
+            val_node->next_ = node_node->next_;
 
-            reinterpret_cast<linked_node<T>*>(node)->next() = val;
+            node_node->next_->prev_ = val_node;
+
+            node_node->next_ = val_node;
         }
 
         inline void add_before(T* val, T* node)
         {
-            reinterpret_cast<linked_node<T>*>(val)->next() = node;
+            linked_node<T>* val_node = static_cast<linked_node<T>*>(val);
+            linked_node<T>* node_node = static_cast<linked_node<T>*>(node);
 
-            reinterpret_cast<linked_node<T>*>(val)->prev() = reinterpret_cast<linked_node<T>*>(node)->prev();
+            val_node->next_ = node_node;
 
-            reinterpret_cast<linked_node<T>*>(node)->prev_node()->next() = val;
+            val_node->prev_ = node_node->prev_;
 
-            reinterpret_cast<linked_node<T>*>(node)->prev() = val;
+            node_node->prev_->next_ = val_node;
+
+            node_node->prev_ = val_node;
         }
 
         inline void clear()
         {
-            this->head_.prev() = this->end();
-            this->head_.next() = this->end();
+            this->head_.prev_ = &this->head_;
+            this->head_.next_ = &this->head_;
         }
 
         inline void move_front(T* val)
@@ -212,7 +224,7 @@ namespace hyper
 
         template <typename F> inline void foreach(F action)
         {
-            for (const T* i = this->begin(); i != this->end(); i = reinterpret_cast<const linked_node<T>*>(i)->next())
+            for (T* i = this->begin(); i != this->end(); i = i->next())
             {
                 action(i);
             }
@@ -220,7 +232,7 @@ namespace hyper
 
         template <typename F> inline void foreach_reverse(F action)
         {
-            for (const T* i = this->tail(); i != this->end(); i = reinterpret_cast<const linked_node<T>*>(i)->prev())
+            for (const T* i = this->tail(); i != this->end(); i = i->prev())
             {
                 action(i);
             }
@@ -228,39 +240,45 @@ namespace hyper
 
         template <typename P> inline void sort(P predicate)
         {
-            if (this->head_.next() != &this->head_)
+            if (this->head_.next_ != &this->head_)
             {
-                linked_node<T>* root = this->head_.next_node();
+                linked_node<T>* root = this->head_.next_;
 
-                linked_node<T>* curr = root->next_node();
+                linked_node<T>* curr = root->next_;
 
-                root->prev() = reinterpret_cast<T*>(&this->head_);
-                root->next() = reinterpret_cast<T*>(&this->head_);
+                root->prev_ = &this->head_;
+                root->next_ = &this->head_;
 
-                this->head_.prev() = reinterpret_cast<T*>(root);
-                this->head_.next() = reinterpret_cast<T*>(root);
+                this->head_.prev_ = root;
+                this->head_.next_ = root;
 
                 while (curr != &this->head_)
                 {
-                    linked_node<T>* next = curr->next_node();
+                    linked_node<T>* next = curr->next_;
 
                     linked_node<T>* temp = root;
 
                     while (temp != &this->head_)
                     {
-                        if (predicate(reinterpret_cast<T*>(temp), reinterpret_cast<T*>(curr)) >= 0)
+                        if (predicate(static_cast<T*>(temp), static_cast<T*>(curr)) >= 0)
                         {
                             break;
                         }
 
-                        temp = temp->next_node();
+                        temp = temp->next_;
                     }
 
-                    this->add_before(reinterpret_cast<T*>(curr), reinterpret_cast<T*>(temp));
+                    curr->next_ = temp;
+
+                    curr->prev_ = temp->prev_;
+
+                    temp->prev_->next_ = curr;
+
+                    temp->prev_ = curr;
 
                     curr = next;
 
-                    root = this->head_.next_node();
+                    root = this->head_.next_;
                 }
             }
         }
