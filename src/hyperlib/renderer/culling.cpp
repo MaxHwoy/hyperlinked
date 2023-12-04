@@ -137,13 +137,13 @@ namespace hyper
     {
         BENCHMARK();
 
-        draw_flags render = static_cast<draw_flags>(0u);
+        draw_flags initial = static_cast<draw_flags>(0u);
         draw_flags include = static_cast<draw_flags>(0u);
         draw_flags exclude = static_cast<draw_flags>(0u);
 
         if ((pass_flags & prepass_flags::add_draw_flag_0x1000) != 0)
         {
-            render |= draw_flags::some_flag_0x1000;
+            initial |= draw_flags::some_flag_0x1000;
         }
 
         if ((pass_flags & prepass_flags::include_reflect_in_ocean) != 0)
@@ -153,7 +153,7 @@ namespace hyper
         
         if ((pass_flags & prepass_flags::include_rear_view) != 0)
         {
-            render |= draw_flags::rear_view_drawn;
+            initial |= draw_flags::rear_view_drawn;
         }
         
         if ((pass_flags & prepass_flags::include_chopped_roads) != 0)
@@ -189,6 +189,8 @@ namespace hyper
 
             for (const scenery_draw_info* draw_info = cull_info->first_draw_info; draw_info != cull_info->current_draw_info; ++draw_info)
             {
+                draw_flags render = initial;
+
                 instance_flags instance = draw_info->instance->flags;
 
                 if (((renderer::low_quality_flags & prepass_flags::exclude_high_quality) == 0 || (instance & instance_flags::high_platform_only) == 0) &&
