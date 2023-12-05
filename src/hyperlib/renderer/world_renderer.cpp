@@ -72,11 +72,8 @@ namespace hyper
             {
                 const strip& strip = *model.mesh.strip;
 
-                effect->set_diffuse_map(model);
+                effect->set_texture_page(*model.diffuse_texture_info);
 
-                effect->set_texture_animation(*model.diffuse_texture_info);
-
-                directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
                 directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, 0u);
 
                 world_renderer::currently_set_vertex_buffer_ = nullptr;

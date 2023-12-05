@@ -5,9 +5,11 @@
 #include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/camera.hpp>
+#include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
 #include <hyperlib/renderer/flare_renderer.hpp>
 #include <hyperlib/renderer/vehicle_render_conn.hpp>
+#include <hyperlib/renderer/visual_treatment.hpp>
 
 #define RANDOMIZE_FLARE_TIMINGS
 
@@ -226,7 +228,7 @@ namespace hyper
         flare_renderer::active_flare_count_ = 0u;
     }
 
-    void flare_renderer::render_pool_flares(const view::instance& view)
+    void flare_renderer::submit_pool_flares(const view::instance& view)
     {
         BENCHMARK();
 
@@ -307,23 +309,23 @@ namespace hyper
                     case view_id::env_x_neg:
                     case view_id::env_y_pos:
                     case view_id::env_y_neg:
-                        flare_renderer::render_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::submit_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     case view_id::player1_reflection:
                     case view_id::player2_reflection:
-                        flare_renderer::render_flare(view, flare, nullptr, intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::submit_flare(view, flare, nullptr, intensity, flare::reflection::fast, flare::render::refl, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     default:
-                        flare_renderer::render_flare(view, flare, nullptr, 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::submit_flare(view, flare, nullptr, 1.0f, flare::reflection::none, flare::render::norm, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
                 }
             }
         }
     }
 
-    void flare_renderer::render_world_flares(const view::instance& view, flare::render type)
+    void flare_renderer::submit_world_flares(const view::instance& view, flare::render type)
     {
         BENCHMARK();
 
@@ -341,7 +343,7 @@ namespace hyper
                             {
                                 for (flare::instance* flare = flares->flare_list.begin(); flare != flares->flare_list.end(); flare = flare->next())
                                 {
-                                    flare_renderer::render_flare(view, *flare, nullptr, 1.0f, flare::reflection::none, type, 1.0f, 0.0f, color32::clear(), 1.0f);
+                                    flare_renderer::submit_flare(view, *flare, nullptr, 1.0f, flare::reflection::none, type, 1.0f, 0.0f, color32::clear(), 1.0f);
                                 }
                             }
                         }
@@ -351,12 +353,12 @@ namespace hyper
         }
     }
 
-    void flare_renderer::render_car_flares(const view::instance& view, bool reflection)
+    void flare_renderer::submit_car_flares(const view::instance& view, bool reflection)
     {
         vehicle_render_conn::render_flares(view, reflection, 0u);
     }
 
-    void flare_renderer::render_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
+    void flare_renderer::submit_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
     {
         BENCHMARK();
 
@@ -700,5 +702,55 @@ namespace hyper
                 }
             }
         }
+    }
+
+    void flare_renderer::render(const render_view& view, bool render_streaks)
+    {
+        directx::set_z_write_enable(false, true);
+
+        effect_particles& particles = *effect_particles::instance;
+
+        particles.set_transforms(matrix4x4::identity(), view, false);
+
+        vector4 base_alpha_ref(1.0f, 0.0f, 0.0f, 0.0f);
+
+        if (motion_blur_render_target::d3d_texture != nullptr && (view.id == view_id::player1 || view.id == view_id::player2))
+        {
+            base_alpha_ref.x = 0.0f; // flares: x is used to disable fuzzz if 1.0f; if 0.0f then fuzzz is used (player view only)
+        }
+
+        particles.set_current_pass(0u, "flares", false);
+
+        particles.set_vector(effect::parameter_type::cvBaseAlphaRef, base_alpha_ref);
+
+        poly_manager<flare_vertex>::render(particles, nullptr);
+
+        shader_lib::end_effect(particles);
+
+        if (render_streaks)
+        {
+            // streak_flares:
+            //   - x is 'camera speed interpolator' (based on camera direction?)
+            //   - y is 'camera speed' (gradient.y), obtained from visual_treatment
+            //   - z is 'streak texture V coordinate', calculated based on FPS
+            //   - w is 'NOS amount' (technically it's just z but with const float adder)
+
+            base_alpha_ref.x = 1.0f;
+            base_alpha_ref.y = visual_treatment::instance->gradient.y;
+            base_alpha_ref.z = static_cast<std::int32_t>(::fmodf(15.0f * utils::get_world_time(), 6.0f)) * 0.125f;
+            base_alpha_ref.w = base_alpha_ref.z + 0.1171875f;
+
+            particles.set_current_pass(0u, "streak_flares", false);
+
+            particles.set_matrix(effect::parameter_type::cmPrevWorldViewProj, view.view_projection_matrix);
+
+            particles.set_vector(effect::parameter_type::cvBaseAlphaRef, base_alpha_ref);
+
+            poly_manager<flare_vertex>::render(particles, this->streak_flares_texture_);
+
+            shader_lib::end_effect(particles);
+        }
+
+        directx::set_z_write_enable(true, true);
     }
 }

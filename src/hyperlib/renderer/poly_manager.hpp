@@ -4,6 +4,7 @@
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/assets/flares.hpp>
 #include <hyperlib/renderer/directx.hpp>
+#include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
 {
@@ -44,6 +45,8 @@ namespace hyper
         void unlock();
 
         auto allocate() -> poly*;
+
+        void render(effect& effect, const texture::info* override_texture);
 
     private:
         ::IDirect3DVertexBuffer9* vertex_buffer_;
@@ -145,5 +148,29 @@ namespace hyper
         }
 
         return nullptr;
+    }
+
+    template <typename Vertex> void poly_manager<Vertex>::render(effect& effect, const texture::info* override_texture)
+    {
+        if (this->poly_count_ != 0u)
+        {
+            directx::device()->SetStreamSource(0u, this->vertex_buffer_, 0u, sizeof(Vertex));
+
+            directx::device()->SetIndices(this->index_buffer_);
+
+            if (override_texture == nullptr)
+            {
+                override_texture = this->texture_page_;
+            }
+
+            if (override_texture != nullptr)
+            {
+                effect.set_diffuse_map(*override_texture);
+            }
+
+            effect.commit_changes();
+
+            directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0u, 0u, this->poly_count_ * 4u, 0u, this->poly_count_ * 2u);
+        }
     }
 }

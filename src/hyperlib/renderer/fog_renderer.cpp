@@ -6,6 +6,11 @@ namespace hyper
     {
     }
 
+    auto fog_renderer::query::calculate_fog(const view::base& view, bool unknown) -> std::uint32_t
+    {
+        return call_function<std::uint32_t(__thiscall*)(fog_renderer::query*, const view::base&, bool)>(0x007D1F50)(this, view, unknown);
+    }
+
     void fog_renderer::initialize()
     {
         fog_renderer::params::instance = memory::allocate<fog_renderer::params>();
@@ -13,7 +18,18 @@ namespace hyper
 
     void fog_renderer::assign_parameters(params* parameters, const view::base& view)
     {
-        call_function<void(__thiscall*)(params*, const view::base&)>(0x0073E990)(parameters, view);
+        fog_renderer::query::instance.calculate_fog(view, false);
+
+        parameters->start = fog_renderer::query::instance.start;
+        parameters->end = fog_renderer::query::instance.end;
+        parameters->power = fog_renderer::query::instance.power;
+        parameters->exponent = fog_renderer::query::instance.exponent;
+        parameters->sky_falloff = fog_renderer::query::instance.sky_falloff;
+        parameters->sky_offset = fog_renderer::query::instance.sky_offset;
+        parameters->color.r = fog_renderer::query::instance.color.r * 0.0039215689f;
+        parameters->color.g = fog_renderer::query::instance.color.g * 0.0039215689f;
+        parameters->color.b = fog_renderer::query::instance.color.b * 0.0039215689f;
+        parameters->color.a = 1.0f;
     }
 
     void fog_renderer::apply_parameters(const params* parameters, effect* effect)

@@ -308,7 +308,7 @@ namespace hyper
 
         renderer::current_cull_mode = ::D3DCULL_CW;
 
-        directx::set_z_write_enable(true);
+        directx::set_z_write_enable(true, true);
 
         rvm_renderer::render(view::instance::views[view_id::player1_rvm], culler);
 

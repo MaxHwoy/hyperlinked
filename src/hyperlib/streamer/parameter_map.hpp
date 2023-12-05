@@ -45,6 +45,8 @@ namespace hyper
 
             static inline accessor& ambience_accessor = *reinterpret_cast<accessor*>(0x00A8E80C);
 
+            static inline accessor& normal_fog_accessor = *reinterpret_cast<accessor*>(0x00A7AB58);
+
             static inline accessor& flare_override_accessor = *reinterpret_cast<accessor*>(0x00B43130);
         };
 

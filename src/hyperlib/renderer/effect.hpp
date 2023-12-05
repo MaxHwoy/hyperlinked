@@ -346,11 +346,13 @@ namespace hyper
 
         void set_texture_maps(rendering_model& model, draw_flags flags);
 
-        void set_diffuse_map(rendering_model& model);
+        void set_diffuse_map(const texture::info& texture);
 
         void set_auxiliary_maps(rendering_model& model);
 
         void set_texture_animation(const texture::info& info);
+
+        void set_texture_page(const texture::info& info);
 
         void set_headlights();
 

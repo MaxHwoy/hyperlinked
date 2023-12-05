@@ -25,6 +25,9 @@ namespace hyper
         flare_renderer(std::uint32_t max_flares);
 
     public:
+        void render(const render_view& view, bool render_streaks);
+
+    public:
         static void ctor(flare_renderer& renderer);
 
         static void dtor(flare_renderer& renderer);
@@ -43,13 +46,13 @@ namespace hyper
 
         static void reset();
 
-        static void render_pool_flares(const view::instance& view);
+        static void submit_pool_flares(const view::instance& view);
 
-        static void render_world_flares(const view::instance& view, flare::render type);
+        static void submit_world_flares(const view::instance& view, flare::render type);
 
-        static void render_car_flares(const view::instance& view, bool reflection);
+        static void submit_car_flares(const view::instance& view, bool reflection);
 
-        static void render_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
+        static void submit_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
 
     private:
         bool pool_locked_;

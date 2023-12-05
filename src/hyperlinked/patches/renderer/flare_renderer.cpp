@@ -40,7 +40,7 @@ namespace hyper
             push [esp + 0x40]; // repush 'flare'
             push [esp + 0x40]; // repush 'view'
 
-            call flare_renderer::render_flare; // call custom render_flare
+            call flare_renderer::submit_flare; // call custom submit_flare
 
             add esp, 0x28; // since we repushed all arguments
 
@@ -74,7 +74,7 @@ namespace hyper
 
             push [esp + 0x1C]; // repush 'view'
 
-            call flare_renderer::render_pool_flares; // call custom render_pool_flares
+            call flare_renderer::submit_pool_flares; // call custom submit_pool_flares
 
             add esp, 0x04; // since we repushed all arguments
 
@@ -152,7 +152,7 @@ namespace hyper
         __asm
         {
             // [esp + 0x00] is 'return address'
-            // ecx contains pointer to flare_pool
+            // ecx contains pointer to flare_renderer
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -164,11 +164,11 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            push ecx; // push pointer to flare_pool
+            push ecx; // push pointer to flare_renderer
 
             call flare_renderer::ctor; // call custom ctor
 
-            add esp, 0x04; // since we pushed pointer to flare_pool
+            add esp, 0x04; // since we pushed pointer to flare_renderer
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -186,7 +186,7 @@ namespace hyper
         __asm
         {
             // [esp + 0x00] is 'return address'
-            // ecx contains pointer to flare_pool
+            // ecx contains pointer to flare_renderer
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -198,11 +198,11 @@ namespace hyper
             push esi; // 'return address' is now at [esp + 0x14]
             push edi; // 'return address' is now at [esp + 0x18]
 
-            push ecx; // push pointer to flare_pool
+            push ecx; // push pointer to flare_renderer
 
             call flare_renderer::dtor; // call custom dtor
 
-            add esp, 0x04; // since we pushed pointer to flare_pool
+            add esp, 0x04; // since we pushed pointer to flare_renderer
 
             pop edi; // restore saved register
             pop esi; // restore saved register
@@ -221,7 +221,7 @@ namespace hyper
         {
             // [esp + 0x00] is 'return address'
             // [esp + 0x04] is 'view'
-            // ecx contains pointer to flare_pool
+            // ecx contains pointer to flare_renderer
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -254,7 +254,7 @@ namespace hyper
         {
             // [esp + 0x00] is 'return address'
             // [esp + 0x04] is 'view'
-            // ecx contains pointer to flare_pool
+            // ecx contains pointer to flare_renderer
 
             // esp is auto-managed, non-incremental
             // ebp is auto-managed, restored on function return
@@ -278,6 +278,43 @@ namespace hyper
             pop eax; // restore saved register
 
             retn 4; // return immediately to caller function, not back to FlarePool::Unlock; note that this is a __thiscall
+        }
+    }
+
+    __declspec(naked) void detour_flare_pool_render()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+            // [esp + 0x04] is 'view'
+            // [esp + 0x08] is 'render_streaks'
+            // ecx contains pointer to flare_renderer
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'render_streaks' is now at [esp + 0x0C]
+            push ebx; // 'render_streaks' is now at [esp + 0x10]
+            push ecx; // 'render_streaks' is now at [esp + 0x14]
+            push edx; // 'render_streaks' is now at [esp + 0x18]
+            push esi; // 'render_streaks' is now at [esp + 0x1C]
+            push edi; // 'render_streaks' is now at [esp + 0x20]
+
+            push [esp + 0x20]; // repush 'render_streaks'
+            push [esp + 0x20]; // repush 'view'
+
+            call flare_renderer::render; // call custom render
+
+            // no need to restore esp since 'render' is a __thiscall
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn 8; // return immediately to caller function, not back to FlarePool::Render; note that this is a __thiscall
         }
     }
 
@@ -306,5 +343,8 @@ namespace hyper
 
         // FlarePool::Unlock
         hook::jump(0x00749E50, &detour_flare_pool_unlock);
+
+        // FlarePool::Render
+        hook::jump(0x00749E80, &detour_flare_pool_render);
     }
 }

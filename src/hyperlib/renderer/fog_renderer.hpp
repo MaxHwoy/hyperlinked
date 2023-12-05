@@ -28,6 +28,27 @@ namespace hyper
             static inline params*& instance = *reinterpret_cast<params**>(0x00B4295C);
         };
 
+        struct query
+        {
+        public:
+            auto calculate_fog(const view::base& view, bool unknown) -> std::uint32_t;
+
+        public:
+            float falloff;
+            float falloff_x;
+            float falloff_y;
+            float start;
+            float end;
+            float exponent;
+            float sky_falloff;
+            float sky_offset;
+            float power;
+            color32 color;
+
+        public:
+            static inline query& instance = *reinterpret_cast<query*>(0x00B74210);
+        };
+
     public:
         static void initialize();
         

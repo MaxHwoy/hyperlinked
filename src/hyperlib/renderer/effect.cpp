@@ -905,7 +905,7 @@ namespace hyper
 
             directx::device()->SetRenderState(::D3DRS_CULLMODE, static_cast<::DWORD>(cull_mode));
 
-            this->set_diffuse_map(model);
+            this->set_diffuse_map(*model.diffuse_texture_info);
 
             if (model.render_bits.wants_auxiliary_textures)
             {
@@ -933,11 +933,11 @@ namespace hyper
         }
     }
 
-    void effect::set_diffuse_map(rendering_model& model)
+    void effect::set_diffuse_map(const texture::info& texture)
     {
-        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, model.d3d9_diffuse_texture);
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture.pinfo->texture);
 
-        texture::render_state state = model.render_bits;
+        texture::render_state state = texture.pinfo->state;
 
         directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
         directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
@@ -1011,6 +1011,15 @@ namespace hyper
                 this->has_zero_offset_scale_ = false;
             }
         }
+    }
+
+    void effect::set_texture_page(const texture::info& info)
+    {
+        this->set_diffuse_map(info);
+
+        this->set_texture_animation(info);
+        
+        directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
     }
 
     void effect::set_headlights()
