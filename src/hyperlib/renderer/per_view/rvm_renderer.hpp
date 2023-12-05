@@ -11,5 +11,8 @@ namespace hyper
     {
     public:
         static void render(const view::instance& rvm_view, const grand_scenery_cull_info& culler);
+
+    private:
+        static inline float sky_lighting_ = 2.0f;
     };
 }
