@@ -20,13 +20,15 @@ namespace hyper
             {
                 if (target->active && target->d3d_target && target->d3d_depth_stencil)
                 {
+                    BENCHMARK();
+
                     world_renderer::use_lowlod_pass = true;
 
                     light_renderer::default_ingame_light_y = 1.0f;
 
                     renderer::set_render_target(*target, true, color32::clear());
 
-                    sky_renderer::render(rvm_view, sky_renderer::view_type::rvm_pip_env, rvm_renderer::sky_lighting_);
+                    sky_renderer::render(rvm_view, sky_renderer::view_type::rvm_pip_env, 2.0f);
 
                     culler.stuff_scenery(rvm_view, prepass_flags::add_draw_flag_0x1000 | prepass_flags::include_rear_view);
 

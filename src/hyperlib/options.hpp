@@ -49,6 +49,8 @@ namespace hyper
 
         static inline bool& texture_animations_enabled = *reinterpret_cast<bool*>(0x00A65368);
 
+        static inline bool& flares_and_streaks_enabled = *reinterpret_cast<bool*>(0x00A65364);
+        
         static inline bool& nis_anim_scene_disabled = *reinterpret_cast<bool*>(0x00AB0A9C);
 
         static inline bool& bone_animations_supported = *reinterpret_cast<bool*>(0x00A65354);

@@ -268,8 +268,6 @@ namespace hyper
 
             if (game_flow::manager::instance.current_state == game_flow::state::racing)
             {
-                world_renderer::use_lowlod_pass = true; // #TODO move to env map renderer
-
                 for (const view_id id :
                 {
                     view_id::env_z_pos,
@@ -282,8 +280,6 @@ namespace hyper
                 {
                     env_map_renderer::render(view::instance::views[id], culler);
                 }
-
-                world_renderer::use_lowlod_pass = false;
             }
         }
         else if (renderer::envmap_calibration)

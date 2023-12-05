@@ -18,6 +18,8 @@ namespace hyper
             {
                 if (target->active && target->d3d_target && target->d3d_depth_stencil)
                 {
+                    BENCHMARK();
+
                     renderer::set_render_target(*target, true, color32::clear());
 
                     fog_renderer::assign_parameters(fog_renderer::params::instance, view::instance::views[view_id::player1]);
