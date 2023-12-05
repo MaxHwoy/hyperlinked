@@ -2,10 +2,12 @@
 #include <hyperlib/gameplay/g_race.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/streamer/parameter_map.hpp>
+#include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
 #include <hyperlib/renderer/flare_renderer.hpp>
+#include <hyperlib/renderer/vehicle_render_conn.hpp>
 
 #define RANDOMIZE_FLARE_TIMINGS
 
@@ -224,20 +226,20 @@ namespace hyper
         flare_renderer::active_flare_count_ = 0u;
     }
 
-    void flare_renderer::render(const view::instance* view)
+    void flare_renderer::render_pool_flares(const view::instance& view)
     {
         BENCHMARK();
 
-        if (flare_renderer::flare_pool_off || view == nullptr)
+        if (flare_renderer::flare_pool_off)
         {
             return;
         }
 
-        view_id id = view->id;
+        view_id id = view.id;
 
         std::uint32_t mask = 1u << static_cast<std::uint32_t>(id);
 
-        const camera* camera = view->camera;
+        const camera* camera = view.camera;
 
         float scaling = math::clamp((camera->velocity_key.position.magnitude() - 30.0f) * 0.02f, 0.0f, 1.0f);
 
@@ -321,15 +323,48 @@ namespace hyper
         }
     }
 
-    void flare_renderer::render_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
+    void flare_renderer::render_world_flares(const view::instance& view, flare::render type)
     {
         BENCHMARK();
 
-        if (flare_renderer::draw_light_flares && view != nullptr)
+        if (flare_renderer::draw_light_flares && game_flow::manager::instance.current_state == game_flow::state::racing)
+        {
+            if (const visible_section::drivable* section = visible_section::manager::instance.get_drivable_section(view.camera->current_key.position.as_vector3()))
+            {
+                for (std::uint32_t i = 0u; i < section->visible_section_count; ++i)
+                {
+                    if (const visible_section::user_info* info = visible_section::manager::instance.user_infos[section->visible_sections[i]])
+                    {
+                        if (flare::pack* flares = info->flares)
+                        {
+                            if (view.get_visible_state_sb(flares->bbox_min.as_vector3(), flares->bbox_max.as_vector3(), nullptr) != visible_state::outside)
+                            {
+                                for (flare::instance* flare = flares->flare_list.begin(); flare != flares->flare_list.end(); flare = flare->next())
+                                {
+                                    flare_renderer::render_flare(view, *flare, nullptr, 1.0f, flare::reflection::none, type, 1.0f, 0.0f, color32::clear(), 1.0f);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void flare_renderer::render_car_flares(const view::instance& view, bool reflection)
+    {
+        vehicle_render_conn::render_flares(view, reflection, 0u);
+    }
+
+    void flare_renderer::render_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale)
+    {
+        BENCHMARK();
+
+        if (flare_renderer::draw_light_flares)
         {
             float dampness = 0.0f;
 
-            const rain* rain = view->rain;
+            const rain* rain = view.rain;
 
             if (rain != nullptr)
             {
@@ -343,9 +378,9 @@ namespace hyper
                 extend_factor = (10.0f - 1.2f) * dampness + 1.2f;
             }
 
-            view_id id = view->id;
+            view_id id = view.id;
 
-            const camera* camera = view->camera;
+            const camera* camera = view.camera;
 
             flare::type type = flare.type;
             flare::flags flag = flare.flags;
@@ -418,7 +453,7 @@ namespace hyper
 
                 bounds bbox(position, extend_factor);
 
-                if (view->get_visible_state_sb(bbox) == visible_state::outside)
+                if (view.get_visible_state_sb(bbox) == visible_state::outside)
                 {
                     return;
                 }
@@ -429,14 +464,14 @@ namespace hyper
                 {
                     bounds bbox(position, 2.0f);
 
-                    if (view->get_visible_state_sb(bbox) == visible_state::outside)
+                    if (view.get_visible_state_sb(bbox) == visible_state::outside)
                     {
                         return;
                     }
                 }
                 else
                 {
-                    if (view->get_visible_state_sb(position, nullptr) == visible_state::outside)
+                    if (view.get_visible_state_sb(position, nullptr) == visible_state::outside)
                     {
                         return;
                     }
@@ -452,7 +487,7 @@ namespace hyper
                     return;
                 }
 
-                camera_mover* mover = view->get_camera_mover();
+                camera_mover* mover = view.get_camera_mover();
 
                 if (mover != nullptr)
                 {
@@ -523,7 +558,7 @@ namespace hyper
                     dot_product = math::max(dot_product, 0.0f);
                 }
 
-                float pixelation = view->pixelation;
+                float pixelation = view.pixelation;
 
                 if (id == view_id::player1 || id == view_id::player2)
                 {
@@ -639,7 +674,7 @@ namespace hyper
                             {
                                 vector3 screen_pos;
 
-                                view->get_screen_position(true_flare_pos, screen_pos);
+                                view.get_screen_position(true_flare_pos, screen_pos);
 
                                 degree_angle = screen_pos.x / static_cast<float>(directx::resolution_x) * 240.0f;
                             }

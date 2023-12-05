@@ -330,6 +330,8 @@ namespace hyper
 
             bool is_lit() const;
 
+            bool get_bounding_box(vector3& bbox_min, vector3& bbox_max) const;
+
             void apply_replacement_texture_table(replacement_texture_handle* handle, bool fixup);
 
             void restore_replacement_texture_table(replacement_texture_handle* handle);

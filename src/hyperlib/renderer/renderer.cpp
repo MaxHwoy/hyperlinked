@@ -216,7 +216,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        if (!options::bone_animations_enabled)
+        if (!options::bone_animations_supported)
         {
             options::nis_anim_scene_disabled = true;
         }
@@ -268,7 +268,7 @@ namespace hyper
 
             if (game_flow::manager::instance.current_state == game_flow::state::racing)
             {
-                world_renderer::use_lowlod_pass = true;
+                world_renderer::use_lowlod_pass = true; // #TODO move to env map renderer
 
                 for (const view_id id :
                 {
@@ -298,7 +298,7 @@ namespace hyper
                 view_id::env_y_neg,
             })
             {
-                renderer::set_render_target(*view::instance::views[id].attached_target, true, color32::black());
+                renderer::set_render_target(*view::instance::views[id].attached_target, true, color32::clear());
             }
 
             renderer::envmap_calibration = false;
@@ -543,7 +543,7 @@ namespace hyper
         {
             renderer::begin_scene();
 
-            renderer::set_render_target(render_target::targets[render_target_id::player], true, color32::black());
+            renderer::set_render_target(render_target::targets[render_target_id::player], true, color32::clear());
 
             renderer::current_cull_mode = ::D3DCULL_CW;
 

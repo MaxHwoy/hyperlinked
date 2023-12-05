@@ -89,6 +89,24 @@ namespace hyper
         return false;
     }
 
+    bool geometry::model::get_bounding_box(vector3& bbox_min, vector3& bbox_max) const
+    {
+        if (this->solid == nullptr)
+        {
+            bbox_min = vector3::zero();
+            bbox_max = vector3::zero();
+
+            return false;
+        }
+        else
+        {
+            bbox_min = this->solid->bbox_min;
+            bbox_max = this->solid->bbox_max;
+
+            return true;
+        }
+    }
+
     void geometry::model::apply_replacement_texture_table(geometry::replacement_texture_handle* handle, bool fixup)
     {
         if (this->replacement_textures != nullptr && this->replacement_texture_count != 0u)

@@ -74,7 +74,7 @@ namespace hyper
 
             push [esp + 0x1C]; // repush 'view'
 
-            call flare_renderer::render; // call custom render
+            call flare_renderer::render_pool_flares; // call custom render_pool_flares
 
             add esp, 0x04; // since we repushed all arguments
 

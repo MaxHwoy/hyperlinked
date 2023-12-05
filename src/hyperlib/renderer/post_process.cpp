@@ -37,8 +37,8 @@ namespace hyper
 
                 options::rain_enabled = false;
                 options::motion_blur_enabled = false;
-                options::pc_rain_option = 0u;
-                options::pc_motion_blur_option = 0u;
+                options::rain_supported = 0u;
+                options::motion_blur_supported = 0u;
             }
         }
 

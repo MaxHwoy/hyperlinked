@@ -39,15 +39,19 @@ namespace hyper
 
         static inline std::uint32_t& max_vehicle_reflection_rate = *reinterpret_cast<std::uint32_t*>(0x00A653A8);
 
-        static inline std::uint32_t& pc_rain_option = *reinterpret_cast<std::uint32_t*>(0x00A653E8);
+        static inline std::uint32_t& rain_supported = *reinterpret_cast<std::uint32_t*>(0x00A653E8);
 
-        static inline std::uint32_t& pc_motion_blur_option = *reinterpret_cast<std::uint32_t*>(0x00A653C8);
+        static inline std::uint32_t& motion_blur_supported = *reinterpret_cast<std::uint32_t*>(0x00A653C8);
+
+        static inline std::uint32_t& texture_filter_supported = *reinterpret_cast<std::uint32_t*>(0x00A653EC);
+
+        static inline std::uint32_t& bloom_effect_supported = *reinterpret_cast<std::uint32_t*>(0x00A653FC);
 
         static inline bool& texture_animations_enabled = *reinterpret_cast<bool*>(0x00A65368);
 
         static inline bool& nis_anim_scene_disabled = *reinterpret_cast<bool*>(0x00AB0A9C);
 
-        static inline bool& bone_animations_enabled = *reinterpret_cast<bool*>(0x00A65354);
+        static inline bool& bone_animations_supported = *reinterpret_cast<bool*>(0x00A65354);
 
         static inline array<char, 260u> screenshot_directory = array<char, 260u>(0x00AB0738);
     };

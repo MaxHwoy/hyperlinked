@@ -43,9 +43,13 @@ namespace hyper
 
         static void reset();
 
-        static void render(const view::instance* view);
+        static void render_pool_flares(const view::instance& view);
 
-        static void render_flare(const view::instance* view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
+        static void render_world_flares(const view::instance& view, flare::render type);
+
+        static void render_car_flares(const view::instance& view, bool reflection);
+
+        static void render_flare(const view::instance& view, flare::instance& flare, const matrix4x4* local_world, float intensity_scale, flare::reflection refl_type, flare::render render_type, float horizontal_flare_scale, float reflection_override, color32 color_override, float size_scale);
 
     private:
         bool pool_locked_;
