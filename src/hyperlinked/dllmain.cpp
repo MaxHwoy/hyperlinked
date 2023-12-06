@@ -8,7 +8,7 @@
 
 #pragma warning (disable : 6031)
 
-#if defined(_DEBUG) && !defined(ABOMINATOR)
+#if defined(_DEBUG) && !defined(NFSCO)
 #define CONSOLEON
 #define RUN_TESTS
 #endif

@@ -9,20 +9,20 @@ end
 
 local target_extension = ".asi"
 
-local function is_abominator()
+local function is_nfsco()
 	local name = execute("echo %COMPUTERNAME%")
 
-	return string.find(name,"ABOMINATOR")
+	return string.find(name, "ABOMINATOR")
 end
 
 local function set_defines()
-	if is_abominator() then
-		defines("ABOMINATOR")
+	if is_nfsco() then
+		defines("NFSCO")
 	end
 end
 
 local function set_name()
-	if is_abominator() then
+	if is_nfsco() then
 		filter "configurations:debug"
 			targetname "%{prj.name}-debug"
 	
@@ -36,23 +36,20 @@ local function set_name()
 	end
 end
 
-if is_abominator() then
-	print('hi')
+if is_nfsco() then
 	target_extension = ".dll"
 end
 
 workspace "hyperlinked"
-	location ".\\build\\"
+	location "build"
 	startproject "hyperconsole"
+	staticruntime "on"
+
 	vectorextensions "sse2"
 	largeaddressaware "on"
 
-	targetdir "%{wks.location}\\bin\\%{cfg.buildcfg}\\"
-	objdir "%{wks.location}\\obj\\%{cfg.buildcfg}\\%{prj.name}\\"
-	buildlog "%{wks.location}\\obj\\%{cfg.buildcfg}\\%{prj.name}.log"
-
 	editandcontinue "off"
-	staticruntime "on"
+	rtti "off"
 
 	systemversion "latest"
 	characterset "mbcs"
@@ -74,6 +71,7 @@ workspace "hyperlinked"
 		"noincrementallink",
 		"undefinedidentifiers",
 		"multiprocessorcompile",
+		"nobuffersecuritycheck",
 	}
 
 	set_defines()
@@ -95,6 +93,8 @@ workspace "hyperlinked"
 		"release",
 	}
 
+	symbols "full"
+
 	filter "configurations:debug"
 		defines {
 			"DEBUG",
@@ -107,7 +107,6 @@ workspace "hyperlinked"
 		optimize "debug"
 		inlining "disabled"
 		runtime "debug"
-		symbols "full"
 
 	filter "configurations:release"
 		defines {
@@ -121,7 +120,6 @@ workspace "hyperlinked"
 		optimize "full"
 		inlining "auto"
 		runtime "release"
-		symbols "full"
 
 	filter "platforms:x86"
 		architecture "x32"
@@ -150,7 +148,6 @@ workspace "hyperlinked"
 
 		links {
 			"d3d9",
-			"d3dx9"
 		}
 
 	project "hyperconsole"
@@ -206,5 +203,4 @@ workspace "hyperlinked"
 		links {
 			"hyperlib",
 			"d3d9",
-			"d3dx9"
 		}

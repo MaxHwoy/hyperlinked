@@ -183,13 +183,13 @@ namespace hyper
             std::uint32_t unknown_6;
             std::uint32_t unknown_7;
             std::uint32_t unknown_8;
-            std::uint32_t primitive_count;
             std::uint32_t triangle_count;
             std::uint32_t index_start;
+            std::uint32_t idk_yet;
             void* file_vertex_buffer;
             std::uint32_t file_vertex_buffer_size;
             ::IDirect3DVertexBuffer9* d3d_vertex_buffer;
-            std::uint32_t vertex_buffer_vertex_count;
+            std::uint32_t d3d_vertex_count;
             std::uint32_t index_count;
             const char* vlt_material_name;
             std::uint32_t overriden_material_key;
@@ -199,6 +199,10 @@ namespace hyper
 
         struct platform_info : public linked_node<platform_info>
         {
+        public:
+            void create_vertex_buffers();
+
+        public:
             std::uint16_t version;
             std::uint8_t chunks_loaded_count;
             std::uint8_t padding;

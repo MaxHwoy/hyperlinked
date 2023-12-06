@@ -1,5 +1,7 @@
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/assets/geometry.hpp>
+#include <hyperlib/renderer/directx.hpp>
+#include <hyperlib/renderer/effect.hpp>
 
 namespace hyper
 {
@@ -75,6 +77,41 @@ namespace hyper
 
             this->solid = solid_to_connect;
         }
+    }
+
+    void geometry::platform_info::create_vertex_buffers()
+    {
+        shader_type last_type = static_cast<shader_type>(-1);
+
+        for (std::uint32_t i = 0u; i < this->submesh_count; ++i)
+        {
+            geometry::mesh_entry& entry = this->mesh_entry_table[i];
+
+            if (entry.type == last_type)
+            {
+                entry.d3d_vertex_buffer = this->mesh_entry_table[i - 1].d3d_vertex_buffer;
+                entry.d3d_vertex_count = this->mesh_entry_table[i - 1].d3d_vertex_count;
+            }
+            else
+            {
+                void* buffer;
+
+                last_type = entry.type;
+
+                directx::device()->CreateVertexBuffer(entry.file_vertex_buffer_size, D3DUSAGE_WRITEONLY, 0u, ::D3DPOOL_MANAGED, &entry.d3d_vertex_buffer, nullptr);
+
+                entry.d3d_vertex_count = entry.file_vertex_buffer_size / entry.effect->stride();
+
+                if (SUCCEEDED(entry.d3d_vertex_buffer->Lock(0u, 0u, &buffer, 0u)))
+                {
+                    ::memcpy(buffer, entry.file_vertex_buffer, entry.file_vertex_buffer_size);
+
+                    entry.d3d_vertex_buffer->Unlock();
+                }
+            }
+        }
+
+        this->are_chunks_loaded = true;
     }
 
     auto geometry::find_solid(std::uint32_t key) -> geometry::solid*

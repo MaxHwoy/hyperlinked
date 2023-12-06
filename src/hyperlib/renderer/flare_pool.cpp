@@ -296,13 +296,11 @@ namespace hyper
 
                 switch (id)
                 {
-                    case view_id::player1_rvm:
                     case view_id::env_z_pos:
                     case view_id::env_x_pos:
                     case view_id::env_z_neg:
                     case view_id::env_x_neg:
                     case view_id::env_y_pos:
-                    case view_id::env_y_neg:
                         flare_pool::render_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
@@ -572,18 +570,7 @@ namespace hyper
 
                         if (flare_size > 0.0f)
                         {
-                            const void* nis_instance = *reinterpret_cast<const void**>(0x00B4D964);
-
-                            vector3 true_flare_pos;
-
-                            if (nis_instance == nullptr)
-                            {
-                                true_flare_pos = position + to_camera_dir * params->z_bias;
-                            }
-                            else
-                            {
-                                true_flare_pos = position + to_camera_dir * (params->z_bias * 0.5f); // for NIS half z offset
-                            }
+                            vector3 true_flare_pos = position + to_camera_dir * params->z_bias;
 
                             flare_size *= math::clamp(flare_pixels, params->min_scale, params->max_scale) * size_scale;
 

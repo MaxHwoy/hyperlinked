@@ -1738,7 +1738,7 @@ namespace hyper
 
             loader::service_resource_loading();
 
-            utils::thread_yield(8u);
+            utils::thread_yield(0u);
         }
     }
 

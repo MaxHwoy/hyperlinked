@@ -25,7 +25,7 @@ namespace hyper
     private:
         static inline const char* permanent_scenery_groups[] =
         {
-#ifndef ABOMINATOR
+#ifndef NFSCO
             "SCENERY_GROUP_CHRISTMAS",
 #else
             "SCENERY_GROUP_CHRISTMAS_DISABLE",

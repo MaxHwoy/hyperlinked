@@ -1,11 +1,14 @@
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
+#include <hyperlib/assets/track.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
 #include <hyperlib/renderer/drawing.hpp>
+
+#pragma warning (disable : 26813)
 
 namespace hyper
 {
@@ -58,43 +61,16 @@ namespace hyper
     /// *************************************************************************************************************
 
     effect::effect(shader_type type, effect::flags flags, const effect::param_index_pair* indices, const effect::input* input) : 
+        name_(input->effect_name),
         id_(type), 
+        flags_(flags),
         index_pairs_(indices), 
         unsupported_table_{}, 
-        supported_table_{}
+        supported_table_{},
+        effect_(nullptr),
+        vertex_decl_(nullptr)
     {
-        for (size_t i = 0u; i < std::size(this->params_); ++i)
-        {
-            parameter& param = this->params_[i];
-
-            param.name[0] = 0;
-            param.key = 0u;
-            param.handle = nullptr;
-        }
-
-        this->name_ = input->effect_name;
-        this->flags_ = flags;
-        this->last_used_light_material_ = nullptr;
-        this->last_used_light_context_ = nullptr;
-        this->active_ = false;
-        this->effect_ = nullptr;
-
-        this->low_lod_technique_number_ = -1;
-        this->has_zero_offset_scale_ = -1;
-        this->has_fog_disabled_ = -1;
-        this->__3__ = -1;
-        this->__4__ = -1;
-        this->__5__ = -1;
-        this->__6__ = -1;
-        this->__7__ = -1;
-        this->__8__ = -1;
-        this->__9__ = -1;
-        this->__10__ = -1;
-        this->__11__ = 0;
-        this->__14__ = 0;
-
-        this->initialize(input);
-        this->connect_parameters();
+        this->reinitialize();
     }
 
     effect::~effect()
@@ -113,13 +89,13 @@ namespace hyper
         }
     }
 
-    void effect::handle_material_data(const light_material::instance* material, draw_flags flags)
+    void effect::handle_material_data(const light_material::instance& material, draw_flags flags)
     {
-        if (material != nullptr && this->has_parameter(parameter_type::cvDiffuseMin) && material != this->last_used_light_material_)
+        if (this->has_parameter(parameter_type::cvDiffuseMin) && &material != this->last_used_light_material_)
         {
-            this->last_used_light_material_ = material;
+            this->last_used_light_material_ = &material;
 
-            const light_material::data& data = material->material;
+            const light_material::data& data = material.material;
 
             float min_clamp = light_material::min_clamp;
             float spec_scale = light_material::spec_scale;
@@ -221,7 +197,7 @@ namespace hyper
 
     void effect::set_transforms(const matrix4x4& local_to_world, const render_view& view, bool use_nonjittered)
     {
-        if (&local_to_world != effect::last_submitted_matrix_ || shader_lib::current_effect != effect::last_submitted_effect_ || view.id != effect::last_submitted_view_id_)
+        if (&local_to_world != effect::last_submitted_matrix_ || effect::current_effect_ != effect::last_submitted_effect_ || view.id != effect::last_submitted_view_id_)
         {
             const matrix4x4* view_matrix = &view.view_matrix;
             const matrix4x4* proj_matrix = &view.projection_matrix;
@@ -231,7 +207,7 @@ namespace hyper
 
             if (view.id == effect::last_submitted_view_id_)
             {
-                if (shader_lib::current_effect != effect::last_submitted_effect_ && !this->active_)
+                if (effect::current_effect_ != effect::last_submitted_effect_ && !this->active_)
                 {
                     directx::device()->SetTransform(::D3DTS_VIEW, reinterpret_cast<const ::D3DMATRIX*>(view_matrix));
                     directx::device()->SetTransform(::D3DTS_PROJECTION, reinterpret_cast<const ::D3DMATRIX*>(proj_matrix));
@@ -248,7 +224,7 @@ namespace hyper
                 effect::last_submitted_view_id_ = view.id;
             }
 
-            effect::last_submitted_effect_ = shader_lib::current_effect;
+            effect::last_submitted_effect_ = effect::current_effect_;
             effect::last_submitted_matrix_ = &local_to_world;
 
             if (this->has_parameter(parameter_type::cmWorldMatTranspose))
@@ -441,35 +417,7 @@ namespace hyper
 
         if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
         {
-            lighting::ingame_light_params.y = lighting::default_ingame_light_y;
-            lighting::ingame_light_params.w = lighting::default_ingame_light_w;
-
-            const auto in_frontend = game_flow::manager::instance.current_state == game_flow::state::in_frontend;
-
-#if defined(ABOMINATOR)
-            // copy the vector.
-            auto vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
-#else
-            const auto& vector = (in_frontend) ? lighting::frontend_light_params : lighting::ingame_light_params;
-#endif
-
-#if defined(ABOMINATOR)
-            const auto render_target = render_target::current;
-
-            if (render_target->view_id >= view_id::env_z_pos)
-            {
-                if (in_frontend)
-                {
-                    vector.x += 2.5f;
-                    vector.y -= 1.0f;
-                }
-                else
-                {
-                    vector.y -= 0.4f;
-                }
-            }
-#endif
-            this->set_vector_unchecked(parameter_type::cvVertexPowerBrightness, vector);
+            this->reset_lighting_params();
         }
     }
 
@@ -505,7 +453,7 @@ namespace hyper
 
         ::LPD3DXBUFFER errors;
 
-#if defined(ABOMINATOR)
+#if defined(NFSCO)
         auto& buffer = effect::buffer_;
 
         const auto size = std::size(buffer);
@@ -513,7 +461,7 @@ namespace hyper
 
         ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
 
-        auto _result = ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+        auto _result = shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
 
         if (FAILED(_result))
         {
@@ -521,7 +469,7 @@ namespace hyper
             ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
 
             // pray to god this works as printing from hyperlinked doesn't work in NFSCO.
-            ::D3DXCreateEffectFromFileA(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+            shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
         }
 #else
         ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
@@ -530,13 +478,6 @@ namespace hyper
 
     void effect::initialize(const effect::input* input)
     {
-        if (this->effect_ != nullptr)
-        {
-            this->effect_->Release();
-
-            this->effect_ = nullptr;
-        }
-
         ::D3DVERTEXELEMENT9 elements[0x10];
 
         ::WORD stride = 0u;
@@ -565,7 +506,7 @@ namespace hyper
 
         this->stride_ = stride;
 
-        this->load_effect_from_buffer(input);
+        this->load_effect_from_input(input);
 
         std::uint32_t max_detail = 3u; // #TODO move this as part of settings
 
@@ -584,6 +525,7 @@ namespace hyper
 
         this->effect_->GetDesc(&eff_desc);
 
+        this->unsupported_table_.clear();
         this->supported_table_.clear();
         this->supported_table_.reserve(eff_desc.Techniques);
 
@@ -602,7 +544,7 @@ namespace hyper
 
                 if (string::length(tech_desc.Name) == lowlod_size && !::memcmp(tech_desc.Name, lowlod, lowlod_size))
                 {
-                    this->low_lod_technique_number_ = i;
+                    this->low_lod_technique_number_ = static_cast<std::int32_t>(i);
                 }
                 else
                 {
@@ -629,7 +571,7 @@ namespace hyper
             {
                 ::D3DXTECHNIQUE_DESC tech_desc;
 
-                this->main_technique_number_ = i;
+                this->main_technique_number_ = static_cast<std::int32_t>(i);
                 this->main_technique_handle_ = tech;
 
                 this->effect_->GetTechniqueDesc(tech, &tech_desc);
@@ -642,6 +584,53 @@ namespace hyper
 
         this->active_ = this->effect_ != nullptr;
         this->has_main_technique_ = this->main_technique_handle_ != nullptr;
+    }
+
+    void effect::reinitialize()
+    {
+        ::memset(this->params_, 0, sizeof(this->params_));
+
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
+        this->active_ = false;
+        this->stride_ = 0u;
+
+        this->low_lod_technique_number_ = -1;
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+
+        this->main_technique_number_ = -1;
+        this->main_technique_handle_ = nullptr;
+        this->has_main_technique_ = false;
+        this->pass_count_ = 0u;
+        
+        this->__3__ = -1;
+        this->__4__ = -1;
+        this->__5__ = -1;
+        this->__6__ = -1;
+        this->__7__ = -1;
+        this->__8__ = -1;
+        this->__9__ = -1;
+        this->__10__ = -1;
+        this->__11__ = 0;
+        this->__14__ = 0;
+
+        this->supported_table_.clear();
+        this->unsupported_table_.clear();
+
+        this->release_effect();
+        this->release_vertdecl();
+
+        this->initialize(shader_lib::find_input(this->id_));
+        this->connect_parameters();
+    }
+
+    void effect::reset()
+    {
+        this->has_zero_offset_scale_ = -1;
+        this->has_fog_disabled_ = -1;
+        this->last_used_light_material_ = nullptr;
+        this->last_used_light_context_ = nullptr;
     }
 
     void effect::connect_parameters()
@@ -696,12 +685,14 @@ namespace hyper
         }
     }
 
-    void effect::load_effect_from_buffer(const effect::input* input)
+    void effect::load_effect()
     {
-        this->has_zero_offset_scale_ = -1;
-        this->has_fog_disabled_ = -1;
-        this->last_used_light_material_ = nullptr;
-        this->last_used_light_context_ = nullptr;
+        this->load_effect_from_input(shader_lib::find_input(this->id_));
+    }
+
+    void effect::load_effect_from_input(const effect::input* input)
+    {
+        this->reset();
 
         if (this->effect_ != nullptr)
         {
@@ -809,6 +800,46 @@ namespace hyper
         }
     }
 
+    void effect::set_current_pass(std::uint32_t pass, const char* technique, bool use_low_lod)
+    {
+        std::int32_t index = -1;
+
+        if (technique != nullptr)
+        {
+            if (effect::technique* tech = this->find_techique(technique))
+            {
+                index = static_cast<std::int32_t>(tech->technique_index);
+            }
+        }
+        else if ((renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
+        {
+            effect_car::instance->low_lod_technique_number_ = 2;
+
+            index = this->low_lod_technique_number_;
+        }
+        else
+        {
+            index = static_cast<std::int32_t>(this->supported_table_.front().technique_index);
+        }
+
+        if (index < 0)
+        {
+            PRINT_FATAL("Unable to find requested technique or lowlod/main technique is missing");
+        }
+
+        this->effect_->SetTechnique(this->effect_->GetTechnique(index));
+
+        effect::current_effect_ = this;
+
+        this->start();
+
+        directx::device()->SetVertexDeclaration(this->vertex_decl_);
+
+        this->effect_->Begin(&this->pass_count_, 0u);
+
+        this->effect_->BeginPass(pass);
+    }
+
     void effect::set_pca_blend_data(const pca::blend_data& data)
     {
         if (data.ucap_weight != nullptr)
@@ -868,44 +899,217 @@ namespace hyper
         }
     }
 
-    void effect::set_light_context(const lighting::dynamic_context* context, const matrix4x4* local_to_world)
+    void effect::set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world)
     {
-        if (context != nullptr)
+        if (context.type == 0 && &context != this->last_used_light_context_)
         {
-            if (context->type == 0 && context != this->last_used_light_context_)
+            this->last_used_light_context_ = &context;
+
+            this->set_vector_array(parameter_type::cavHarmonicCoeff, context.harmonics, std::size(context.harmonics));
+
+            this->set_matrix(parameter_type::cmLocalColourMatrix, context.local_color);
+
+            this->set_matrix(parameter_type::cmLocalDirectionMatrix, context.local_direction);
+
+            this->set_matrix(parameter_type::cmLocalPositionMatrix, local_to_world);
+        }
+    }
+
+    void effect::set_texture_maps(rendering_model& model, draw_flags flags)
+    {
+        uintptr_t state_change = 0u;
+
+        state_change |= static_cast<uintptr_t>(static_cast<std::uint32_t>(effect::last_submitted_draw_flags_) - static_cast<std::uint32_t>(flags));
+        state_change |= static_cast<uintptr_t>(static_cast<std::uint32_t>(effect::last_submitted_render_state_) - static_cast<std::uint32_t>(model.render_bits));
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_effect_) - reinterpret_cast<uintptr_t>(this);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_diffuse_map_) - reinterpret_cast<uintptr_t>(model.d3d9_diffuse_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_normal_map_) - reinterpret_cast<uintptr_t>(model.d3d9_normal_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_height_map_) - reinterpret_cast<uintptr_t>(model.d3d9_height_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_specular_map_) - reinterpret_cast<uintptr_t>(model.d3d9_specular_texture);
+        state_change |= reinterpret_cast<uintptr_t>(effect::last_submitted_opacity_map_) - reinterpret_cast<uintptr_t>(model.d3d9_opacity_texture);
+
+        if (state_change != 0u)
+        {
+            effect::last_submitted_effect_ = this;
+            effect::last_submitted_draw_flags_ = flags;
+            effect::last_submitted_render_state_ = model.render_bits;
+            effect::last_submitted_diffuse_map_ = model.d3d9_diffuse_texture;
+            effect::last_submitted_normal_map_ = model.d3d9_normal_texture;
+            effect::last_submitted_height_map_ = model.d3d9_height_texture;
+            effect::last_submitted_specular_map_ = model.d3d9_specular_texture;
+            effect::last_submitted_opacity_map_ = model.d3d9_opacity_texture;
+
+            std::int32_t cull_mode;
+
+            if (model.render_bits.is_backface_culled && renderer::cull_backfaces)
             {
-                this->last_used_light_context_ = context;
+                cull_mode = ::D3DCULL_CCW - ((renderer::current_cull_mode == ::D3DCULL_CW) != ((flags & draw_flags::inverted_culling) != 0));
+            }
+            else
+            {
+                cull_mode = ::D3DCULL_NONE;
+            }
 
-                this->set_vector_array(parameter_type::cavHarmonicCoeff, context->harmonics, std::size(context->harmonics));
+            directx::device()->SetRenderState(::D3DRS_CULLMODE, static_cast<::DWORD>(cull_mode));
 
-                this->set_matrix(parameter_type::cmLocalColourMatrix, context->local_color);
+            this->set_diffuse_map(model);
 
-                this->set_matrix(parameter_type::cmLocalDirectionMatrix, context->local_direction);
+            if (model.render_bits.wants_auxiliary_textures)
+            {
+                this->set_auxiliary_maps(model);
+            }
 
-                if (local_to_world != nullptr)
+            this->set_texture_animation(*model.base_texture_info);
+
+            if (this->has_fog_disabled_ != static_cast<std::int32_t>(model.render_bits.is_additive_blend))
+            {
+                this->has_fog_disabled_ = model.render_bits.is_additive_blend;
+
+                if (this->has_parameter(parameter_type::cfFogEnable))
                 {
-                    this->set_matrix(parameter_type::cmLocalPositionMatrix, *local_to_world);
+                    float enable_fog = !model.render_bits.is_additive_blend;
+
+                    this->set_float_unchecked(parameter_type::cfFogEnable, enable_fog);
                 }
             }
         }
     }
 
-    void effect::set_diffuse_map(::IDirect3DTexture9* texture, const rendering_model& model)
+    void effect::set_diffuse_map(rendering_model& model)
     {
-        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture);
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, model.d3d9_diffuse_texture);
 
         texture::render_state state = model.render_bits;
 
-        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
-        directx::device()->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
-        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
-        directx::device()->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
-        directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
-        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
-        directx::device()->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
-        directx::device()->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
-        directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
-        directx::device()->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+        const auto device = directx::device();
+
+        device->SetSamplerState(0u, ::D3DSAMP_ADDRESSU, state.texture_address_u);
+        device->SetSamplerState(0u, ::D3DSAMP_ADDRESSV, state.texture_address_v);
+        device->SetRenderState(::D3DRS_ALPHATESTENABLE, state.alpha_test_enabled);
+        device->SetRenderState(::D3DRS_ALPHAREF, state.alpha_test_ref << 4);
+        device->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATER);
+        device->SetRenderState(::D3DRS_ALPHABLENDENABLE, state.alpha_blend_enabled);
+        device->SetRenderState(::D3DRS_SRCBLEND, state.alpha_blend_src);
+        device->SetRenderState(::D3DRS_DESTBLEND, state.alpha_blend_dest);
+        device->SetRenderState(::D3DRS_ZWRITEENABLE, state.z_write_enabled);
+        device->SetRenderState(::D3DRS_COLORWRITEENABLE, state.colour_write_alpha ? D3DCOLORWRITEENABLE_ALL : D3DCOLORWRITEENABLE_RGB);
+    }
+
+    void effect::set_auxiliary_maps(rendering_model& model)
+    {
+        if (model.d3d9_normal_texture != nullptr)
+        {
+            this->set_texture(parameter_type::NORMALMAP_TEXTURE, model.d3d9_normal_texture);
+        }
+
+        if (model.d3d9_height_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEIGHTMAP_TEXTURE, model.d3d9_height_texture);
+        }
+
+        if (model.d3d9_specular_texture != nullptr)
+        {
+            this->set_texture(parameter_type::SPECULARMAP_TEXTURE, model.d3d9_specular_texture);
+        }
+
+        if (model.d3d9_opacity_texture != nullptr)
+        {
+            this->set_texture(parameter_type::OPACITYMAP_TEXTURE, model.d3d9_opacity_texture);
+        }
+    }
+
+    void effect::set_texture_animation(const texture::info& info)
+    {
+        if (this->has_parameter(parameter_type::cvTextureOffset))
+        {
+            vector4 scroll{};
+
+            if (info.scroll == texture::scroll_type::none)
+            {
+                if (this->has_zero_offset_scale_ != 1)
+                {
+                    this->set_vector_unchecked(parameter_type::cvTextureOffset, scroll);
+                }
+
+                this->has_zero_offset_scale_ = true;
+            }
+            else
+            {
+                if (info.scroll == texture::scroll_type::offset_scale)
+                {
+                    scroll.x = static_cast<float>(info.offset_s) * -0.0009765625f; // 1 / -1024.0f
+                    scroll.y = static_cast<float>(info.offset_t) * -0.0009765625f; // 1 / -1024.0f
+                    scroll.z = static_cast<float>(info.scale_s) * 0.00390625f; // 1 / 256.0f
+                    scroll.w = static_cast<float>(info.scale_t) * 0.00390625f; // 1 / 256.0f
+                }
+                else
+                {
+                    float delta_time = utils::get_render_time();
+
+                    scroll.x = texture::get_scroll_s(info, delta_time);
+                    scroll.y = texture::get_scroll_t(info, delta_time);
+                }
+
+                this->set_vector_unchecked(parameter_type::cvTextureOffset, scroll);
+
+                this->has_zero_offset_scale_ = false;
+            }
+        }
+    }
+
+    void effect::commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model)
+    {
+        if (model.render_bits.multi_pass_blend)
+        {
+            if (renderer::world_detail == 3u)
+            {
+                directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_GREATEREQUAL);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, false);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, true);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+
+                directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_LESS);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, true);
+
+                directx::device()->SetRenderState(::D3DRS_SRCBLEND, ::D3DBLEND_SRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_DESTBLEND, ::D3DBLEND_INVSRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, false);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+            }
+            else
+            {
+                directx::set_alpha_render_state(false, 0u, ::D3DCMP_GREATER);
+
+                directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, true);
+
+                directx::device()->SetRenderState(::D3DRS_SRCBLEND, ::D3DBLEND_SRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_DESTBLEND, ::D3DBLEND_INVSRCALPHA);
+
+                directx::device()->SetRenderState(::D3DRS_ZWRITEENABLE, false);
+
+                this->effect_->CommitChanges();
+
+                directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+            }
+        }
+        else
+        {
+            this->effect_->CommitChanges();
+
+            directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0, 0u, vertex_count, index_start, index_count);
+        }
     }
 
     /// *************************************************************************************************************
@@ -1292,15 +1496,26 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        const auto state = game_flow::manager::instance.current_state;
+
+        if (state == game_flow::state::racing)
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
         }
-        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
+        else
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+
+        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        {
+            // if we are maxed out, or racing, use the cube map texture.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        }
+        else
+        {
+            // anything else, use the frontend environment maps.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
         }
     }
 
@@ -1311,15 +1526,26 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        if (game_flow::manager::instance.current_state == game_flow::state::racing)
+        const auto state = game_flow::manager::instance.current_state;
+
+        if (state == game_flow::state::racing)
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
         }
-        else if (game_flow::manager::instance.current_state == game_flow::state::in_frontend)
+        else
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+        }
+
+        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        {
+            // if we are maxed out, or racing, use the cube map texture.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+        }
+        else
+        {
+            // anything else, use the frontend environment maps.
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
         }
     }
 
@@ -1544,13 +1770,16 @@ namespace hyper
         }
     }
 
-    template <typename T> auto allocate = []() -> T*
-    {
-        return new T();
-    };
-
     void shader_lib::init()
     {
+        // maybe this isn't the correct DLL to use? the game uses it, but sometimes it uses a higher one.
+        const auto handle = GetModuleHandleA("d3dx9_30.dll");
+        const auto procedure = GetProcAddress(handle, "D3DXCreateEffectFromFileA");
+        
+        ASSERT(handle && procedure);
+
+        shader_lib::create_effect_from_file = reinterpret_cast<decltype(&::D3DXCreateEffectFromFileA)>(procedure);
+
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
         {
             shader_lib::effect_param_list[static_cast<std::uint32_t>(i)].index = static_cast<std::uint32_t>(i);
@@ -1562,35 +1791,35 @@ namespace hyper
             return lhs.key < rhs.key;
         });
 
-        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = allocate<effect_world>();
-        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = allocate<effect_world_reflect>();
-        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = allocate<effect_world_bone>();
-        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = allocate<effect_world_normal_map>();
-        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = allocate<effect_car>();
-        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = allocate<effect_car_normal_map>();
-        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = allocate<effect_world_min>();
-        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = allocate<effect_fe>();
-        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = allocate<effect_fe_mask>();
-        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = allocate<effect_filter>();
-        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = allocate<effect_screen_filter>();
-        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = allocate<effect_raindrop>();
-        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = allocate<effect_visual_treatment>();
-        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = allocate<effect_world_prelit>();
-        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = allocate<effect_particles>();
-        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = allocate<effect_sky>();
-        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = allocate<effect_shadow_map_mesh>();
-        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = allocate<effect_car_shadow_map>();
-        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = allocate<effect_world_depth>();
-        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = allocate<effect_shadow_map_mesh_depth>();
-        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = allocate<effect_normal_map_no_fog>();
-        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = allocate<effect_instance_mesh>();
-        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = allocate<effect_screen_effect>();
-        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = allocate<effect_hdr>();
-        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = allocate<effect_ucap>();
-        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = allocate<effect_glass_reflect>();
-        shader_lib::effects_[shader_type::WATER] = effect_water::instance = allocate<effect_water>();
-        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = allocate<effect_rvmpip>();
-        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = allocate<effect_ghost_car>();
+        shader_lib::effects_[shader_type::WorldShader] = effect_world::instance = memory::allocate<effect_world>();
+        shader_lib::effects_[shader_type::WorldReflectShader] = effect_world_reflect::instance = memory::allocate<effect_world_reflect>();
+        shader_lib::effects_[shader_type::WorldBoneShader] = effect_world_bone::instance = memory::allocate<effect_world_bone>();
+        shader_lib::effects_[shader_type::WorldNormalMap] = effect_world_normal_map::instance = memory::allocate<effect_world_normal_map>();
+        shader_lib::effects_[shader_type::CarShader] = effect_car::instance = memory::allocate<effect_car>();
+        shader_lib::effects_[shader_type::CARNORMALMAP] = effect_car_normal_map::instance = memory::allocate<effect_car_normal_map>();
+        shader_lib::effects_[shader_type::WorldMinShader] = effect_world_min::instance = memory::allocate<effect_world_min>();
+        shader_lib::effects_[shader_type::FEShader] = effect_fe::instance = memory::allocate<effect_fe>();
+        shader_lib::effects_[shader_type::FEMaskShader] = effect_fe_mask::instance = memory::allocate<effect_fe_mask>();
+        shader_lib::effects_[shader_type::FilterShader] = effect_filter::instance = memory::allocate<effect_filter>();
+        shader_lib::effects_[shader_type::ScreenFilterShader] = effect_screen_filter::instance = memory::allocate<effect_screen_filter>();
+        shader_lib::effects_[shader_type::RainDropShader] = effect_raindrop::instance = memory::allocate<effect_raindrop>();
+        shader_lib::effects_[shader_type::VisualTreatmentShader] = effect_visual_treatment::instance = memory::allocate<effect_visual_treatment>();
+        shader_lib::effects_[shader_type::WorldPrelitShader] = effect_world_prelit::instance = memory::allocate<effect_world_prelit>();
+        shader_lib::effects_[shader_type::ParticlesShader] = effect_particles::instance = memory::allocate<effect_particles>();
+        shader_lib::effects_[shader_type::skyshader] = effect_sky::instance = memory::allocate<effect_sky>();
+        shader_lib::effects_[shader_type::shadow_map_mesh] = effect_shadow_map_mesh::instance = memory::allocate<effect_shadow_map_mesh>();
+        shader_lib::effects_[shader_type::CarShadowMapShader] = effect_car_shadow_map::instance = memory::allocate<effect_car_shadow_map>();
+        shader_lib::effects_[shader_type::WorldDepthShader] = effect_world_depth::instance = memory::allocate<effect_world_depth>();
+        shader_lib::effects_[shader_type::shadow_map_mesh_depth] = effect_shadow_map_mesh_depth::instance = memory::allocate<effect_shadow_map_mesh_depth>();
+        shader_lib::effects_[shader_type::NormalMapNoFog] = effect_normal_map_no_fog::instance = memory::allocate<effect_normal_map_no_fog>();
+        shader_lib::effects_[shader_type::InstanceMesh] = effect_instance_mesh::instance = memory::allocate<effect_instance_mesh>();
+        shader_lib::effects_[shader_type::ScreenEffectShader] = effect_screen_effect::instance = memory::allocate<effect_screen_effect>();
+        shader_lib::effects_[shader_type::HDRShader] = effect_hdr::instance = memory::allocate<effect_hdr>();
+        shader_lib::effects_[shader_type::UCAP] = effect_ucap::instance = memory::allocate<effect_ucap>();
+        shader_lib::effects_[shader_type::GLASS_REFLECT] = effect_glass_reflect::instance = memory::allocate<effect_glass_reflect>();
+        shader_lib::effects_[shader_type::WATER] = effect_water::instance = memory::allocate<effect_water>();
+        shader_lib::effects_[shader_type::RVMPIP] = effect_rvmpip::instance = memory::allocate<effect_rvmpip>();
+        shader_lib::effects_[shader_type::GHOSTCAR] = effect_ghost_car::instance = memory::allocate<effect_ghost_car>();
 
         pca::ucap_bind = shader_lib::bind_ucap_weights;
 
@@ -1605,11 +1834,35 @@ namespace hyper
 
             if (ptr != nullptr)
             {
-                delete ptr;
+                memory::destroy(ptr);
 
                 ptr = nullptr;
             }
         }
+    }
+
+    void shader_lib::reset()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->reset();
+            }
+        }
+    }
+
+    void shader_lib::reinit()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->reinitialize();
+            }
+        }
+
+        shader_lib::recompute_techniques_by_detail(directx::shader_detail);
     }
 
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
@@ -1619,6 +1872,11 @@ namespace hyper
         void* entry = utils::scan_hash_table_key32(key, list.begin(), list.length(), offsetof(effect::param_index_pair, key), sizeof(effect::param_index_pair));
 
         return reinterpret_cast<const effect::param_index_pair*>(entry);
+    }
+
+    auto shader_lib::find_input(shader_type type) -> const effect::input*
+    {
+        return &shader_lib::inputs_[type];
     }
 
     auto shader_lib::find_input(const char* name) -> const effect::input*
@@ -1638,7 +1896,10 @@ namespace hyper
     {
         for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
         {
-            shader_lib::effects_[i]->lose_device();
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->release_effect();
+            }
         }
     }
 
@@ -1648,7 +1909,7 @@ namespace hyper
         eff.end();
         eff.end_effect();
 
-        shader_lib::current_effect = nullptr;
+        effect::set_current_effect(nullptr);
     }
 
     void shader_lib::recompute_techniques_by_detail(std::uint32_t detail_level)
