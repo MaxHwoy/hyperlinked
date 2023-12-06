@@ -323,6 +323,10 @@ namespace hyper
         {
         }
 
+        inline vector4(const vector3& vector, float w) : x(vector.x), y(vector.y), z(vector.z), w(w)
+        {
+        }
+
         inline vector4() = default;
 
         inline vector4(const vector4& other) = default;
@@ -638,6 +642,11 @@ namespace hyper
         inline bool operator!=(const color32& other) const
         {
             return *reinterpret_cast<const std::uint32_t*>(this) != *reinterpret_cast<const std::uint32_t*>(&other);
+        }
+
+        inline operator std::uint32_t()
+        {
+            return *reinterpret_cast<std::uint32_t*>(this);
         }
 
         inline static auto clear() -> color32
@@ -1003,6 +1012,18 @@ namespace hyper
         template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto round_pow_2(T value, T round) -> T
         {
             return value & ~(round - 1);
+        }
+
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto floor_pow_2(T value) -> T
+        {
+            value |= value >> 1;
+            value |= value >> 2;
+            value |= value >> 4;
+            value |= value >> 8;
+            value |= value >> 16;
+            value -= value >> 1;
+
+            return value;
         }
 
         template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static bool is_pow_2(T value)

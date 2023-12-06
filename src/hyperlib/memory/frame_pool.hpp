@@ -8,7 +8,7 @@ namespace hyper
     class frame_pool final
     {
     private:
-        struct frame_buffer : linked_node<frame_buffer>
+        struct frame_buffer : public linked_node<frame_buffer>
         {
             char* buffer;
             alloc_size_t length;

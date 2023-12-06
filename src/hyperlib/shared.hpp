@@ -74,6 +74,12 @@
 #define ASSERT(...)
 #endif
 
+inline bool assert_return(bool result)
+{
+	ASSERT(result);
+	return result;
+}
+
 #define CREATE_ENUM_EXPR_OPERATORS(T)																\
 	extern "C++"																					\
 	{																								\

@@ -1,5 +1,5 @@
-#include <hyperlib/renderer/lighting.hpp>
-#include <hyperlinked/patches/renderer/lighting.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
+#include <hyperlinked/patches/renderer/light_renderer.hpp>
 
 namespace hyper
 {
@@ -32,7 +32,7 @@ namespace hyper
             push [esp + 0x30]; // repush 'shaper'
             push [esp + 0x30]; // repush 'context'
 
-            call lighting::setup_lights; // call custom setup_lights
+            call light_renderer::setup_lights; // call custom setup_lights
 
             add esp, 0x18; // since we repushed all arguments
 
@@ -72,7 +72,7 @@ namespace hyper
             push [esp + 0x24]; // repush 'inst_trs'
             push [esp + 0x24]; // repush 'context'
 
-            call lighting::setup_envmap; // call custom setup_envmap
+            call light_renderer::setup_envmap; // call custom setup_envmap
 
             add esp, 0x10; // since we repushed all arguments
 
@@ -107,7 +107,7 @@ namespace hyper
 
             push [esp + 0x1C]; // repush 'context'
 
-            call lighting::reset_light_context; // call custom reset_light_context
+            call light_renderer::reset_light_context; // call custom reset_light_context
 
             add esp, 0x04; // since we repushed all arguments
 
@@ -151,7 +151,7 @@ namespace hyper
             push [esp + 0x2C]; // repush 'shaper'
             push [esp + 0x2C]; // repush 'context'
 
-            call lighting::setup_light_context; // call custom setup_light_context
+            call light_renderer::setup_light_context; // call custom setup_light_context
 
             add esp, 0x18; // since we repushed all arguments
 
@@ -196,7 +196,7 @@ namespace hyper
             push [esp + 0x2C]; // repush 'inst_pos'
             push [esp + 0x2C]; // repush 'dst'
 
-            call lighting::clone_light_context; // call custom clone_light_context
+            call light_renderer::clone_light_context; // call custom clone_light_context
 
             add esp, 0x18; // since we repushed all arguments
 
@@ -235,7 +235,7 @@ namespace hyper
             push [esp + 0x24]; // repush 'src'
             push [esp + 0x24]; // repush 'dst'
 
-            call lighting::rotate_light_context; // call custom rotate_light_context
+            call light_renderer::rotate_light_context; // call custom rotate_light_context
 
             add esp, 0x0C; // since we repushed all arguments
 
@@ -271,7 +271,7 @@ namespace hyper
             push [esp + 0x1C]; // repush 'position'
             push [esp + 0x1C]; // repush 'query'
 
-            call lighting::query_light_database; // call custom query_light_database
+            call light_renderer::query_light_database; // call custom query_light_database
 
             add esp, 0x08; // since we repushed all arguments
 
@@ -285,7 +285,7 @@ namespace hyper
         }
     }
 
-    void lighting_patches::init()
+    void light_renderer_patches::init()
     {
         // elSetupLights
         hook::jump(0x00746A00, &detour_el_setup_lights);

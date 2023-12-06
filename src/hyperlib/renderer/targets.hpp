@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/options.hpp>
 #include <hyperlib/renderer/enums.hpp>
 #include <hyperlib/renderer/view.hpp>
 #include <hyperlib/renderer/directx.hpp>
@@ -49,12 +50,18 @@ namespace hyper
                 player_render_target::vid,
                 directx::resolution_x,
                 directx::resolution_y,
-                player_render_target::render_target_surface_postprocess,
+                directx::visual_treatment ? player_render_target::render_target_surface_standalone : player_render_target::render_target_surface_postprocess,
                 player_render_target::depth_stencil_surface
             );
         }
 
+        static bool open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB08FC);
+
         static inline ::IDirect3DSurface9*& render_target_surface_standalone = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB08F8);
 
         static inline ::IDirect3DSurface9*& render_target_surface_postprocess = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0900);
@@ -88,6 +95,11 @@ namespace hyper
                 player_render_target::depth_stencil_surface
             );
         }
+
+    public:
+        static inline std::uint32_t& resolution_x = *reinterpret_cast<std::uint32_t*>(0x00A63F80);
+
+        static inline std::uint32_t& resolution_y = *reinterpret_cast<std::uint32_t*>(0x00A63F84);
     };
 
     class reflection_render_target : public render_target
@@ -116,6 +128,10 @@ namespace hyper
                 reflection_render_target::depth_stencil_surface
             );
         }
+
+        static bool open();
+
+        static void close();
 
     public:
         static inline ::D3DFORMAT& format = *reinterpret_cast<::D3DFORMAT*>(0x00A63AF0);
@@ -186,7 +202,13 @@ namespace hyper
             );
         }
 
+        static bool open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0914);
+
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0918);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB091C);
@@ -231,14 +253,18 @@ namespace hyper
             );
         }
 
+        static bool open();
+
+        static void close();
+
     public:
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0C00);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0C08);
 
-        static inline ::IDirect3DCubeTexture9*& render_target_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C04);
+        static inline ::IDirect3DTexture9*& render_target_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0C04);
 
-        static inline ::IDirect3DCubeTexture9*& depth_stencil_cubemap = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0C0C);
+        static inline ::IDirect3DTexture9*& depth_stencil_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0C0C);
 
         static inline std::uint32_t& resolution_x = *reinterpret_cast<std::uint32_t*>(0x00715091);
 
@@ -274,10 +300,14 @@ namespace hyper
             );
         }
 
+        static bool open();
+
+        static void close();
+
     public:
         static inline ::D3DFORMAT& format = *reinterpret_cast<::D3DFORMAT*>(0x00A63B08);
 
-        static inline ::IDirect3DCubeTexture9*& cube_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0964);
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0964);
 
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0968);
 
@@ -315,7 +345,15 @@ namespace hyper
             );
         }
 
+        static bool open();
+
+        static void close();
+
     public:
+        static inline ::IDirect3DTexture9*& fuzzz_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0908);
+
+        static inline ::IDirect3DTexture9*& d3d_texture = *reinterpret_cast<::IDirect3DTexture9**>(0x00AB0908);
+
         static inline ::IDirect3DSurface9*& render_target_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB090C);
 
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0910);
@@ -324,13 +362,20 @@ namespace hyper
     class env_map_render_target : public render_target
     {
     public:
+        static bool open();
+
+        static void close();
+
+    public:
         static inline ::IDirect3DCubeTexture9*& cube_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0920);
 
-        static inline ::IDirect3DCubeTexture9*& unk_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
+        static inline ::IDirect3DCubeTexture9*& fe_texture = *reinterpret_cast<::IDirect3DCubeTexture9**>(0x00AB0954);
 
         static inline ::IDirect3DVolumeTexture9*& car_volume = *reinterpret_cast<::IDirect3DVolumeTexture9**>(0x00AB09E8);
 
-        static inline std::uint32_t& resolution = *reinterpret_cast<std::uint32_t*>(0x00A63AE0);
+        static inline std::uint32_t& resolution_cube = *reinterpret_cast<std::uint32_t*>(0x00A63AE0);
+
+        static inline std::uint32_t& resolution_fe = *reinterpret_cast<std::uint32_t*>(0x0070DE50);
     };
 
     class env_x_pos_render_target : public env_map_render_target
@@ -341,6 +386,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_x_pos;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_x_pos_render_target&
         {
             return *reinterpret_cast<env_x_pos_render_target*>(&render_target::targets[env_x_pos_render_target::tid]);
@@ -353,8 +402,8 @@ namespace hyper
                 true,
                 env_x_pos_render_target::tid,
                 env_x_pos_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_x_pos_render_target::render_target_surface,
                 env_x_pos_render_target::depth_stencil_surface
             );
@@ -374,6 +423,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_x_neg;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_x_neg_render_target&
         {
             return *reinterpret_cast<env_x_neg_render_target*>(&render_target::targets[env_x_neg_render_target::tid]);
@@ -386,8 +439,8 @@ namespace hyper
                 true,
                 env_x_neg_render_target::tid,
                 env_x_neg_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_x_neg_render_target::render_target_surface,
                 env_x_neg_render_target::depth_stencil_surface
             );
@@ -407,6 +460,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_y_pos;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_y_pos_render_target&
         {
             return *reinterpret_cast<env_y_pos_render_target*>(&render_target::targets[env_y_pos_render_target::tid]);
@@ -419,8 +476,8 @@ namespace hyper
                 true,
                 env_y_pos_render_target::tid,
                 env_y_pos_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_y_pos_render_target::render_target_surface,
                 env_y_pos_render_target::depth_stencil_surface
             );
@@ -440,6 +497,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_y_neg;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_y_neg_render_target&
         {
             return *reinterpret_cast<env_y_neg_render_target*>(&render_target::targets[env_y_neg_render_target::tid]);
@@ -452,8 +513,8 @@ namespace hyper
                 true,
                 env_y_neg_render_target::tid,
                 env_y_neg_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_y_neg_render_target::render_target_surface,
                 env_y_neg_render_target::depth_stencil_surface
             );
@@ -473,6 +534,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_z_pos;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_z_pos_render_target&
         {
             return *reinterpret_cast<env_z_pos_render_target*>(&render_target::targets[env_z_pos_render_target::tid]);
@@ -485,8 +550,8 @@ namespace hyper
                 true,
                 env_z_pos_render_target::tid,
                 env_z_pos_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_z_pos_render_target::render_target_surface,
                 env_z_pos_render_target::depth_stencil_surface
             );
@@ -506,6 +571,10 @@ namespace hyper
         constexpr static inline hyper::view_id vid = view_id::env_z_neg;
 
     public:
+        static bool open();
+
+        static void close();
+
         static inline auto instance() -> env_z_neg_render_target&
         {
             return *reinterpret_cast<env_z_neg_render_target*>(&render_target::targets[env_z_neg_render_target::tid]);
@@ -518,8 +587,8 @@ namespace hyper
                 true,
                 env_z_neg_render_target::tid,
                 env_z_neg_render_target::vid,
-                env_map_render_target::resolution,
-                env_map_render_target::resolution,
+                env_map_render_target::resolution_cube,
+                env_map_render_target::resolution_cube,
                 env_z_neg_render_target::render_target_surface,
                 env_z_neg_render_target::depth_stencil_surface
             );

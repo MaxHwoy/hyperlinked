@@ -1,12 +1,17 @@
+#include <hyperlib/options.hpp>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
 #include <hyperlib/assets/track.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/directx.hpp>
 #include <hyperlib/renderer/targets.hpp>
-#include <hyperlib/renderer/lighting.hpp>
 #include <hyperlib/renderer/effect.hpp>
-#include <hyperlib/renderer/drawing.hpp>
+#include <hyperlib/renderer/time_of_day.hpp>
+#include <hyperlib/renderer/renderer.hpp>
+#include <hyperlib/renderer/fog_renderer.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
 
 #pragma warning (disable : 26813)
 
@@ -289,7 +294,7 @@ namespace hyper
 
                 if (this->has_parameter(parameter_type::cvLocalLightVec))
                 {
-                    vector4 sun_direction(lighting::time_of_day::instance->sun_direction);
+                    vector4 sun_direction(time_of_day::instance->sun_direction);
 
                     math::transform_point(inverted, sun_direction);
 
@@ -413,7 +418,7 @@ namespace hyper
 
     void effect::start()
     {
-        this->set_float(parameter_type::cfSpecularPower, lighting::default_spec_power);
+        this->set_float(parameter_type::cfSpecularPower, light_renderer::default_spec_power);
 
         if (this->has_parameter(parameter_type::cvVertexPowerBrightness))
         {
@@ -588,6 +593,8 @@ namespace hyper
 
     void effect::reinitialize()
     {
+        BENCHMARK();
+
         ::memset(this->params_, 0, sizeof(this->params_));
 
         this->last_used_light_material_ = nullptr;
@@ -633,8 +640,19 @@ namespace hyper
         this->last_used_light_context_ = nullptr;
     }
 
+    void effect::finalize()
+    {
+        this->end_effect_pass();
+        this->end();
+        this->end_effect();
+
+        effect::set_current_effect(nullptr);
+    }
+
     void effect::connect_parameters()
     {
+        BENCHMARK();
+
         ::D3DXEFFECT_DESC effect_desc;
         ::D3DXPARAMETER_DESC param_desc;
 
@@ -672,16 +690,16 @@ namespace hyper
 
     void effect::reset_lighting_params()
     {
-        lighting::ingame_light_params.y = lighting::default_ingame_light_y;
-        lighting::ingame_light_params.w = lighting::default_ingame_light_w;
+        light_renderer::ingame_light_params.y = light_renderer::default_ingame_light_y;
+        light_renderer::ingame_light_params.w = light_renderer::default_ingame_light_w;
 
         if (game_flow::manager::instance.current_state == game_flow::state::racing)
         {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::ingame_light_params);
+            this->set_vector(parameter_type::cvVertexPowerBrightness, light_renderer::ingame_light_params);
         }
         else
         {
-            this->set_vector(parameter_type::cvVertexPowerBrightness, lighting::frontend_light_params);
+            this->set_vector(parameter_type::cvVertexPowerBrightness, light_renderer::frontend_light_params);
         }
     }
 
@@ -811,7 +829,7 @@ namespace hyper
                 index = static_cast<std::int32_t>(tech->technique_index);
             }
         }
-        else if ((renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
+        else if ((world_renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
         {
             effect_car::instance->low_lod_technique_number_ = 2;
 
@@ -899,7 +917,7 @@ namespace hyper
         }
     }
 
-    void effect::set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world)
+    void effect::set_light_context(const light::context::dynamic& context, const matrix4x4& local_to_world)
     {
         if (context.type == 0 && &context != this->last_used_light_context_)
         {
@@ -952,7 +970,7 @@ namespace hyper
 
             directx::device()->SetRenderState(::D3DRS_CULLMODE, static_cast<::DWORD>(cull_mode));
 
-            this->set_diffuse_map(model);
+            this->set_diffuse_map(*model.diffuse_texture_info);
 
             if (model.render_bits.wants_auxiliary_textures)
             {
@@ -975,11 +993,11 @@ namespace hyper
         }
     }
 
-    void effect::set_diffuse_map(rendering_model& model)
+    void effect::set_diffuse_map(const texture::info& texture)
     {
-        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, model.d3d9_diffuse_texture);
+        this->set_texture(parameter_type::DIFFUSEMAP_TEXTURE, texture.pinfo->texture);
 
-        texture::render_state state = model.render_bits;
+        texture::render_state state = texture.pinfo->state;
 
         const auto device = directx::device();
 
@@ -1057,11 +1075,65 @@ namespace hyper
         }
     }
 
+    void effect::set_texture_page(const texture::info& info)
+    {
+        this->set_diffuse_map(info);
+
+        this->set_texture_animation(info);
+        
+        directx::device()->SetRenderState(::D3DRS_CULLMODE, ::D3DCULL_NONE);
+    }
+
+    void effect::set_headlights()
+    {
+        if (this->has_parameter(parameter_type::cavWorldHeadlightPosition) &&
+            this->has_parameter(parameter_type::cavWorldHeadlightDirection) &&
+            this->has_parameter(parameter_type::cavWorldHeadlightUpDirection))
+        {
+            vector4 positions[2];
+            vector4 directions[2];
+            vector4 up_vectors[2];
+
+            float& offset = *reinterpret_cast<float*>(0x009E8B20);
+
+            const render_view& p1_view = render_view::views[view_id::player1_headlight];
+            const render_view& p2_view = render_view::views[view_id::player2_headlight];
+
+            directions[0] = vector4(p1_view.camera_forward, 0.0f);
+            directions[1] = vector4(p2_view.camera_forward, 0.0f);
+
+            up_vectors[0] = vector4(p1_view.camera_up, 0.0f);
+            up_vectors[1] = vector4(p2_view.camera_up, 0.0f);
+
+            positions[0] = vector4(p1_view.camera_position + p1_view.camera_forward * offset, 0.0f);
+            positions[1] = vector4(p2_view.camera_position + p2_view.camera_forward * offset, 0.0f);
+
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightPosition, positions, std::size(positions));
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightDirection, directions, std::size(directions));
+            this->set_vector_array_unchecked(parameter_type::cavWorldHeadlightUpDirection, up_vectors, std::size(up_vectors));
+        }
+
+        if (texture::headlights_xenon_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_TEXTURE, texture::headlights_xenon_texture->pinfo->texture);
+        }
+
+        if (texture::headlights_clip_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_CLIP_TEXTURE, texture::headlights_clip_texture->pinfo->texture);
+        }
+
+        if (texture::headlights_texture != nullptr)
+        {
+            this->set_texture(parameter_type::HEADLIGHT_TEXTURE_OLD, texture::headlights_texture->pinfo->texture);
+        }
+    }
+
     void effect::commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model)
     {
         if (model.render_bits.multi_pass_blend)
         {
-            if (renderer::world_detail == 3u)
+            if (options::world_detail == 3u)
             {
                 directx::set_alpha_render_state(true, model.render_bits.alpha_test_ref << 4, ::D3DCMP_GREATEREQUAL);
 
@@ -1428,7 +1500,7 @@ namespace hyper
             rain_intensity = view.rain->rain_intensity;
         }
 
-        if (renderer::use_lowlod_pass)
+        if (world_renderer::use_lowlod_pass)
         {
             this->set_technique("lowlod");
         }
@@ -1464,15 +1536,15 @@ namespace hyper
 
         effect::start();
 
-        if (renderer::shadow_detail > 0 && view.id == view_id::player1)
+        if (options::shadow_detail > 0 && view.id == view_id::player1)
         {
             if (shadowmap_render_target::shadow_target_type == shadowmap_render_target::target_type::render_target)
             {
-                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::render_target_cubemap);
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::render_target_texture);
             }
             else
             {
-                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::depth_stencil_cubemap);
+                this->set_texture(parameter_type::SHADOWMAP, shadowmap_render_target::depth_stencil_texture);
             }
 
             this->set_float(parameter_type::SHADOWMAPSCALE, 1.0f / static_cast<float>(shadowmap_render_target::resolution_x));
@@ -1500,6 +1572,7 @@ namespace hyper
 
         if (state == game_flow::state::racing)
         {
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
             this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
         }
         else
@@ -1514,8 +1587,8 @@ namespace hyper
         }
         else
         {
-            // anything else, use the frontend environment maps.
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
         }
     }
 
@@ -1541,11 +1614,12 @@ namespace hyper
         {
             // if we are maxed out, or racing, use the cube map texture.
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
         }
         else
         {
-            // anything else, use the frontend environment maps.
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
     }
 
@@ -1579,7 +1653,7 @@ namespace hyper
 
         if (effect_sky::last_frame_updated_ != global::world_time_frames)
         {
-            float update_rate = lighting::time_of_day::instance->update_rate;
+            float update_rate = time_of_day::instance->update_rate;
 
             effect_sky::last_frame_updated_ = global::world_time_frames;
 
@@ -1588,7 +1662,15 @@ namespace hyper
 
         this->set_float(parameter_type::cfTimeTicker, effect_sky::sky_time_ticker_);
 
-        this->set_vector(parameter_type::cfSkyFogFalloff, lighting::fog_shader_params::instance->sky_fog_falloff);
+        vector4 falloff =
+        {
+            fog_renderer::params::instance->sky_falloff,
+            fog_renderer::params::instance->sky_offset,
+            0.0f,
+            0.0f
+        };
+
+        this->set_vector(parameter_type::cfSkyFogFalloff, falloff);
 
         this->reset_lighting_params();
     }
@@ -1648,7 +1730,7 @@ namespace hyper
 
         if (effect_water::last_frame_updated_ != global::world_time_frames)
         {
-            float update_rate = lighting::time_of_day::instance->update_rate;
+            float update_rate = time_of_day::instance->update_rate;
 
             effect_water::last_frame_updated_ = global::world_time_frames;
 
@@ -1862,7 +1944,15 @@ namespace hyper
             }
         }
 
-        shader_lib::recompute_techniques_by_detail(directx::shader_detail);
+        shader_lib::recompute_techniques_by_detail(options::shader_detail);
+    }
+
+    void shader_lib::create_pool()
+    {
+        if (shader_lib::effect_pool == nullptr)
+        {
+            ::D3DXCreateEffectPool(&shader_lib::effect_pool);
+        }
     }
 
     auto shader_lib::find_param_index(std::uint32_t key) -> const effect::param_index_pair*
@@ -1898,18 +1988,33 @@ namespace hyper
         {
             if (effect* ptr = shader_lib::effects_[i])
             {
-                ptr->release_effect();
+                ptr->lose_device();
             }
         }
     }
 
-    void shader_lib::end_effect(effect& eff)
+    void shader_lib::reconnect_device()
     {
-        eff.end_effect_pass();
-        eff.end();
-        eff.end_effect();
+        for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->get_device();
 
-        effect::set_current_effect(nullptr);
+                ptr->connect_parameters();
+            }
+        }
+    }
+
+    void shader_lib::release()
+    {
+        for (size_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->release_effect();
+            }
+        }
     }
 
     void shader_lib::recompute_techniques_by_detail(std::uint32_t detail_level)
@@ -1944,5 +2049,16 @@ namespace hyper
         weights.feature_heights_param_handle = static_cast<std::uint32_t>(effect::parameter_type::cavFeatureHeights);
 
         shader_lib::bind_pca_channels(weights.channel_infos, weights.channel_count);
+    }
+
+    void shader_lib::set_headlights()
+    {
+        for (std::uint32_t i = 0u; i < shader_lib::effects_.length(); ++i)
+        {
+            if (effect* ptr = shader_lib::effects_[i])
+            {
+                ptr->set_headlights();
+            }
+        }
     }
 }

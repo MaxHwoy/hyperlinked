@@ -4,9 +4,14 @@
 #include <hyperlib/streamer/sections.hpp>
 #include <hyperlib/gameplay/g_race.hpp>
 #include <hyperlib/gameplay/game_flow.hpp>
+#include <hyperlib/renderer/camera.hpp>
 #include <hyperlib/renderer/targets.hpp>
 #include <hyperlib/renderer/culling.hpp>
-#include <hyperlib/renderer/flare_pool.hpp>
+#include <hyperlib/renderer/renderer.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/flare_renderer.hpp>
+#include <hyperlib/renderer/light_renderer.hpp>
+#include <hyperlib/renderer/world_renderer.hpp>
 
 namespace hyper
 {
@@ -14,7 +19,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        view_mode mode = renderer::mode;
+        view_mode mode = view::mode::current();
 
         scenery_cull_info& cull_info = this->scenery_cull_infos[this->cull_info_count++];
 
@@ -87,7 +92,7 @@ namespace hyper
 
         game_flow::state state = game_flow::manager::instance.current_state;
 
-        if (renderer::draw_world && state != game_flow::state::loading_region && state != game_flow::state::loading_track)
+        if (world_renderer::draw_world && state != game_flow::state::loading_region && state != game_flow::state::loading_track)
         {
             for (view_id i = view_id::player1; i <= view_id::player1_rvm; ++i)
             {
@@ -105,7 +110,7 @@ namespace hyper
 
                 if (current.active && current.attached_target->active)
                 {
-                    if (renderer::shadow_detail >= 2u)
+                    if (options::shadow_detail >= 2u)
                     {
                         this->setup_scenery_cull_info(current, instance_flags::environment_map);
                     }
@@ -118,7 +123,7 @@ namespace hyper
 
             view::instance& reflection = view::instance::views[view_id::player1_reflection];
 
-            if (renderer::road_reflection_enabled && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
+            if (options::road_reflection_detail && reflection.rain->road_dampness >= 0.01f && reflection.active && reflection.attached_target->active)
             {
                 this->setup_scenery_cull_info(reflection, static_cast<instance_flags>(0u));
             }
@@ -134,13 +139,228 @@ namespace hyper
         }
     }
 
-    auto grand_scenery_cull_info::get_cull_info_flags(const view::instance* view) const -> instance_flags
+    void grand_scenery_cull_info::stuff_scenery(const view::instance& view, prepass_flags pass_flags) const
+    {
+        BENCHMARK();
+
+        draw_flags initial = static_cast<draw_flags>(0u);
+        draw_flags include = static_cast<draw_flags>(0u);
+        draw_flags exclude = static_cast<draw_flags>(0u);
+
+        if ((pass_flags & prepass_flags::add_draw_flag_0x1000) != 0)
+        {
+            initial |= draw_flags::some_flag_0x1000;
+        }
+
+        if ((pass_flags & prepass_flags::include_reflect_in_ocean) != 0)
+        {
+            include |= draw_flags::reflect_in_ocean;
+        }
+        
+        if ((pass_flags & prepass_flags::include_rear_view) != 0)
+        {
+            initial |= draw_flags::rear_view_drawn;
+        }
+        
+        if ((pass_flags & prepass_flags::include_chopped_roads) != 0)
+        {
+            include |= draw_flags::chopped_roadway;
+        }
+
+        if ((pass_flags & prepass_flags::exclude_chopped_roads) != 0)
+        {
+            exclude |= draw_flags::chopped_roadway;
+        }
+        
+        if ((pass_flags & prepass_flags::include_any_shadow_casters) != 0)
+        {
+            include |= draw_flags::cast_shadows;
+        }
+        
+        if ((pass_flags & prepass_flags::exclude_high_quality) != 0)
+        {
+            exclude |= draw_flags::high_quality;
+        }
+        
+        if ((pass_flags & prepass_flags::include_envmap_shadows) != 0)
+        {
+            include = draw_flags::envmap_shadow;
+        }
+
+        if (const scenery_cull_info* cull_info = this->find_cull_info(view))
+        {
+            const matrix4x4& cam_matrix = view.camera->current_key.view_matrix;
+
+            const vector3& cam_position = view.camera->current_key.position.as_vector3();
+
+            for (const scenery_draw_info* draw_info = cull_info->first_draw_info; draw_info != cull_info->current_draw_info; ++draw_info)
+            {
+                draw_flags render = initial;
+
+                instance_flags instance = draw_info->instance->flags;
+
+                if (((renderer::low_quality_flags & prepass_flags::exclude_high_quality) == 0 || (instance & instance_flags::high_platform_only) == 0) &&
+                    ((renderer::low_quality_flags & prepass_flags::exclude_high_quality) != 0 || (instance & instance_flags::low_platform_only) == 0 || (instance & instance_flags::envmap_shadow) != 0))
+                {
+                    uintptr_t address = reinterpret_cast<uintptr_t>(draw_info->model);
+
+                    visible_state visible = static_cast<visible_state>(address & 0x03u);
+
+                    geometry::model* model = reinterpret_cast<geometry::model*>(address - static_cast<std::uint32_t>(visible));
+
+                    if ((instance & instance_flags::always_facing) != 0)
+                    {
+                        render |= draw_flags::always_facing;
+                    }
+
+                    if ((instance & instance_flags::chopped_roadway) != 0)
+                    {
+                        render |= draw_flags::chopped_roadway;
+                    }
+
+                    if ((instance & instance_flags::reflect_in_ocean) != 0)
+                    {
+                        render |= draw_flags::reflect_in_ocean;
+                    }
+
+                    if ((instance & instance_flags::envmap_shadow) != 0)
+                    {
+                        render |= draw_flags::sky_shade | draw_flags::envmap_shadow;
+                    }
+
+                    if ((instance & instance_flags::inverted_matrix) != 0)
+                    {
+                        render |= draw_flags::inverted_culling;
+                    }
+
+                    if ((instance & instance_flags::dont_receive_shadows) != 0)
+                    {
+                        render |= draw_flags::dont_receive_shadows;
+                    }
+                    
+                    if ((instance & instance_flags::high_platform_only) != 0)
+                    {
+                        render |= draw_flags::high_quality;
+                    }
+                    
+                    if ((pass_flags & prepass_flags::include_shadow_casters_static) != 0)
+                    {
+                        if ((instance & instance_flags::cast_shadow_volume) != 0 && (instance & instance_flags::cast_shadow_map_mesh) == 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+
+                        if ((instance & instance_flags::cast_shadow_map) != 0 && (instance & instance_flags::cast_shadow_map_mesh) == 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+                        
+                        if ((instance & instance_flags::collidable) != 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+                    }
+
+                    if ((pass_flags & prepass_flags::include_only_smackable_casters) != 0)
+                    {
+                        if ((instance & instance_flags::collidable) != 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+                    }
+                    
+                    if ((pass_flags & prepass_flags::include_shadow_casters) != 0)
+                    {
+                        if ((instance & instance_flags::cast_shadow_volume) != 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+                        
+                        if ((instance & instance_flags::cast_shadow_map) != 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+
+                        if ((instance & instance_flags::collidable) != 0)
+                        {
+                            render |= draw_flags::cast_shadows;
+                        }
+                    }
+
+                    if (visible == visible_state::inside)
+                    {
+                        render |= draw_flags::fully_visible;
+                    }
+
+                    bool auto_passed = include == 0 && exclude == 0;
+                    bool is_included = (include & render) != 0;
+                    bool no_excluded = (exclude & render) == 0 && exclude != 0;
+
+                    if (auto_passed || is_included || no_excluded)
+                    {
+                        const matrix4x4* local_world = draw_info->matrix;
+
+                        const light::context::dynamic* context = nullptr;
+
+                        if (local_world == nullptr)
+                        {
+                            local_world = &matrix4x4::identity();
+                        }
+                        else
+                        {
+                            if (model->is_lit())
+                            {
+                                constexpr float max_distance = 150.0f * 150.0f;
+
+                                float distance = (local_world->row(3u).as_vector3() - cam_position).sqr_magnitude();
+
+                                if (distance <= max_distance)
+                                {
+                                    light::context::dynamic* lighting = frame_pool::instance.malloc<light::context::dynamic>();
+
+                                    if (lighting != nullptr)
+                                    {
+                                        light_renderer::setup_light_context(*lighting, light::shaper_rigorous::scenery, local_world, &cam_matrix, &cam_position, &view);
+
+                                        context = lighting;
+                                    }
+                                }
+                                else
+                                {
+                                    context = view.world_light_context;
+                                }
+                            }
+                        }
+
+                        view.render(*model, local_world, context, render, nullptr, nullptr);
+                    }
+                }
+            }
+        }
+    }
+
+    auto grand_scenery_cull_info::find_cull_info(const view::instance& view) const -> const scenery_cull_info*
     {
         for (std::uint32_t i = 0u; i < this->cull_info_count; ++i)
         {
             const scenery_cull_info& cull_info = this->scenery_cull_infos[i];
 
-            if (cull_info.view->id == view->id)
+            if (cull_info.view == &view)
+            {
+                return &cull_info;
+            }
+        }
+
+        return nullptr;
+    }
+
+    auto grand_scenery_cull_info::get_cull_info_flags(const view::instance& view) const -> instance_flags
+    {
+        for (std::uint32_t i = 0u; i < this->cull_info_count; ++i)
+        {
+            const scenery_cull_info& cull_info = this->scenery_cull_infos[i];
+
+            if (cull_info.view->id == view.id)
             {
                 return cull_info.flags;
             }
@@ -336,7 +556,7 @@ namespace hyper
             instance_flags include = instance.flags;
             instance_flags exclude = cull_info.flags;
 
-            if ((include & instance_flags::envmap_shadow) == 0 || renderer::shadow_detail < 2)
+            if ((include & instance_flags::envmap_shadow) == 0 || options::shadow_detail < 2)
             {
                 if ((include & instance_flags::include_reflection) != 0 || (include & instance_flags::include_reflection_ng) != 0)
                 {
@@ -400,7 +620,7 @@ namespace hyper
                                 return false;
                             }
 
-                            if (renderer::mode < view_mode::two_h)
+                            if (view::mode::current() < view_mode::two_h)
                             {
                                 if (pixel_size >= 18)
                                 {
@@ -423,7 +643,7 @@ namespace hyper
                                         }
                                     }
 
-                                    if (renderer::world_detail < 2)
+                                    if (options::world_detail < 2)
                                     {
                                         return this->commit_scenery(instance, info, cull_info, model_lod::c, state);
                                     }
@@ -487,7 +707,7 @@ namespace hyper
         }
         else
         {
-            matrix4x4* matrix = frame_pool::malloc_matrix(1u);
+            matrix4x4* matrix = frame_pool::instance.malloc<matrix4x4>();
 
             if (matrix == nullptr)
             {
@@ -597,7 +817,7 @@ namespace hyper
 
         matrix4x4 stack(matrix);
 
-        float sin = math::sin(math::to_uint16_degrees(degrees + renderer::wind_angle));
+        float sin = math::sin(math::to_uint16_degrees(degrees + world_renderer::wind_angle));
 
         vector3 direction(1.0f, 0.0f, 0.0f);
 
@@ -626,15 +846,15 @@ namespace hyper
 
         view_id id = cull_info.view->id;
 
-        if (flare_pool::can_render_flares_in_view(id) && !flare_pool::is_friend_flare_view_already_committed(id))
+        if (flare_renderer::can_render_flares_in_view(id) && !flare_renderer::is_friend_flare_view_already_committed(id))
         {
-            std::uint32_t mask = flare_pool::create_flare_view_mask(id);
+            std::uint32_t mask = flare_renderer::create_flare_view_mask(id);
 
             for (std::uint32_t i = 0u; i < solid.position_marker_count; ++i)
             {
                 const geometry::position_marker& marker = solid.position_markers[i];
 
-                flare::instance* pool_flare = flare_pool::get_next_flare(mask);
+                flare::instance* pool_flare = flare_renderer::get_next_flare(mask);
 
                 if (pool_flare != nullptr)
                 {
@@ -694,7 +914,7 @@ namespace hyper
                     }
                     else
                     {
-                        flare_pool::remove_current_flare();
+                        flare_renderer::remove_current_flare();
                     }
                 }
             }

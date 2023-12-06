@@ -17,6 +17,11 @@ namespace hyper
         return call_function<std::uint32_t(__cdecl*)()>(0x0046CEC0)();
     }
 
+    auto utils::get_ticker_difference(std::uint32_t start_ticks) -> float
+    {
+        return call_function<float(__cdecl*)(std::uint32_t)>(0x00473170)(start_ticks);
+    }
+
     auto utils::get_ticker_difference(std::uint32_t start_ticks, std::uint32_t end_ticks) -> float
     {
         return call_function<float(__cdecl*)(std::uint32_t, std::uint32_t)>(0x0046CEF0)(start_ticks, end_ticks);

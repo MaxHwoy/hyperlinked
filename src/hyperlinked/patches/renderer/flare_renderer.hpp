@@ -2,7 +2,7 @@
 
 namespace hyper
 {
-    class flare_pool_patches final
+    class flare_renderer_patches final
     {
     public:
         static void init();

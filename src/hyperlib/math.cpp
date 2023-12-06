@@ -586,8 +586,8 @@ namespace hyper
                 }
             }
             {
-                float a = trs.m21 * min.x;
-                float b = trs.m21 * max.x;
+                float a = trs.m12 * min.x;
+                float b = trs.m12 * max.x;
 
                 if (a < b)
                 {
@@ -601,8 +601,8 @@ namespace hyper
                 }
             }
             {
-                float a = trs.m31 * min.x;
-                float b = trs.m31 * max.x;
+                float a = trs.m13 * min.x;
+                float b = trs.m13 * max.x;
 
                 if (a < b)
                 {
@@ -619,8 +619,8 @@ namespace hyper
 
         {
             {
-                float a = trs.m12 * min.y;
-                float b = trs.m12 * max.y;
+                float a = trs.m21 * min.y;
+                float b = trs.m21 * max.y;
 
                 if (a < b)
                 {
@@ -649,8 +649,8 @@ namespace hyper
                 }
             }
             {
-                float a = trs.m32 * min.y;
-                float b = trs.m32 * max.y;
+                float a = trs.m23 * min.y;
+                float b = trs.m23 * max.y;
 
                 if (a < b)
                 {
@@ -667,8 +667,8 @@ namespace hyper
 
         {
             {
-                float a = trs.m13 * min.z;
-                float b = trs.m13 * max.z;
+                float a = trs.m31 * min.z;
+                float b = trs.m31 * max.z;
 
                 if (a < b)
                 {
@@ -682,8 +682,8 @@ namespace hyper
                 }
             }
             {
-                float a = trs.m23 * min.z;
-                float b = trs.m23 * max.z;
+                float a = trs.m32 * min.z;
+                float b = trs.m32 * max.z;
 
                 if (a < b)
                 {

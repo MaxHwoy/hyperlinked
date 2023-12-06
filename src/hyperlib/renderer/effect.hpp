@@ -2,10 +2,10 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/pca.hpp>
+#include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/collections/string.hpp>
 #include <hyperlib/renderer/enums.hpp>
-#include <hyperlib/renderer/lighting.hpp>
 
 namespace hyper
 {
@@ -322,6 +322,8 @@ namespace hyper
 
         void reset();
 
+        void finalize();
+
         void connect_parameters();
 
         void reset_filter_params();
@@ -346,15 +348,19 @@ namespace hyper
 
         void set_blend_matrices(const matrix4x4* blend_matrices, const geometry::mesh_entry& entry);
 
-        void set_light_context(const lighting::dynamic_context& context, const matrix4x4& local_to_world);
+        void set_light_context(const light::context::dynamic& context, const matrix4x4& local_to_world);
 
         void set_texture_maps(rendering_model& model, draw_flags flags);
 
-        void set_diffuse_map(rendering_model& model);
+        void set_diffuse_map(const texture::info& texture);
 
         void set_auxiliary_maps(rendering_model& model);
 
         void set_texture_animation(const texture::info& info);
+
+        void set_texture_page(const texture::info& info);
+
+        void set_headlights();
 
         void commit_and_draw_indexed(std::uint32_t vertex_count, std::uint32_t index_start, std::uint32_t index_count, const rendering_model& model);
 
@@ -386,6 +392,20 @@ namespace hyper
         inline bool has_low_lod_technique() const
         {
             return this->low_lod_technique_number_ > 0u;
+        }
+
+        inline auto get_vertex_declaration() const -> ::IDirect3DVertexDeclaration9*
+        {
+            return this->vertex_decl_;
+        }
+
+        inline void get_device()
+        {
+            ::IDirect3DDevice9* device;
+
+            ::HRESULT result = this->effect_->GetDevice(&device);
+
+            ASSERT(SUCCEEDED(result));
         }
 
         inline void lose_device()
@@ -570,7 +590,7 @@ namespace hyper
         std::int32_t has_zero_offset_scale_;
         std::int32_t has_fog_disabled_;
         const light_material::instance* last_used_light_material_;
-        const lighting::dynamic_context* last_used_light_context_;
+        const light::context::dynamic* last_used_light_context_;
 
     private:
         static inline effect*& current_effect_ = *reinterpret_cast<effect**>(0x00AB0BA4);
@@ -1254,6 +1274,8 @@ namespace hyper
 
         static void reinit();
 
+        static void create_pool();
+
         static auto find_input(shader_type type) -> const effect::input*;
 
         static auto find_input(const char* name) -> const effect::input*;
@@ -1262,13 +1284,22 @@ namespace hyper
 
         static void lose_device();
 
-        static void end_effect(effect& eff);
+        static void reconnect_device();
+
+        static void release();
 
         static void recompute_techniques_by_detail(std::uint32_t detail_level);
 
         static void bind_pca_weights(pca::weights& weights);
 
         static void bind_ucap_weights(pca::ucap_frame_weights& weights);
+
+        static void set_headlights();
+
+        inline static auto get_effect(shader_type type) -> effect*
+        {
+            return shader_lib::effects_[type];
+        }
 
         inline static auto get_shader_name(shader_type type) -> const char*
         {

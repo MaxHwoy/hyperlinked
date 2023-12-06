@@ -2,7 +2,7 @@
 
 namespace hyper
 {
-    class drawing_patches final
+    class renderer_patches final
     {
     public:
         static void init();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/memory/slot_pool.hpp>
 #include <hyperlib/assets/pca.hpp>
 #include <hyperlib/assets/loader.hpp>
 
@@ -230,6 +231,49 @@ namespace hyper
             linked_list<e_texture> e_texture_list;
         };
 
+        struct animation : public linked_node<animation>
+        {
+        public:
+            enum class time_base : std::uint8_t
+            {
+                world,
+                real,
+            };
+
+            struct plat
+            {
+            public:
+                ::IDirect3DTexture9* attached;
+
+            public:
+                static inline instance_pool<plat>*& pool = *reinterpret_cast<instance_pool<plat>**>(0x00AB09C8);
+            };
+
+            struct entry
+            {
+                std::uint32_t key;
+                info* texture;
+                plat* data;
+            };
+
+        public:
+            char name[16];
+            std::uint32_t key;
+            std::uint8_t frame_count;
+            std::uint8_t fps;
+            time_base base;
+            std::uint8_t pad0;
+            bool endian_swapped;
+            bool valid;
+            std::uint8_t current_frame;
+            std::uint8_t pad1;
+            pack* parent_pack;
+            entry* table;
+
+        public:
+            static inline linked_list<animation>& list = *reinterpret_cast<linked_list<animation>*>(0x00A9006C);
+        };
+
     public:
         static auto get_texture_info(std::uint32_t key, bool default_if_not_found, bool include_unloaded) -> info*;
 
@@ -243,7 +287,11 @@ namespace hyper
 
         static auto get_scroll(float delta_time, float speed, scroll_type scroll, float step) -> float;
 
+        static void update_animations();
+
     public:
+        static inline std::uint32_t& mipmap_strip_count = *reinterpret_cast<std::uint32_t*>(0x00AB09CC);
+
         static inline info*& default_texture = *reinterpret_cast<info**>(0x00A8FFB0);
 
         static inline info*& headlights_texture = *reinterpret_cast<info**>(0x00B43040);
@@ -283,4 +331,7 @@ namespace hyper
     ASSERT_SIZE(texture::pack_header, 0x7C);
     ASSERT_SIZE(texture::vram_data_header, 0x18);
     ASSERT_SIZE(texture::pack, 0x28);
+    ASSERT_SIZE(texture::animation, 0x2C);
+    ASSERT_SIZE(texture::animation::entry, 0x0C);
+    ASSERT_SIZE(texture::animation::plat, 0x04);
 }

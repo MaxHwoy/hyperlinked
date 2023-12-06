@@ -398,7 +398,7 @@ namespace hyper
         class gen final
         {
         public:
-            struct timeofdaylighting : attrib::instance
+            struct timeofdaylighting : public attrib::instance
             {
                 struct layout
                 {
@@ -415,6 +415,34 @@ namespace hyper
                 };
 
                 ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(timeofdaylighting, hashing::vlt_const(nameof(timeofdaylighting)))
+            };
+
+            struct visuallook : public attrib::instance
+            {
+                struct layout
+                {
+                    matrix4x4 rgb_curve;
+                    matrix4x4 r_curve;
+                    matrix4x4 g_curve;
+                    matrix4x4 b_curve;
+                    float desaturation;
+                };
+
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallook, hashing::vlt_const(nameof(visuallook)));
+            };
+
+            struct visuallookeffect : public attrib::instance
+            {
+                struct layout
+                {
+                    matrix4x4 graph;
+                    float magnitude;
+                    float length;
+                    float heattrigger;
+                    float testvalue;
+                };
+
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallookeffect, hashing::vlt_const(nameof(visuallookeffect)));
             };
         };
     };
@@ -446,4 +474,8 @@ namespace hyper
     
     ASSERT_SIZE(attrib::gen::timeofdaylighting, 0x10);
     ASSERT_SIZE(attrib::gen::timeofdaylighting::layout, 0x64);
+    ASSERT_SIZE(attrib::gen::visuallook, 0x10);
+    ASSERT_SIZE(attrib::gen::visuallook::layout, 0x104);
+    ASSERT_SIZE(attrib::gen::visuallookeffect, 0x10);
+    ASSERT_SIZE(attrib::gen::visuallookeffect::layout, 0x50);
 }

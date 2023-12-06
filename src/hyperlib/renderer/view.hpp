@@ -1,7 +1,11 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/assets/pca.hpp>
+#include <hyperlib/assets/lights.hpp>
+#include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/screen_effect.hpp>
 
 namespace hyper
 {
@@ -20,8 +24,6 @@ namespace hyper
     {
         plane planes[static_cast<std::uint32_t>(clipping_plane_type::count)];
     };
-
-    class lighting;
 
     class view final
     {
@@ -49,10 +51,29 @@ namespace hyper
             auto get_visible_state_sb(const vector3& bbox_min, const vector3& bbox_max, const matrix4x4* trs) const -> visible_state;
 
             void get_screen_position(const vector3& world_pos, vector3& screen_pos) const;
+
+            auto shadow_map_cull(const vector3& bbox_min, const vector3& bbox_max) const -> visible_state;
         };
 
         struct base : public platform_interface
         {
+        public:
+            inline bool is_player()
+            {
+                return this->id == view_id::player1 || this->id == view_id::player2;
+            }
+
+            inline bool is_reflection()
+            {
+                return this->id == view_id::player1_reflection || this->id == view_id::player2_reflection;
+            }
+
+            inline bool is_env_map()
+            {
+                return this->id >= view_id::env_z_pos && this->id <= view_id::env_y_neg;
+            }
+
+        public:
             const char* name;
             view_id id;
             bool active;
@@ -69,7 +90,7 @@ namespace hyper
             std::uint32_t pad04;
             class camera* camera;
             linked_list<struct camera_mover> camera_mover_list;
-            void* world_light_context; // fuck you c++
+            const light::context::dynamic* world_light_context;
             class render_target* attached_target;
             char pad0C[0x0C];
         };
@@ -94,18 +115,33 @@ namespace hyper
 
             void setup_world_light_context();
 
+            void render(geometry::model& model, const matrix4x4* local_world, const light::context::dynamic* context, draw_flags flags, const matrix4x4* blend_trs, pca::blend_data* pca) const;
+
         public:
             std::uint32_t num_cops_in_view;
             std::uint32_t num_cops_total;
             std::uint32_t num_cops_cherry;
             struct rain* rain;
-            struct screen_effect_db* screen_effect;
+            screen_effect::db* screen_effect;
             struct face_pixelation* face_pixelation;
 
         public:
             static array<instance, static_cast<size_t>(view_id::count)> views;
 
             static inline matrix4x4& super_rotation = *reinterpret_cast<matrix4x4*>(0x00B1F5F0);
+        };
+
+        class mode final
+        {
+        public:
+            static auto current() -> view_mode;
+
+            static void update();
+
+            static void maybe_change();
+
+        private:
+            static inline view_mode& current_ = *reinterpret_cast<view_mode*>(0x00AB0A38);
         };
     };
 
