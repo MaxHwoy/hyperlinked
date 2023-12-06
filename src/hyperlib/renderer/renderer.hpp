@@ -53,6 +53,8 @@ namespace hyper
 
         static void handle_cursor();
 
+        static void on_frame_render();
+
     public:
         static void set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color);
 

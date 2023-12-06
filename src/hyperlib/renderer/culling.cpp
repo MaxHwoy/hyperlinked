@@ -59,7 +59,14 @@ namespace hyper
                 // no idea what nonsense flags were used in HDReflections (0x8002), but literally the ONLY way to make this reflect lights is to set it to...
                 // exclude_main_view, which INCLUDES the main view in the reflections????????
 #if defined(NFSCO)
-                flags |= instance_flags::exclude_main_view;
+                if (options::shader_detail >= 3)
+                {
+                    flags |= instance_flags::exclude_main_view;
+                }
+                else
+                {
+                    flags |= instance_flags::include_reflection_ng | instance_flags::include_reflection | instance_flags::envmap_shadow | instance_flags::environment_map;
+                }
 #else
                 flags |= instance_flags::include_reflection_ng | instance_flags::include_reflection | instance_flags::envmap_shadow | instance_flags::environment_map;
 #endif

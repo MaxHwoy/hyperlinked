@@ -40,7 +40,7 @@ namespace hyper
                         directx::device()->SetTexture(i, nullptr);
                     }
 
-                    if (game_flow::manager::instance.current_state == game_flow::state::racing)
+                    if (game_flow::manager::instance.current_state == game_flow::state::racing || options::shader_detail >= 3)
                     {
                         sky_renderer::render(env_map_view, sky_renderer::view_type::rvm_pip_env, 0.6f);
                     }

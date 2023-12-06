@@ -264,7 +264,7 @@ namespace hyper
         {
             renderer::envmap_calibration = true;
 
-            if (game_flow::manager::instance.current_state == game_flow::state::racing)
+            if (game_flow::manager::instance.current_state == game_flow::state::racing || options::shader_detail >= 3)
             {
                 for (const view_id id :
                 {
@@ -351,6 +351,11 @@ namespace hyper
     void renderer::handle_cursor()
     {
         call_function<void(__thiscall*)(void*)>(0x007316A0)(reinterpret_cast<void*>(0x00B1F634));
+    }
+
+    void renderer::on_frame_render()
+    {
+        call_function<void(__cdecl*)()>(0x00713010)();
     }
 
     void renderer::set_render_target(render_target& target, bool clear, ::D3DCOLOR clear_color)
@@ -554,6 +559,8 @@ namespace hyper
             }
 
             renderer::render_fe();
+
+            renderer::on_frame_render();
 
             renderer::end_scene();
         }
