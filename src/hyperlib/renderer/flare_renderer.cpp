@@ -308,7 +308,7 @@ namespace hyper
                     case view_id::env_x_neg:
                     case view_id::env_y_pos:
                     case view_id::env_y_neg:
-                        flare_pool::render_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
+                        flare_renderer::submit_flare(view, flare, nullptr, intensity, flare::reflection::none, flare::render::env, horiz_scaling, 0.0f, flare.tint, 1.0f);
                         break;
 
                     case view_id::player1_reflection:

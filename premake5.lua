@@ -147,7 +147,7 @@ workspace "hyperlinked"
 		libdirs("thirdparty/dxsdk/lib/x86")
 
 		links {
-			"d3d9",
+			"d3d9"
 		}
 
 	project "hyperconsole"
@@ -170,8 +170,7 @@ workspace "hyperlinked"
 
 		links {
 			"hyperlib",
-			"d3d9",
-			"d3dx9"
+			"d3d9"
 		}
 
 	project "hyperlinked"
@@ -202,5 +201,5 @@ workspace "hyperlinked"
 
 		links {
 			"hyperlib",
-			"d3d9",
+			"d3d9"
 		}

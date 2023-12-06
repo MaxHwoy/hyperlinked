@@ -1319,7 +1319,11 @@ namespace hyper
 
         static inline ::ID3DXEffectPool*& effect_pool = *reinterpret_cast<::ID3DXEffectPool**>(0x00AB0B84);
 
+        static inline decltype(&::D3DXCreateEffectFromResourceA) create_effect_from_resource = reinterpret_cast<decltype(&::D3DXCreateEffectFromResourceA)>(0x0086B2CC);
+
         static inline decltype(&::D3DXCreateEffectFromFileA) create_effect_from_file = nullptr;
+
+        static inline decltype(&::D3DXCreateEffectPool) create_effect_pool = reinterpret_cast<decltype(&::D3DXCreateEffectPool)>(0x0086B2C6);
 
     private:
         static inline bool& initilaized_ = *reinterpret_cast<bool*>(0x00B4302C);

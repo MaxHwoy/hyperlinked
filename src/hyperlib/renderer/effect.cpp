@@ -1,3 +1,4 @@
+#include <d3d9.h>
 #include <hyperlib/options.hpp>
 #include <hyperlib/global_vars.hpp>
 #include <hyperlib/utils/utils.hpp>
@@ -453,31 +454,25 @@ namespace hyper
 
     void effect::create_effect_from_resource(const effect::input* input)
     {
-        const auto device = directx::device();
-        const auto effect_pool = shader_lib::effect_pool;
-
         ::LPD3DXBUFFER errors;
 
 #if defined(NFSCO)
-        auto& buffer = effect::buffer_;
+        size_t size = std::size(effect::buffer_);
 
-        const auto size = std::size(buffer);
-        const auto name = input->resource;
+        ::snprintf(effect::buffer_, size, "NFSCO/shaders/%s.cso", input->resource);
 
-        ::snprintf(buffer, size, "NFSCO/shaders/%s.cso", name);
+        ::HRESULT result = shader_lib::create_effect_from_file(directx::device(), effect::buffer_, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
 
-        auto _result = shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
-
-        if (FAILED(_result))
+        if (FAILED(result))
         {
             // try to create the effect from an available source file.
-            ::snprintf(buffer, size, "NFSCO/shaders/%s.fx", name);
+            ::snprintf(effect::buffer_, size, "NFSCO/shaders/%s.fx", input->resource);
 
             // pray to god this works as printing from hyperlinked doesn't work in NFSCO.
-            shader_lib::create_effect_from_file(device, buffer, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+            shader_lib::create_effect_from_file(directx::device(), effect::buffer_, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
         }
 #else
-        ::D3DXCreateEffectFromResourceA(device, nullptr, input->resource, nullptr, nullptr, 0u, effect_pool, &this->effect_, &errors);
+        shader_lib::create_effect_from_resource(directx::device(), nullptr, input->resource, nullptr, nullptr, 0u, shader_lib::effect_pool, &this->effect_, &errors);
 #endif
     }
 
@@ -831,8 +826,6 @@ namespace hyper
         }
         else if ((world_renderer::use_lowlod_pass || use_low_lod) && this->low_lod_technique_number_ >= 0)
         {
-            effect_car::instance->low_lod_technique_number_ = 2;
-
             index = this->low_lod_technique_number_;
         }
         else
@@ -1568,27 +1561,24 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        const auto state = game_flow::manager::instance.current_state;
+        game_flow::state state = game_flow::manager::instance.current_state;
 
         if (state == game_flow::state::racing)
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::ingame_envmap_pull_amount);
         }
         else
         {
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
 
-        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        if (state == game_flow::state::racing || options::shader_detail >= 3)
         {
-            // if we are maxed out, or racing, use the cube map texture.
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
         }
         else
         {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::unk_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
         }
     }
 
@@ -1599,27 +1589,24 @@ namespace hyper
             this->set_texture(parameter_type::VOLUMEMAP_TEXTURE, env_map_render_target::car_volume);
         }
 
-        const auto state = game_flow::manager::instance.current_state;
+        game_flow::state state = game_flow::manager::instance.current_state;
 
         if (state == game_flow::state::racing)
         {
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::ingame_envmap_pull_amount);
         }
         else
         {
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::frontend_envmap_pull_amount);
+            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
 
-        if (directx::shader_detail >= 3 || state == game_flow::state::racing)
+        if (state == game_flow::state::racing || options::shader_detail >= 3)
         {
-            // if we are maxed out, or racing, use the cube map texture.
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, lighting::ingame_envmap_pull_amount);
         }
         else
         {
             this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
-            this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
     }
 
@@ -1854,13 +1841,13 @@ namespace hyper
 
     void shader_lib::init()
     {
-        // maybe this isn't the correct DLL to use? the game uses it, but sometimes it uses a higher one.
-        const auto handle = GetModuleHandleA("d3dx9_30.dll");
-        const auto procedure = GetProcAddress(handle, "D3DXCreateEffectFromFileA");
-        
-        ASSERT(handle && procedure);
+        ::HMODULE handle = ::GetModuleHandleA("d3dx9_30.dll");
 
-        shader_lib::create_effect_from_file = reinterpret_cast<decltype(&::D3DXCreateEffectFromFileA)>(procedure);
+        ASSERT(handle);
+
+        shader_lib::create_effect_from_file = reinterpret_cast<decltype(&::D3DXCreateEffectFromFileA)>(::GetProcAddress(handle, nameof(D3DXCreateEffectFromFileA)));
+
+        ASSERT(shader_lib::create_effect_from_file);
 
         for (effect::parameter_type i = effect::parameter_type::first; i < effect::parameter_type::count; ++i)
         {
@@ -1951,7 +1938,7 @@ namespace hyper
     {
         if (shader_lib::effect_pool == nullptr)
         {
-            ::D3DXCreateEffectPool(&shader_lib::effect_pool);
+            shader_lib::create_effect_pool(&shader_lib::effect_pool);
         }
     }
 

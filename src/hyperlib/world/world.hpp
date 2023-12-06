@@ -25,10 +25,10 @@ namespace hyper
     private:
         static inline const char* permanent_scenery_groups[] =
         {
-#ifndef NFSCO
-            "SCENERY_GROUP_CHRISTMAS",
-#else
+#if defined(NFSCO)
             "SCENERY_GROUP_CHRISTMAS_DISABLE",
+#else
+            "SCENERY_GROUP_CHRISTMAS",
 #endif
             "SCENERY_GROUP_DOOR",
             "SCENERY_GROUP_HALLOWEEN_DISABLE",
