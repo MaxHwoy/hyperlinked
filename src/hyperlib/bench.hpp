@@ -19,6 +19,23 @@ namespace hyper
             std::uint32_t id;
         };
 
+        struct sort_entry
+        {
+            std::uint64_t value;
+            std::uint32_t id;
+        };
+
+    public:
+        enum class sort_type : std::uint32_t
+        {
+            bench_id,
+            avg_time,
+            max_time,
+            total_time,
+            count,
+            first = 0,
+        };
+
     public:
         inline bench(std::uint32_t id);
 
@@ -27,11 +44,15 @@ namespace hyper
     public:
         static auto get_free_bench_id(const char* name) -> std::uint32_t;
 
+        static auto get_bench_id(std::uint32_t id) -> std::uint64_t;
+
         static auto get_current_average(std::uint32_t id) -> std::uint64_t;
 
         static auto get_total_average(std::uint32_t id) -> std::uint64_t;
 
-        static void print();
+        static auto get_max_execution(std::uint32_t id) -> std::uint64_t;
+
+        static void print(sort_type sort);
 
         static void reset();
 
