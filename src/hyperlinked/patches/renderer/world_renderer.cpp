@@ -163,6 +163,9 @@ namespace hyper
 
     void world_renderer_patches::init()
     {
+        // Set RenderingOrder array size to 0x2000
+        hook::set<std::uint32_t>(0x0072C326, 0x2000u);
+
         // RenderWorldInGame
         hook::jump(0x00727230, &detour_render_world_in_game);
 

@@ -56,11 +56,11 @@ namespace hyper
 
                         effect_screen_effect& effect = *effect_screen_effect::instance;
                         
-                        screen_effect::downsample_4x4_texture(effect, reflection_render_target::d3d_texture, screen.acquire_surface_2(screen_effect::downscale::d8x8), nullptr);
+                        screen_effect::downsample_4x4_texture(effect, reflection_render_target::d3d_texture, screen.acquire_surface_1(screen_effect::downscale::d4x4), nullptr);
 
                         screen_effect::set_gaussian_kernals(0.0f, -6.0f, 0.0f, 2.0f, 9.0f);
 
-                        screen_effect::multipass_gauss_blur(effect, screen.acquire_texture_2(screen_effect::downscale::d8x8), false, screen.acquire_surface_2(screen_effect::downscale::d4x4), 1.0f);
+                        screen_effect::multipass_gauss_blur(effect, screen.acquire_texture_1(screen_effect::downscale::d4x4), false, screen.acquire_surface_2(screen_effect::downscale::d4x4), 1.0f);
 
                         screen_effect::set_gaussian_kernals(0.0f, 0.0f, 1.0f, 1.0f, 3.0f);
 

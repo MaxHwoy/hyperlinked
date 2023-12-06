@@ -150,7 +150,7 @@ namespace hyper
             resolution = desc.Height;
         }
 
-        screen_effect::get_bloom_kernal_params(resolution, offsets, weights, 3.0f, multiplier, bloom_across_width);
+        screen_effect::get_bloom_kernal_params(resolution, offsets, weights, screen_effect::kernal_deviation_, multiplier, bloom_across_width);
 
         effect.set_current_pass(0u, "TwoPassBlur", false);
 

@@ -190,7 +190,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        if (world_renderer::rendering_model_count_ < world_renderer::rendering_models_.length())
+        if (world_renderer::rendering_model_count_ < std::size(world_renderer::rendering_models_))
         {
             rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_model_count_];
 
@@ -234,7 +234,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        if (world_renderer::rendering_model_count_ < world_renderer::rendering_models_.length())
+        if (world_renderer::rendering_model_count_ < std::size(world_renderer::rendering_models_))
         {
             rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_model_count_];
 

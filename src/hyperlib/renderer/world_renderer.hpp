@@ -101,7 +101,7 @@ namespace hyper
         static inline bool& use_lowlod_pass = *reinterpret_cast<bool*>(0x00AB0B98);
 
     private:
-        static inline array<rendering_model, 0x1000> rendering_models_ = array<rendering_model, 0x1000>(0x00AB2780);
+        static inline rendering_model rendering_models_[0x2000];
 
         static inline rendering_order*& rendering_orders_ = *reinterpret_cast<rendering_order**>(0x00B1DB90);
 
