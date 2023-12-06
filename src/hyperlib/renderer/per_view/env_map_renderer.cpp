@@ -27,6 +27,8 @@ namespace hyper
 
                     world_renderer::use_lowlod_pass = true;
 
+                    renderer::current_cull_mode = ::D3DCULL_CCW;
+
                     renderer::set_render_target(*target, true, color32::clear());
 
                     time_of_day::instance->update(env_map_view.rain->cloud_intensity);
@@ -69,6 +71,8 @@ namespace hyper
                     }
 
                     light_renderer::default_ingame_light_y = 1.0f;
+
+                    renderer::current_cull_mode = ::D3DCULL_CW;
 
                     world_renderer::use_lowlod_pass = false;
                 }

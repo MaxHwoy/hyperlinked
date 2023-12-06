@@ -78,14 +78,20 @@ namespace hyper
     private:
         static void render_internal();
 
+        static void draw_indexed_primitive(effect& effect, const rendering_model& model, const render_view& view);
+
     public:
         static void create_rendering_model(geometry::mesh_entry& entry, geometry::solid* solid, draw_flags flags, effect* effect, texture::info** textures, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca);
+
+        static void create_rendering_strip(strip& strip, draw_flags flags, effect* effect, texture::info* texture, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material);
 
         static void compute_sort_key(rendering_model& model);
 
         static void reset();
 
         static void render();
+
+        static void depth_prepass();
 
     public:
         static inline bool& draw_world = *reinterpret_cast<bool*>(0x00A63E0C);

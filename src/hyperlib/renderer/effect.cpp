@@ -609,6 +609,15 @@ namespace hyper
         this->last_used_light_context_ = nullptr;
     }
 
+    void effect::finalize()
+    {
+        this->end_effect_pass();
+        this->end();
+        this->end_effect();
+
+        effect::set_current_effect(nullptr);
+    }
+
     void effect::connect_parameters()
     {
         BENCHMARK();
@@ -1919,15 +1928,6 @@ namespace hyper
                 ptr->release_effect();
             }
         }
-    }
-
-    void shader_lib::end_effect(effect& eff)
-    {
-        eff.end_effect_pass();
-        eff.end();
-        eff.end_effect();
-
-        effect::set_current_effect(nullptr);
     }
 
     void shader_lib::recompute_techniques_by_detail(std::uint32_t detail_level)

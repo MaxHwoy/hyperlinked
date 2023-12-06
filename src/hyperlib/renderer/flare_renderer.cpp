@@ -725,7 +725,7 @@ namespace hyper
 
         poly_manager<flare_vertex>::render(particles, nullptr);
 
-        shader_lib::end_effect(particles);
+        particles.finalize();
 
         if (render_streaks)
         {
@@ -748,7 +748,7 @@ namespace hyper
 
             poly_manager<flare_vertex>::render(particles, this->streak_flares_texture_);
 
-            shader_lib::end_effect(particles);
+            particles.finalize();
         }
 
         directx::set_z_write_enable(true, true);

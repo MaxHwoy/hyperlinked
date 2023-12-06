@@ -47,6 +47,8 @@ namespace hyper
 
         static inline std::uint32_t& bloom_effect_supported = *reinterpret_cast<std::uint32_t*>(0x00A653FC);
 
+        static inline std::uint32_t& texture_blend_supported = *reinterpret_cast<std::uint32_t*>(0x00AB0B00);
+
         static inline bool& texture_animations_enabled = *reinterpret_cast<bool*>(0x00A65368);
 
         static inline bool& flares_and_streaks_enabled = *reinterpret_cast<bool*>(0x00A65364);

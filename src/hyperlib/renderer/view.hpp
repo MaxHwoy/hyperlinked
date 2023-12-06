@@ -5,6 +5,7 @@
 #include <hyperlib/assets/lights.hpp>
 #include <hyperlib/assets/geometry.hpp>
 #include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/screen_effect.hpp>
 
 namespace hyper
 {
@@ -23,8 +24,6 @@ namespace hyper
     {
         plane planes[static_cast<std::uint32_t>(clipping_plane_type::count)];
     };
-
-    class lighting;
 
     class view final
     {
@@ -123,7 +122,7 @@ namespace hyper
             std::uint32_t num_cops_total;
             std::uint32_t num_cops_cherry;
             struct rain* rain;
-            struct screen_effect_db* screen_effect;
+            screen_effect::db* screen_effect;
             struct face_pixelation* face_pixelation;
 
         public:

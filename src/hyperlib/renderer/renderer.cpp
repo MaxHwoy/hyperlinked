@@ -11,9 +11,9 @@
 #include <hyperlib/renderer/culling.hpp>
 #include <hyperlib/renderer/time_of_day.hpp>
 #include <hyperlib/renderer/post_process.hpp>
+#include <hyperlib/renderer/screen_effect.hpp>
 #include <hyperlib/renderer/fe_renderer.hpp>
 #include <hyperlib/renderer/fog_renderer.hpp>
-#include <hyperlib/renderer/blur_renderer.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
 #include <hyperlib/renderer/gauss_renderer.hpp>
 #include <hyperlib/renderer/flare_renderer.hpp>
@@ -264,8 +264,6 @@ namespace hyper
         {
             renderer::envmap_calibration = true;
 
-            renderer::current_cull_mode = ::D3DCULL_CCW;
-
             if (game_flow::manager::instance.current_state == game_flow::state::racing)
             {
                 for (const view_id id :
@@ -309,13 +307,6 @@ namespace hyper
         rvm_renderer::render(view::instance::views[view_id::player1_rvm], culler);
 
         renderer::reset_renderer_state();
-
-        if (options::motion_blur_enabled)
-        {
-            renderer::set_render_target(motion_blur_render_target::instance(), true, color32::white());
-
-            blur_renderer::render(blur_renderer::instance, view::instance::views[view_id::player1], culler);
-        }
 
         main_view_renderer::render(view::instance::views[view_id::player1], culler);
 
@@ -410,7 +401,7 @@ namespace hyper
 
         gauss_renderer::dtor(gauss_renderer::instance);
 
-        blur_renderer::dtor(blur_renderer::instance);
+        screen_effect::dtor(screen_effect::instance);
 
         fe_renderer::dtor(fe_renderer::instance);
         
@@ -443,7 +434,7 @@ namespace hyper
 
         if (options::visual_treatment || options::motion_blur_enabled || options::road_reflection_detail)
         {
-            blur_renderer::ctor(blur_renderer::instance);
+            screen_effect::ctor(screen_effect::instance);
         }
 
         rain_renderer::ctor(rain_renderer::instance);

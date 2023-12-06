@@ -320,6 +320,8 @@ namespace hyper
 
         void reset();
 
+        void finalize();
+
         void connect_parameters();
 
         void reset_filter_params();
@@ -386,6 +388,11 @@ namespace hyper
         inline bool has_low_lod_technique() const
         {
             return this->low_lod_technique_number_ > 0u;
+        }
+
+        inline auto get_vertex_declaration() const -> ::IDirect3DVertexDeclaration9*
+        {
+            return this->vertex_decl_;
         }
 
         inline void get_device()
@@ -1272,8 +1279,6 @@ namespace hyper
         static void reconnect_device();
 
         static void release();
-
-        static void end_effect(effect& eff);
 
         static void recompute_techniques_by_detail(std::uint32_t detail_level);
 

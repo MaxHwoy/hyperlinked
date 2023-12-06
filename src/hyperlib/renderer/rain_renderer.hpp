@@ -6,23 +6,6 @@
 
 namespace hyper
 {
-    enum class screen_effect_control : std::uint32_t
-    {
-        frame,
-        boolean,
-        function,
-    };
-
-    enum class screen_effect_type : std::uint32_t
-    {
-        tint,
-        motion_blur,
-        visual_sig,
-        glare,
-        fe_blur,
-        count,
-    };
-
     enum class curtain_status : std::uint32_t
     {
         inactive,
@@ -38,33 +21,9 @@ namespace hyper
         count,
     };
 
-    struct __declspec(align(0x04)) screen_effect_inf
-    {
-        screen_effect_control controller;
-        std::uint32_t frame_num;
-        bool active;
-    };
-
-    struct screen_effect_def
-    {
-        color color;
-        float intensity;
-        float data[14];
-        void(__cdecl* update)(screen_effect_type, struct screen_effect_db*);
-    };
-
-    struct screen_effect_db
-    {
-        struct view_base* view;
-        screen_effect_inf se_inf[5];
-        screen_effect_def se_data[5];
-        std::uint32_t num_type[5];
-        float se_time;
-    };
-
     struct face_pixelation
     {
-        struct view_base* view;
+        view::base* view;
         vector2 screen;
     };
 
@@ -190,9 +149,6 @@ namespace hyper
         static inline std::uint32_t& max_rain_polies_ = *reinterpret_cast<std::uint32_t*>(0x009E7FD4);
     };
 
-    ASSERT_SIZE(screen_effect_inf, 0x0C);
-    ASSERT_SIZE(screen_effect_def, 0x50);
-    ASSERT_SIZE(screen_effect_db, 0x1E8);
     ASSERT_SIZE(on_screen_rain_entry, 0x1C);
     ASSERT_SIZE(on_screen_rain, 0x234);
     ASSERT_SIZE(rain, 0x5180);

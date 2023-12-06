@@ -28,7 +28,7 @@ namespace hyper
             {
                 if (effect != nullptr)
                 {
-                    shader_lib::end_effect(*effect);
+                    effect->finalize();
                 }
 
                 model.effect->set_current_pass(0u, nullptr, model.use_low_lod);
@@ -146,13 +146,44 @@ namespace hyper
 
         if (effect != nullptr)
         {
-            shader_lib::end_effect(*effect);
+            effect->finalize();
         }
 
         world_renderer::currently_set_index_buffer_ = nullptr;
         world_renderer::currently_set_vertex_buffer_ = nullptr;
         world_renderer::rendering_model_count_ = 0u;
         world_renderer::some_value_00AB0BEC = 0u;
+    }
+
+    void world_renderer::draw_indexed_primitive(effect& effect, const rendering_model& model, const render_view& view)
+    {
+        const geometry::mesh_entry& entry = *model.mesh.entry;
+
+        if (entry.vertex_count != 0u && entry.d3d_vertex_buffer != nullptr)
+        {
+            if (model.local_to_world == nullptr)
+            {
+                effect.set_matrix(effect::parameter_type::WorldViewProj, view.view_projection_matrix);
+            }
+            else
+            {
+                matrix4x4 world_view_proj;
+
+                math::multiply_matrix(*model.local_to_world, view.view_projection_matrix, world_view_proj);
+
+                effect.set_matrix(effect::parameter_type::WorldViewProj, world_view_proj);
+            }
+
+            directx::device()->SetStreamSource(0u, entry.d3d_vertex_buffer, 0u, model.effect->stride());
+
+            directx::device()->SetVertexDeclaration(model.effect->get_vertex_declaration());
+
+            directx::device()->SetIndices(model.solid->pinfo->d3d_index_buffer);
+
+            effect.commit_changes();
+
+            directx::device()->DrawIndexedPrimitive(::D3DPT_TRIANGLELIST, 0u, 0u, entry.d3d_vertex_count, entry.index_start, entry.triangle_count);
+        }
     }
 
     void world_renderer::create_rendering_model(geometry::mesh_entry& entry, geometry::solid* solid, draw_flags flags, hyper::effect* effect, texture::info** textures, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material, const matrix4x4* blend_trs, pca::blend_data* pca)
@@ -187,6 +218,50 @@ namespace hyper
             model.null = nullptr;
             model.negative_one = -1.0f;
             model.blend_data = pca;
+            model.use_low_lod = effect->has_low_lod_technique() && (flags & draw_flags::use_low_lod) != 0u;
+            model.render_bits.wants_auxiliary_textures = true;
+
+            world_renderer::compute_sort_key(model);
+
+            rendering_order& order = world_renderer::rendering_orders_[world_renderer::rendering_model_count_];
+
+            order.model_index = world_renderer::rendering_model_count_++;
+            order.sort_flags = model.sort_flags;
+        }
+    }
+
+    void world_renderer::create_rendering_strip(strip& strip, draw_flags flags, effect* effect, texture::info* texture, const matrix4x4* trs, const light::context::dynamic* context, const light_material::instance* material)
+    {
+        BENCHMARK();
+
+        if (world_renderer::rendering_model_count_ < world_renderer::rendering_models_.length())
+        {
+            rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_model_count_];
+
+            model.base_texture_info = texture;
+            model.diffuse_texture_info = texture;
+            model.normal_texture_info = texture;
+            model.height_texture_info = texture;
+            model.specular_texture_info = texture;
+            model.opacity_texture_info = texture;
+            model.d3d9_diffuse_texture = texture->pinfo->texture;
+            model.d3d9_normal_texture = texture->pinfo->texture;
+            model.d3d9_height_texture = texture->pinfo->texture;
+            model.d3d9_specular_texture = texture->pinfo->texture;
+            model.d3d9_opacity_texture = texture->pinfo->texture;
+            model.render_bits = texture->pinfo->state;
+            model.light_context = context;
+            model.light_material = material;
+            model.solid = nullptr;
+            model.mesh.strip = &strip;
+            model.blending_matrices = nullptr;
+            model.local_to_world = trs;
+            model.is_tri_stripped = true;
+            model.flags = flags;
+            model.effect = effect;
+            model.null = nullptr;
+            model.negative_one = -1.0f;
+            model.blend_data = nullptr;
             model.use_low_lod = effect->has_low_lod_technique() && (flags & draw_flags::use_low_lod) != 0u;
             model.render_bits.wants_auxiliary_textures = true;
 
@@ -263,5 +338,84 @@ namespace hyper
 
             world_renderer::some_value_00A65240 = -1;
         }
+    }
+
+    void world_renderer::depth_prepass()
+    {
+        if (effect_world_depth::instance == nullptr)
+        {
+            return;
+        }
+
+        std::uint32_t count = world_renderer::rendering_model_count_;
+
+        if (count == 0u)
+        {
+            return;
+        }
+
+        BENCHMARK();
+
+        const render_view& view = render_view::views[render_target::current->view_id];
+
+        effect_world_depth& effect = *effect_world_depth::instance;
+
+        directx::device()->SetRenderState(::D3DRS_ALPHAFUNC, ::D3DCMP_GREATEREQUAL);
+
+        effect.set_current_pass(0u, "skinned", false);
+
+        for (std::uint32_t i = 0u; i < count; ++i)
+        {
+            rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_orders_[i].model_index];
+
+            if (!model.is_tri_stripped && model.blending_matrices != nullptr)
+            {
+                effect.set_blend_matrices(model.blending_matrices, *model.mesh.entry);
+
+                world_renderer::draw_indexed_primitive(effect, model, view);
+            }
+        }
+
+        effect.finalize();
+
+        effect.set_current_pass(0u, "world", false);
+
+        for (std::uint32_t i = 0u; i < count; ++i)
+        {
+            rendering_model& model = world_renderer::rendering_models_[world_renderer::rendering_orders_[i].model_index];
+
+            if (model.is_tri_stripped || model.blending_matrices != nullptr)
+            {
+                if (model.is_tri_stripped)
+                {
+                    strip::pool->free(model.mesh.strip);
+                }
+            }
+            else
+            {
+                if (model.render_bits.z_write_enabled)
+                {
+                    effect.set_texture(effect::parameter_type::DIFFUSEMAP_TEXTURE, model.d3d9_diffuse_texture);
+
+                    if (model.render_bits.multi_pass_blend)
+                    {
+                        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, true);
+
+                        directx::device()->SetRenderState(::D3DRS_ALPHAREF, model.render_bits.alpha_test_ref << 4);
+                    }
+                    else
+                    {
+                        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, false);
+                    }
+
+                    world_renderer::draw_indexed_primitive(effect, model, view);
+                }
+            }
+        }
+
+        effect.finalize();
+
+        world_renderer::rendering_model_count_ = 0u;
+        world_renderer::some_value_00AB0BEC = 0u;
     }
 }
