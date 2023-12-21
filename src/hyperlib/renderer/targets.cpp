@@ -636,6 +636,31 @@ namespace hyper
         }
     }
 
+    bool render_view::get_has_camera() const
+    {
+        return call_function<bool(__thiscall*)(const render_view*)>(0x0073EC60)(this);
+    }
+
+    auto render_view::get_focal_distance() const -> float
+    {
+        return call_function<float(__thiscall*)(const render_view*)>(0x0073ECA0)(this);
+    }
+
+    auto render_view::get_camera_dof() const -> float
+    {
+        return call_function<float(__thiscall*)(const render_view*)>(0x0073ECB0)(this);
+    }
+
+    auto render_view::get_camera_dof_falloff() const -> float
+    {
+        return call_function<float(__thiscall*)(const render_view*)>(0x0073ECC0)(this);
+    }
+
+    auto render_view::get_camera_dof_max_intensity() const -> float
+    {
+        return call_function<float(__thiscall*)(const render_view*)>(0x0073ECD0)(this);
+    }
+
     void render_view::update(const view::instance& view)
     {
         const camera* camera = view.camera;

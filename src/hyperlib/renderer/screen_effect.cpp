@@ -76,6 +76,11 @@ namespace hyper
         call_function<void(__cdecl*)(std::uint32_t, std::uint32_t, vector4*)>(0x0073CC10)(width, height, offsets);
     }
 
+    void screen_effect::gauss_blur_kernal_5x5(std::uint32_t width, std::uint32_t height, vector4(&offsets)[16], vector4(&weights)[16], float deviation)
+    {
+        call_function<void(__cdecl*)(std::uint32_t, std::uint32_t, vector4*, vector4*, float)>(0x0073C670)(width, height, offsets, weights, deviation);
+    }
+
     void screen_effect::ctor(screen_effect& screen)
     {
         new (&screen) screen_effect();
@@ -128,6 +133,38 @@ namespace hyper
         effect.draw_full_screen_quad(texture_src, false);
 
         effect.finalize();
+    }
+
+    void screen_effect::gauss_blur_5x5_texture(effect& effect, ::IDirect3DTexture9* texture_src, ::IDirect3DTexture9* texture_dst, std::uint32_t level)
+    {
+        vector4 offsets[16];
+        vector4 weights[16];
+
+        ::IDirect3DSurface9* surface_dst;
+
+        texture_dst->GetSurfaceLevel(level, &surface_dst);
+
+        directx::device()->SetRenderTarget(0u, surface_dst);
+        directx::device()->SetDepthStencilSurface(nullptr);
+        directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET, color32::clear(), 1.0f, 0u);
+
+        ::D3DSURFACE_DESC desc;
+
+        texture_src->GetLevelDesc(0u, &desc);
+
+        screen_effect::gauss_blur_kernal_5x5(desc.Width, desc.Height, offsets, weights, 1.0f);
+
+        effect.set_current_pass(0u, "GaussBlur5x5", false);
+
+        effect.set_vector_array(effect::parameter_type::cavSampleOffsets, offsets, std::size(offsets));
+
+        effect.set_vector_array(effect::parameter_type::cavSampleWeights, weights, std::size(weights));
+
+        effect.draw_full_screen_quad(texture_src, false);
+
+        effect.finalize();
+
+        surface_dst->Release();
     }
 
     void screen_effect::multipass_gauss_blur(effect& effect, ::IDirect3DTexture9* texture_src, bool bloom_across_width, ::IDirect3DSurface9* surface_dst, float multiplier)

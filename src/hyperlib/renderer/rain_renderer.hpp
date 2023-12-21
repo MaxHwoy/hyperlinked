@@ -21,12 +21,6 @@ namespace hyper
         count,
     };
 
-    struct face_pixelation
-    {
-        view::base* view;
-        vector2 screen;
-    };
-
     struct on_screen_rain_entry
     {
         float data[6];
@@ -124,6 +118,8 @@ namespace hyper
         rain_renderer(std::uint32_t vertex_format, std::uint32_t max_polies);
 
         ~rain_renderer();
+
+        bool render(::IDirect3DSurface9* surface_dst, ::IDirect3DTexture9* texture_src);
 
     public:
         static void ctor(rain_renderer& renderer);

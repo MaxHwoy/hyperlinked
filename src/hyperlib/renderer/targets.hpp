@@ -603,6 +603,16 @@ namespace hyper
     struct __declspec(align(0x10)) render_view
     {
     public:
+        bool get_has_camera() const;
+
+        auto get_focal_distance() const -> float;
+
+        auto get_camera_dof() const -> float;
+
+        auto get_camera_dof_falloff() const -> float;
+
+        auto get_camera_dof_max_intensity() const -> float;
+
         void update(const view::instance& view);
 
     public:

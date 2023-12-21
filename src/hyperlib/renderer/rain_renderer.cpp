@@ -69,6 +69,11 @@ namespace hyper
         }
     }
 
+    bool rain_renderer::render(::IDirect3DSurface9* surface_dst, ::IDirect3DTexture9* texture_src)
+    {
+        return call_function<bool(__cdecl*)(::IDirect3DSurface9*, ::IDirect3DTexture9*)>(0x00722CB0)(surface_dst, texture_src);
+    }
+
     void rain_renderer::ctor(rain_renderer& renderer)
     {
         new (&renderer) rain_renderer(0u, rain_renderer::max_rain_polies_);

@@ -1,5 +1,11 @@
-#include <hyperlib/renderer/post_process.hpp>
+#include <hyperlib/gameplay/game_flow.hpp>
 #include <hyperlib/renderer/targets.hpp>
+#include <hyperlib/renderer/depth_of_field.hpp>
+#include <hyperlib/renderer/screen_effect.hpp>
+#include <hyperlib/renderer/face_pixelation.hpp>
+#include <hyperlib/renderer/post_process.hpp>
+#include <hyperlib/renderer/rain_renderer.hpp>
+#include <hyperlib/renderer/visual_treatment.hpp>
 
 namespace hyper
 {
@@ -68,6 +74,11 @@ namespace hyper
         }
     }
 
+    bool post_process::can_do_noise(const post_process& process, const screen_effect& screen)
+    {
+        return process.textures_[0] != nullptr && screen.acquire_texture_2(screen_effect::downscale::d8x8);
+    }
+
     void post_process::ctor(post_process& process)
     {
         new (&process) post_process();
@@ -80,6 +91,101 @@ namespace hyper
 
     void post_process::apply(post_process& process, const view::instance& view)
     {
-        call_function<void(__cdecl*)(const view::instance&)>(0x00729770)(view);
+        bool rain_enabled = game_flow::manager::instance.current_state == game_flow::state::racing && options::rain_enabled && options::particles_enabled;
+
+        bool pixelate = options::bone_animations_enabled && face_pixelation::enabled && post_process::can_do_noise(process, screen_effect::instance);
+
+        bool vt_enabled = options::visual_treatment > 0u;
+
+        render_target& vt_target = vt_render_target::instance();
+
+        render_target& main_target = player_render_target::instance();
+
+        if (vt_enabled || pixelate || rain_enabled)
+        {
+            BENCHMARK();
+
+            directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, false);
+            directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, false);
+            directx::device()->StretchRect(main_target.d3d_target, nullptr, post_process::get_current_surface(process), nullptr, ::D3DTEXF_NONE);
+
+            if (rain_enabled)
+            {
+                directx::device()->StretchRect(main_target.d3d_target, nullptr, post_process::get_next_surface(process), nullptr, ::D3DTEXF_NONE);
+
+                if (rain_renderer::instance.render(post_process::get_next_surface(process), post_process::get_current_texture(process)))
+                {
+                    post_process::rotate_current_surface();
+                }
+            }
+
+            if (pixelate && view.face_pixelation != nullptr)
+            {
+                view.face_pixelation->update();
+
+                view.face_pixelation->render(post_process::get_current_texture(process));
+            }
+
+            if (vt_enabled)
+            {
+                depth_of_field::instance.update(post_process::get_current_texture(process), false);
+
+                visual_treatment::instance->final_render(view_id::player1, post_process::get_current_texture(process), motion_blur_render_target::d3d_texture);
+            }
+            else
+            {
+                directx::device()->StretchRect(post_process::get_current_surface(process), nullptr, vt_target.d3d_target, nullptr, ::D3DTEXF_NONE);
+            }
+        }
+        else if (vt_target.d3d_target != main_target.d3d_target)
+        {
+            directx::device()->StretchRect(main_target.d3d_target, nullptr, vt_target.d3d_target, nullptr, ::D3DTEXF_NONE);
+        }
+    }
+
+    auto post_process::get_current_texture(const post_process& process) -> ::IDirect3DTexture9*
+    {
+        return process.textures_[post_process::current_index_];
+    }
+
+    auto post_process::get_current_surface(const post_process& process) -> ::IDirect3DSurface9*
+    {
+        return process.surfaces_[post_process::current_index_];
+    }
+
+    auto post_process::get_next_texture(const post_process& process) -> ::IDirect3DTexture9*
+    {
+        if constexpr (math::is_pow_2(post_process::target_count))
+        {
+            return process.textures_[(post_process::current_index_ + 1) & (post_process::target_count - 1u)];
+        }
+        else
+        {
+            return process.textures_[(post_process::current_index_ + 1) % post_process::target_count];
+        }
+    }
+
+    auto post_process::get_next_surface(const post_process& process) -> ::IDirect3DSurface9*
+    {
+        if constexpr (math::is_pow_2(post_process::target_count))
+        {
+            return process.surfaces_[(post_process::current_index_ + 1) & (post_process::target_count - 1u)];
+        }
+        else
+        {
+            return process.surfaces_[(post_process::current_index_ + 1) % post_process::target_count];
+        }
+    }
+
+    void post_process::rotate_current_surface()
+    {
+        if constexpr (math::is_pow_2(post_process::target_count))
+        {
+            post_process::current_index_ = (post_process::current_index_ + 1) & (post_process::target_count - 1u);
+        }
+        else
+        {
+            post_process::current_index_ = (post_process::current_index_ + 1) % post_process::target_count;
+        }
     }
 }
