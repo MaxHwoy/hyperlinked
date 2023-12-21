@@ -161,6 +161,35 @@ namespace hyper
         }
     }
 
+    __declspec(naked) void detour_depth_shader_prepass()
+    {
+        __asm
+        {
+            // [esp + 0x00] is 'return address'
+
+            // esp is auto-managed, non-incremental
+            // ebp is auto-managed, restored on function return
+
+            push eax; // 'return address' is now at [esp + 0x04]
+            push ebx; // 'return address' is now at [esp + 0x08]
+            push ecx; // 'return address' is now at [esp + 0x0C]
+            push edx; // 'return address' is now at [esp + 0x10]
+            push esi; // 'return address' is now at [esp + 0x14]
+            push edi; // 'return address' is now at [esp + 0x18]
+
+            call world_renderer::depth_prepass; // call custom depth_prepass
+
+            pop edi; // restore saved register
+            pop esi; // restore saved register
+            pop edx; // restore saved register
+            pop ecx; // restore saved register
+            pop ebx; // restore saved register
+            pop eax; // restore saved register
+
+            retn; // return immediately to caller function, not back to DepthShaderPrepass
+        }
+    }
+
     void world_renderer_patches::init()
     {
         // Set RenderingOrder array size to 0x2000
@@ -177,5 +206,8 @@ namespace hyper
 
         // SortModelsAndDrawWorld
         hook::jump(0x0072C9B0, &detour_sort_models_and_draw_world);
+
+        // DepthShaderPrepass
+        hook::jump(0x007275A0, &detour_depth_shader_prepass);
     }
 }

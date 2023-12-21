@@ -3,6 +3,7 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/vault/attrib.hpp>
+#include <hyperlib/renderer/enums.hpp>
 
 namespace hyper
 {
@@ -34,6 +35,9 @@ namespace hyper
             float current;
             float target;
         };
+
+    public:
+        void final_render(view_id id, ::IDirect3DTexture9* back_buffer, ::IDirect3DTexture9* depth_buffer);
 
     public:
         look state;

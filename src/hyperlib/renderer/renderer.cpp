@@ -12,10 +12,10 @@
 #include <hyperlib/renderer/time_of_day.hpp>
 #include <hyperlib/renderer/post_process.hpp>
 #include <hyperlib/renderer/screen_effect.hpp>
+#include <hyperlib/renderer/depth_of_field.hpp>
 #include <hyperlib/renderer/fe_renderer.hpp>
 #include <hyperlib/renderer/fog_renderer.hpp>
 #include <hyperlib/renderer/rain_renderer.hpp>
-#include <hyperlib/renderer/gauss_renderer.hpp>
 #include <hyperlib/renderer/flare_renderer.hpp>
 #include <hyperlib/renderer/world_renderer.hpp>
 #include <hyperlib/renderer/per_view/rvm_renderer.hpp>
@@ -216,7 +216,7 @@ namespace hyper
     {
         BENCHMARK();
 
-        if (!options::bone_animations_supported)
+        if (!options::bone_animations_enabled)
         {
             options::nis_anim_scene_disabled = true;
         }
@@ -404,7 +404,7 @@ namespace hyper
 
         renderer::close_render_targets();
 
-        gauss_renderer::dtor(gauss_renderer::instance);
+        depth_of_field::dtor(depth_of_field::instance);
 
         screen_effect::dtor(screen_effect::instance);
 
@@ -433,7 +433,7 @@ namespace hyper
 
         post_process::ctor(post_process::instance);
 
-        gauss_renderer::ctor(gauss_renderer::instance);
+        depth_of_field::ctor(depth_of_field::instance);
 
         call_function<void(__cdecl*)()>(0x0070FCF0)(); // eInitFEEnvMapPlat
 

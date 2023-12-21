@@ -35,7 +35,7 @@ namespace hyper
 
                     directx::set_z_write_enable(false, false);
 
-                    for (std::uint32_t i = 0u; i < 8u; ++i)
+                    for (std::uint32_t i = 0u; i < 8u; ++i) // #TODO 8 = directx::device_caps.MaxTextureBlendStages ?
                     {
                         directx::device()->SetTexture(i, nullptr);
                     }
