@@ -5,7 +5,7 @@
 
 namespace hyper
 {
-    class particle_renderer final
+    class skid_renderer final
     {
     public:
         static void render(const view::instance& view);

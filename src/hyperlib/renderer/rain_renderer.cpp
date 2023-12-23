@@ -3,6 +3,11 @@
 
 namespace hyper
 {
+    void rain::update_and_render()
+    {
+        call_function<void(__thiscall*)(rain*)>(0x007D8240)(this);
+    }
+
     rain_renderer::rain_renderer(std::uint32_t vertex_format, std::uint32_t max_polies)
     {
         this->vertex_size_ = sizeof(rain_renderer::poly::vertices[0]);

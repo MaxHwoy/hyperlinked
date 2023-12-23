@@ -123,7 +123,7 @@ namespace hyper
             std::uint32_t num_cops_cherry;
             struct rain* rain;
             screen_effect::db* screen_effect;
-            struct face_pixelation* face_pixelation;
+            class face_pixelation* face_pixelation;
 
         public:
             static array<instance, static_cast<size_t>(view_id::count)> views;

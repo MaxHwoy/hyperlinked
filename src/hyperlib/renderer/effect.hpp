@@ -306,7 +306,7 @@ namespace hyper
     public:
         virtual ~effect();
         virtual void handle_material_data(const light_material::instance& material, draw_flags flags);
-        virtual void set_transforms(const matrix4x4& local_to_world, const struct render_view& view, bool use_nonjittered);
+        virtual void set_transforms(const matrix4x4& local_to_world, const class render_view& view, bool use_nonjittered);
         virtual void draw_full_screen_quad(::IDirect3DTexture9* texture, bool invert);
         virtual void start();
         virtual void end();
@@ -337,6 +337,8 @@ namespace hyper
         auto find_techique(const char* name) -> technique*;
 
         void set_technique(const char* name);
+
+        void set_current_pass(std::uint32_t pass);
 
         void set_current_pass(std::uint32_t pass, const char* technique, bool use_low_lod);
 

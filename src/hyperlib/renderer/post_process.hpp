@@ -5,6 +5,8 @@
 
 namespace hyper
 {
+    class visual_treatment;
+
     class post_process final
     {
     public:
@@ -24,6 +26,12 @@ namespace hyper
         static void dtor(post_process& process);
 
         static void apply(post_process& process, const view::instance& view);
+
+        static void do_motion_blur(post_process& process, visual_treatment& vt, view_id id);
+
+        static void do_uves_over_cliff(post_process& process, visual_treatment& vt, view_id id);
+
+        static void do_uves_over_cliff_darken(post_process& process, visual_treatment& vt, view_id id);
 
         static auto get_current_texture(const post_process& process) -> ::IDirect3DTexture9*;
 

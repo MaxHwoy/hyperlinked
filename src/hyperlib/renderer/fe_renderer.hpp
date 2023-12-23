@@ -18,6 +18,9 @@ namespace hyper
         prelit_pool(std::uint32_t max_poly);
 
     public:
+        void render(const class render_view& view);
+
+    public:
         static void ctor(prelit_pool& pool);
 
         static void dtor(prelit_pool& pool);

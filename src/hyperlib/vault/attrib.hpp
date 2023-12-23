@@ -1,6 +1,8 @@
 #pragma once
 
 #include <hyperlib/shared.hpp>
+#include <hyperlib/collections/bstl.hpp>
+#include <hyperlib/collections/eastl.hpp>
 
 #define ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(T, KEY)                                   \
     inline T(std::uint32_t collection_key) : instance::instance(KEY, collection_key) \
@@ -155,6 +157,10 @@ namespace hyper
 
             std::int8_t max;
             std::int8_t flags;
+        };
+
+        struct key_list : public eastl::list<std::uint32_t, bstl::allocator>
+        {
         };
 
         struct key_map
@@ -398,6 +404,141 @@ namespace hyper
         class gen final
         {
         public:
+            struct emitterdata : public attrib::instance
+            {
+                enum class effect_particle_animation : std::uint32_t
+                {
+                    particle_none = 0x0,
+                    particle_2x2 = 0x2,
+                    particle_4x4 = 0x4,
+                    particle_8x8 = 0x8,
+                    particle_16x16 = 0x10,
+                };
+
+                enum class emitter_post_processing_effect : std::uint32_t
+                {
+                    none,
+                    smoke,
+                };
+
+                enum class effect_particle_constraint : std::uint32_t
+                {
+                    none = 0x0,
+                    xy_axis = 0x6,
+                    xz_axis = 0x5,
+                    yz_axis = 0x3,
+                    camera = 0x8,
+                };
+
+                struct __declspec(align(0x04)) particle_animation_info
+                {
+                    effect_particle_animation anim_type;
+                    std::uint8_t fps;
+                    std::uint8_t random_start_frame;
+                };
+
+                struct particle_texture_record
+                {
+                    std::uint32_t texture_key;
+                    std::uint32_t index;
+                };
+
+                struct layout
+                {
+                    vector4 volume_extent;
+                    vector4 volume_center;
+                    vector4 velocity_start;
+                    vector4 velocity_delta;
+                    vector4 size;
+                    vector4 key_positions;
+                    vector4 accel_start;
+                    vector4 accel_delta;
+                    const char* collection_name;
+                    particle_animation_info texture_animation;
+                    particle_texture_record texture_record;
+                    bool start_delay_random_variance;
+                    float start_delay;
+                    std::int32_t spread_as_disc;
+                    float spread_angle;
+                    float speed_variance;
+                    float speed;
+                    float size_variance;
+                    float rotation_variance;
+                    float rotational_velocity_end;
+                    float rotational_velocity;
+                    std::int32_t random_rotation_direction;
+                    emitter_post_processing_effect post_processing_effect;
+                    float on_cycle_variance;
+                    float on_cycle;
+                    float off_cycle_variance;
+                    float off_cycle;
+                    float num_particles_variance;
+                    float num_particles;
+                    std::int32_t motion_live;
+                    float motion_inherit_variance;
+                    float motion_inherit;
+                    float life_variance;
+                    float life;
+                    bool is_one_shot;
+                    float initial_angle_range;
+                    float gravity;
+                    float far_clip;
+                    bool eliminate_unnecessary_randomness;
+                    float drag;
+                    float color_variance;
+                    color32 color4;
+                    color32 color3;
+                    color32 color2;
+                    color32 color1;
+                    float bounce_dampen;
+                    effect_particle_constraint axis_constraint;
+                };
+
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(emitterdata, hashing::vlt_const(nameof(emitterdata)))
+            };
+
+            struct lightstreak : public attrib::instance
+            {
+                enum class spline_type : std::uint32_t
+                {
+                    GATE_CAR_SELECT_01 = 0x87F7F734,
+                    GATE_CAR_SELECT_02 = 0x87F7F735,
+                    GATE_MAIN_MENU_01 = 0xFBE95558,
+                    GATE_MAIN_MENU_02 = 0xFBE95559,
+                    GATE_MAIN_MENU_03 = 0xFBE9555A,
+                    GATE_MAIN_MENU_04 = 0xFBE9555B,
+                    GATE_MAIN_MENU_05 = 0xFBE9555C,
+                    GATE_MAIN_MENU_06 = 0xFBE9555D,
+                    GATE_OVERCLIFF_01 = 0x3AAE6DBF,
+                    GATE_OVERCLIFF_02 = 0x3AAE6DC0,
+                    GATE_OVERCLIFF_03 = 0x3AAE6DC1,
+                    GATE_QUICKMATCH_01 = 0x34051CC9,
+                    GATE_QUICKMATCH_02 = 0x34051CCA,
+                    GATE_RESUME_CAREER_01 = 0x5CDD5201,
+                    GATE_RESUME_CAREER_02 = 0x5CDD5202,
+                    GATE_STATISTICS_01 = 0xF91FB26A,
+                    GATE_STATISTICS_02 = 0xF91FB26B,
+                };
+
+                struct spline_record
+                {
+                    spline_type type;
+                    std::uint32_t index;
+                };
+
+                struct layout
+                {
+                    attrib::ref_spec acid_effect;
+                    spline_record path;
+                    std::uint32_t vertices_per_streak;
+                    float speed;
+                    float length;
+                    float finish_up_time;
+                };
+
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(lightstreak, hashing::vlt_const(nameof(lightstreak)))
+            };
+
             struct timeofdaylighting : public attrib::instance
             {
                 struct layout
@@ -428,7 +569,7 @@ namespace hyper
                     float desaturation;
                 };
 
-                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallook, hashing::vlt_const(nameof(visuallook)));
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallook, hashing::vlt_const(nameof(visuallook)))
             };
 
             struct visuallookeffect : public attrib::instance
@@ -442,7 +583,7 @@ namespace hyper
                     float testvalue;
                 };
 
-                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallookeffect, hashing::vlt_const(nameof(visuallookeffect)));
+                ATTRIB_DEFINE_INSTANCE_CONSTRUCTOR(visuallookeffect, hashing::vlt_const(nameof(visuallookeffect)))
             };
         };
     };
@@ -472,6 +613,13 @@ namespace hyper
     ASSERT_SIZE(attrib::class_table::node, 0x0C);
     ASSERT_SIZE(attrib::class_table, 0x0C);
     
+    ASSERT_SIZE(attrib::gen::emitterdata, 0x10);
+    ASSERT_SIZE(attrib::gen::emitterdata::particle_animation_info, 0x08);
+    ASSERT_SIZE(attrib::gen::emitterdata::particle_texture_record, 0x08);
+    ASSERT_SIZE(attrib::gen::emitterdata::layout, 0x124);
+    ASSERT_SIZE(attrib::gen::lightstreak, 0x10);
+    ASSERT_SIZE(attrib::gen::lightstreak::spline_record, 0x08);
+    ASSERT_SIZE(attrib::gen::lightstreak::layout, 0x24);
     ASSERT_SIZE(attrib::gen::timeofdaylighting, 0x10);
     ASSERT_SIZE(attrib::gen::timeofdaylighting::layout, 0x64);
     ASSERT_SIZE(attrib::gen::visuallook, 0x10);

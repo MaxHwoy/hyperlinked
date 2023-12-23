@@ -35,6 +35,10 @@ namespace hyper
 
     struct rain
     {
+    public:
+        void update_and_render();
+
+    public:
         on_screen_rain screen_rain;
         __declspec(align(0x04)) bool no_rain;
         __declspec(align(0x04)) bool no_rain_ahead;

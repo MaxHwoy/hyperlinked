@@ -34,7 +34,7 @@ namespace hyper
 
                     world_renderer::render();
 
-                    vehicle_render_conn::render(rvm_view, false);
+                    vehicle_render_conn::render_world(rvm_view, false);
 
                     world_renderer::render();
 

@@ -848,6 +848,18 @@ namespace hyper
         }
     };
 
+    struct bound_box_2d
+    {
+        vector2 min;
+        vector2 max;
+    };
+
+    struct bound_box_3d
+    {
+        vector3pad min;
+        vector3pad max;
+    };
+
     enum class space_axis : std::int8_t
     {
         nz = -3,

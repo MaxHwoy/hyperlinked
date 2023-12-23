@@ -61,6 +61,8 @@ namespace hyper
 
         static inline bool& nis_anim_scene_disabled = *reinterpret_cast<bool*>(0x00AB0A9C);
 
+        static inline bool& car_guys_camera = *reinterpret_cast<bool*>(0x00A9E6C8);
+
         static inline array<char, 260u> screenshot_directory = array<char, 260u>(0x00AB0738);
     };
 }

@@ -3,6 +3,11 @@
 
 namespace hyper
 {
+    void set_current_pass_internal(effect* eff, std::uint32_t pass, const char* technique, bool use_low_lod)
+    {
+        eff->set_current_pass(pass, technique, use_low_lod);
+    }
+
     __declspec(naked) void detour_e_effect_dtor()
     {
         __asm
@@ -369,10 +374,11 @@ namespace hyper
             push [esp + 0x24]; // repush 'use_low_lod'
             push [esp + 0x24]; // repush 'technique'
             push [esp + 0x24]; // repush 'pass'
+            push ecx;          // push pointer to effect
 
-            call effect::set_current_pass; // call custom set_current_pass
+            call set_current_pass_internal; // call custom set_current_pass
 
-            // no need to restore esp since 'set_current_pass' is a __thiscall
+            add esp, 0x10; // since we repushed all arguments
 
             pop edi; // restore saved register
             pop esi; // restore saved register
