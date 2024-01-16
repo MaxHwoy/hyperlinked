@@ -1572,14 +1572,7 @@ namespace hyper
             this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
 
-        if (state == game_flow::state::racing || options::shader_detail >= 3)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-        }
-        else
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
-        }
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, (options::shader_detail >= 3) ? env_map_render_target::cube_texture : env_map_render_target::fe_texture);
     }
 
     void effect_car_normal_map::start()
@@ -1600,14 +1593,7 @@ namespace hyper
             this->set_float(parameter_type::cfEnvmapPullAmount, light_renderer::frontend_envmap_pull_amount);
         }
 
-        if (state == game_flow::state::racing || options::shader_detail >= 3)
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::cube_texture);
-        }
-        else
-        {
-            this->set_texture(parameter_type::ENVIROMAP_TEXTURE, env_map_render_target::fe_texture);
-        }
+        this->set_texture(parameter_type::ENVIROMAP_TEXTURE, (options::shader_detail >= 3) ? env_map_render_target::cube_texture : env_map_render_target::fe_texture);
     }
 
     void effect_fe::start()
