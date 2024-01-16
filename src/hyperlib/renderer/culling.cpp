@@ -61,7 +61,7 @@ namespace hyper
 #if defined(NFSCO)
                 if (options::shader_detail >= 3)
                 {
-                    flags |= instance_flags::exclude_main_view;
+                    flags = instance_flags::exclude_main_view | instance_flags::exclude_disable_rendering | instance_flags::exclude_group_disable;
                 }
                 else
                 {

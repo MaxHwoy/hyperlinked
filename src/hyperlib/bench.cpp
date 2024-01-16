@@ -1,5 +1,7 @@
 #include <hyperlib/bench.hpp>
 
+#include <algorithm>
+
 namespace hyper
 {
     auto bench::get_free_bench_id(const char* name) -> std::uint32_t
