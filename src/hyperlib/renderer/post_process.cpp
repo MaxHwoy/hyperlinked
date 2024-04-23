@@ -143,6 +143,39 @@ namespace hyper
         }
     }
 
+    void post_process::do_motion_blur(post_process& process, visual_treatment& vt, view_id id)
+    {
+        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, false);
+        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, false);
+
+        const render_target* target = view::instance::views[id].attached_target;
+
+        directx::device()->StretchRect(target->d3d_target, nullptr, process.surfaces_[0u], nullptr, ::D3DTEXF_NONE);
+
+        vt.motion_blur(id);
+    }
+
+    void post_process::do_uves_over_cliff(post_process& process, visual_treatment& vt, view_id id)
+    {
+        directx::device()->SetRenderState(::D3DRS_ALPHATESTENABLE, false);
+        directx::device()->SetRenderState(::D3DRS_ALPHABLENDENABLE, false);
+
+        const render_target* target = view::instance::views[id].attached_target;
+
+        directx::device()->StretchRect(target->d3d_target, nullptr, process.surfaces_[0u], nullptr, ::D3DTEXF_NONE);
+
+        vt.uves_over_cliff(id);
+    }
+
+    void post_process::do_uves_over_cliff_darken(post_process& process, visual_treatment& vt, view_id id)
+    {
+        const render_target* target = view::instance::views[id].attached_target;
+
+        directx::device()->StretchRect(target->d3d_target, nullptr, process.surfaces_[0u], nullptr, ::D3DTEXF_NONE);
+
+        vt.uves_over_cliff_darken(id);
+    }
+
     auto post_process::get_current_texture(const post_process& process) -> ::IDirect3DTexture9*
     {
         return process.textures_[post_process::current_index_];

@@ -600,7 +600,7 @@ namespace hyper
         static inline ::IDirect3DSurface9*& depth_stencil_surface = *reinterpret_cast<::IDirect3DSurface9**>(0x00AB0950);
     };
 
-    struct __declspec(align(0x10)) render_view
+    class __declspec(align(0x10)) render_view
     {
     public:
         bool get_has_camera() const;

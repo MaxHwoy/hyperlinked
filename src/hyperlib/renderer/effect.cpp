@@ -813,6 +813,19 @@ namespace hyper
         }
     }
 
+    void effect::set_current_pass(std::uint32_t pass)
+    {
+        effect::current_effect_ = this;
+
+        this->start();
+
+        directx::device()->SetVertexDeclaration(this->vertex_decl_);
+
+        this->effect_->Begin(&this->pass_count_, 0u);
+
+        this->effect_->BeginPass(pass);
+    }
+
     void effect::set_current_pass(std::uint32_t pass, const char* technique, bool use_low_lod)
     {
         std::int32_t index = -1;
@@ -840,15 +853,7 @@ namespace hyper
 
         this->effect_->SetTechnique(this->effect_->GetTechnique(index));
 
-        effect::current_effect_ = this;
-
-        this->start();
-
-        directx::device()->SetVertexDeclaration(this->vertex_decl_);
-
-        this->effect_->Begin(&this->pass_count_, 0u);
-
-        this->effect_->BeginPass(pass);
+        this->set_current_pass(pass);
     }
 
     void effect::set_pca_blend_data(const pca::blend_data& data)

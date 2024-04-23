@@ -59,7 +59,7 @@ namespace hyper
             Allocator allocator;
         };
 
-        template <typename T, typename Allocator> struct list : public list_base<T, Allocator>
+        template <typename T, typename Allocator = bstl::allocator> struct list : public list_base<T, Allocator>
         {
         };
 

@@ -5,9 +5,9 @@
 
 namespace hyper
 {
-    class particle_renderer final
+    class anim_scene final
     {
     public:
-        static void render(const view::instance& view);
+        static void render(const view::instance& view, std::uint32_t flags);
     };
 }

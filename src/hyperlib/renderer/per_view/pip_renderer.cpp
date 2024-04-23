@@ -28,7 +28,7 @@ namespace hyper
 
                     culler.stuff_scenery(pip_view, prepass_flags::add_draw_flag_0x1000);
 
-                    vehicle_render_conn::render(pip_view, false);
+                    vehicle_render_conn::render_world(pip_view, false);
 
                     world_renderer::render();
                 }

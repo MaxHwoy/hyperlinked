@@ -4,6 +4,7 @@
 #include <hyperlib/assets/textures.hpp>
 #include <hyperlib/vault/attrib.hpp>
 #include <hyperlib/renderer/enums.hpp>
+#include <hyperlib/renderer/view.hpp>
 
 namespace hyper
 {
@@ -37,7 +38,15 @@ namespace hyper
         };
 
     public:
+        void motion_blur(view_id id);
+
+        void uves_over_cliff(view_id id);
+
+        void uves_over_cliff_darken(view_id id);
+
         void final_render(view_id id, ::IDirect3DTexture9* back_buffer, ::IDirect3DTexture9* depth_buffer);
+
+        void update(const view::instance& view);
 
     public:
         look state;
