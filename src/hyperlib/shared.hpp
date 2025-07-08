@@ -41,6 +41,7 @@
 #include <hyperlib/random.hpp>
 #include <hyperlib/string.hpp>
 #include <hyperlib/hashing.hpp>
+#include <hyperlib/dbgbreak.hpp>
 #include <hyperlib/function.hpp>
 #include <hyperlib/linked_list.hpp>
 

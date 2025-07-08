@@ -1,3 +1,5 @@
+#define MAIN_POOL_VIOLATION_TRACKING
+
 #include <hyperlib/math.hpp>
 #include <hyperlib/memory/memory_pool.hpp>
 #include <hyperlib/memory/memory.hpp>
@@ -19,6 +21,10 @@ bool IsBadReadPtr(void* ptr, std::uint32_t size)
 
 namespace hyper
 {
+#ifdef MAIN_POOL_VIOLATION_TRACKING
+    dbgbreak::breakpoint breaks_[2]{};
+#endif
+
     memory_pool::override_info::override_info(const char* name, void* pool, void* memory, alloc_size_t size, malloc malloc_ptr, free free_ptr, amount_free amount_free_ptr, largest_free largest_free_ptr)
     {
         this->name_ = name;
@@ -154,6 +160,12 @@ namespace hyper
             this->mutex_.create();
 #endif
             this->add_free_memory(address, size, debug_name);
+#ifdef MAIN_POOL_VIOLATION_TRACKING
+            if (pool_number <= 1)
+            {
+                breaks_[pool_number] = dbgbreak::set(this, 1u, dbgbreak::when::written);
+            }
+#endif
         }
     }
 
@@ -180,7 +192,12 @@ namespace hyper
 
                 i = next;
             }
-
+#ifdef MAIN_POOL_VIOLATION_TRACKING
+            if (this->pool_number_ <= 1)
+            {
+                dbgbreak::remove(breaks_[this->pool_number_]);
+            }
+#endif
             this->free_block_list_.clear();
             this->alloc_block_list_.clear();
             this->buffer_block_list_.clear();
