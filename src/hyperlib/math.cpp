@@ -868,10 +868,10 @@ namespace hyper
         result.m33 = z2 * inv + cos;
         result.m34 = 0.0f;
 
-        result.m41 = 0.0;
-        result.m42 = 0.0;
-        result.m43 = 0.0;
-        result.m44 = 1.0;
+        result.m41 = 0.0f;
+        result.m42 = 0.0f;
+        result.m43 = 0.0f;
+        result.m44 = 1.0f;
     }
 
     void math::create_projection_matrix(float w, float h, float near_clip, float far_clip, matrix4x4& result)

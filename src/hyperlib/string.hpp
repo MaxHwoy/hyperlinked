@@ -10,6 +10,21 @@ namespace hyper
     class string final
     {
     public:
+        static inline auto format(const char* fmt, ...) -> const char*
+        {
+            ::va_list va = {};
+
+            va_start(va, fmt);
+
+            auto& buffer = string::buffer_;
+
+            ::vsnprintf(buffer, std::size(buffer), fmt, va);
+
+            va_end(va);
+
+            return buffer;
+        }
+
         template <typename T, typename std::char_traits<T>* = nullptr> constexpr static auto length(const T* string) -> size_t
         {
             size_t length = 0u;
@@ -22,6 +37,9 @@ namespace hyper
         template <typename T, size_t N, typename std::char_traits<T>* = nullptr> static void copy_s(T (&dst)[N], const T* src);
 
         template <typename T, typename std::char_traits<T>* = nullptr> static auto to_uint(const T* string, std::uint32_t default_value) -> std::uint32_t;
+
+    private:
+        static inline char buffer_[1024 + 1]{};
     };
 }
 

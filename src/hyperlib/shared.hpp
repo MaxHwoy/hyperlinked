@@ -30,6 +30,8 @@
 #undef near
 #endif
 
+//#define NFSCO
+
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
 #include <hyperlib/time.hpp>
@@ -69,9 +71,23 @@
 													\
 		while (false)
 
+#define ASSERT_PRINTED(CONDITION, MESSAGE, ...)                          \
+        do                                                               \
+        {                                                                \
+            if (!(CONDITION))                                            \
+            {                                                            \
+                PRINT_FATAL(MESSAGE, ##__VA_ARGS__);                     \
+                auto c = hyper::string::format(MESSAGE, ##__VA_ARGS__);  \
+                PLATFORM_SHOW_ERROR(c);                                  \
+            }                                                            \
+        }                                                                \
+                                                                         \
+        while (false)
+
 #define ASSERT(CONDITION) ASSERT_WITH_MESSAGE(CONDITION, "Assertion " #CONDITION " failed on line " nameof(__LINE__) " in file " __FILE__ ".")
 #else
 #define ASSERT_WITH_MESSAGE(...)
+#define ASSERT_PRINTED(...)
 #define ASSERT(...)
 #endif
 
