@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdarg>
 #include <hyperlib/math.hpp>
 
 namespace hyper

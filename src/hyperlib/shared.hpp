@@ -81,85 +81,85 @@ inline bool assert_return(bool result)
 	return result;
 }
 
-#define CREATE_ENUM_EXPR_OPERATORS(T)																\
-	extern "C++"																					\
-	{																								\
-		constexpr inline T& operator++(T& a) noexcept												\
-		{																							\
-			return (T&)(++((std::underlying_type<T>::type&)a));										\
-		}																							\
-																									\
-		constexpr inline T& operator--(T& a) noexcept												\
-		{																							\
-			return (T&)(--((std::underlying_type<T>::type&)a));										\
-		}																							\
-																									\
-		constexpr inline T operator+(T a, T b) noexcept												\
-		{																							\
-			return T(((std::underlying_type<T>::type)a) + ((std::underlying_type<T>::type)b));		\
-		}																							\
-																									\
-		constexpr inline T operator-(T a, T b) noexcept												\
-		{																							\
-			return T(((std::underlying_type<T>::type)a) + ((std::underlying_type<T>::type)b));		\
-		}																							\
-																									\
-		inline T& operator+=(T& a, T b) noexcept													\
-		{																							\
-			return (T&)(((std::underlying_type<T>::type&)a) += ((std::underlying_type<T>::type)b));	\
-		}																							\
-																									\
-		inline T& operator-=(T& a, T b) noexcept													\
-		{																							\
-			return (T&)(((std::underlying_type<T>::type&)a) -= ((std::underlying_type<T>::type)b));	\
-		}																							\
+#define CREATE_ENUM_EXPR_OPERATORS(T)																	\
+	extern "C++"																						\
+	{																									\
+		constexpr inline T& operator++(T& lhs) noexcept													\
+		{																								\
+			return (T&)(++((std::underlying_type<T>::type&)lhs));										\
+		}																								\
+																										\
+		constexpr inline T& operator--(T& lhs) noexcept													\
+		{																								\
+			return (T&)(--((std::underlying_type<T>::type&)lhs));										\
+		}																								\
+																										\
+		constexpr inline T operator+(T lhs, T rhs) noexcept												\
+		{																								\
+			return T(((std::underlying_type<T>::type)lhs) + ((std::underlying_type<T>::type)rhs));		\
+		}																								\
+																										\
+		constexpr inline T operator-(T lhs, T rhs) noexcept												\
+		{																								\
+			return T(((std::underlying_type<T>::type)lhs) + ((std::underlying_type<T>::type)rhs));		\
+		}																								\
+																										\
+		inline T& operator+=(T& lhs, T rhs) noexcept													\
+		{																								\
+			return (T&)(((std::underlying_type<T>::type&)lhs) += ((std::underlying_type<T>::type)rhs));	\
+		}																								\
+																										\
+		inline T& operator-=(T& lhs, T rhs) noexcept													\
+		{																								\
+			return (T&)(((std::underlying_type<T>::type&)lhs) -= ((std::underlying_type<T>::type)rhs));	\
+		}																								\
 	}
 
-#define CREATE_ENUM_FLAG_OPERATORS(T)																\
-	extern "C++"																					\
-	{																								\
-		constexpr inline T operator|(T a, T b) noexcept												\
-		{																							\
-			return T(((std::underlying_type<T>::type)a) | ((std::underlying_type<T>::type)b));		\
-		}																							\
-																									\
-		inline T& operator|=(T& a, T b) noexcept													\
-		{																							\
-			return (T&)(((std::underlying_type<T>::type&)a) |= ((std::underlying_type<T>::type)b));	\
-		}																							\
-																									\
-		constexpr inline T operator&(T a, T b) noexcept												\
-		{																							\
-			return T(((std::underlying_type<T>::type)a) & ((std::underlying_type<T>::type)b));		\
-		}																							\
-																									\
-		inline T& operator&=(T& a, T b) noexcept													\
-		{																							\
-			return (T&)(((std::underlying_type<T>::type&)a) &= ((std::underlying_type<T>::type)b));	\
-		}																							\
-																									\
-		constexpr inline T operator~(T a) noexcept													\
-		{																							\
-			return T(~((std::underlying_type<T>::type)a));											\
-		}																							\
-																									\
-		constexpr inline T operator^(T a, T b) noexcept												\
-		{																							\
-			return T(((std::underlying_type<T>::type)a) ^ ((std::underlying_type<T>::type)b));		\
-		}																							\
-																									\
-		inline T& operator^=(T& a, T b) noexcept													\
-		{																							\
-			return (T&)(((std::underlying_type<T>::type&)a) ^= ((std::underlying_type<T>::type)b));	\
-		}																							\
-																									\
-		constexpr inline bool operator==(T a, std::int32_t b) noexcept								\
-		{																							\
-			return ((std::underlying_type<T>::type)a) == ((std::underlying_type<T>::type)b);		\
-		}																							\
-																									\
-		constexpr inline bool operator!=(T a, std::int32_t b) noexcept								\
-		{																							\
-			return ((std::underlying_type<T>::type)a) != ((std::underlying_type<T>::type)b);		\
-		}																							\
+#define CREATE_ENUM_FLAG_OPERATORS(T)																	\
+	extern "C++"																						\
+	{																									\
+		constexpr inline T operator|(T lhs, T rhs) noexcept												\
+		{																								\
+			return T(((std::underlying_type<T>::type)lhs) | ((std::underlying_type<T>::type)rhs));		\
+		}																								\
+																										\
+		inline T& operator|=(T& lhs, T rhs) noexcept													\
+		{																								\
+			return (T&)(((std::underlying_type<T>::type&)lhs) |= ((std::underlying_type<T>::type)rhs));	\
+		}																								\
+																										\
+		constexpr inline T operator&(T lhs, T rhs) noexcept												\
+		{																								\
+			return T(((std::underlying_type<T>::type)lhs) & ((std::underlying_type<T>::type)rhs));		\
+		}																								\
+																										\
+		inline T& operator&=(T& lhs, T rhs) noexcept													\
+		{																								\
+			return (T&)(((std::underlying_type<T>::type&)lhs) &= ((std::underlying_type<T>::type)rhs));	\
+		}																								\
+																										\
+		constexpr inline T operator~(T lhs) noexcept													\
+		{																								\
+			return T(~((std::underlying_type<T>::type)lhs));											\
+		}																								\
+																										\
+		constexpr inline T operator^(T lhs, T rhs) noexcept												\
+		{																								\
+			return T(((std::underlying_type<T>::type)lhs) ^ ((std::underlying_type<T>::type)rhs));		\
+		}																								\
+																										\
+		inline T& operator^=(T& lhs, T rhs) noexcept													\
+		{																								\
+			return (T&)(((std::underlying_type<T>::type&)lhs) ^= ((std::underlying_type<T>::type)rhs));	\
+		}																								\
+																										\
+		constexpr inline bool operator==(T lhs, std::int32_t rhs) noexcept								\
+		{																								\
+			return ((std::underlying_type<T>::type)lhs) == ((std::underlying_type<T>::type)rhs);		\
+		}																								\
+																										\
+		constexpr inline bool operator!=(T lhs, std::int32_t rhs) noexcept								\
+		{																								\
+			return ((std::underlying_type<T>::type)lhs) != ((std::underlying_type<T>::type)rhs);		\
+		}																								\
 	}
