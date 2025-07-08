@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <limits>
 #include <cmath>
+#include <utility>
 
 #if defined(USE_SIMD_VECTORIZATIONS)
 #include <xmmintrin.h>

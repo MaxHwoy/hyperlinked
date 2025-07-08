@@ -48,13 +48,15 @@ namespace hyper
             std::uint32_t count = pool->slot_count_;
             std::uint32_t size = pool->slot_size_;
 
+            pool->free_ = nullptr;
+
             if (count > 0u)
             {
-                entry* current = pool->free_ = this->slots_;
+                entry* current = pool->free_ = pool->slots_;
 
                 for (std::uint32_t i = 1u; i < count; ++i)
                 {
-                    current = current->next = reinterpret_cast<entry*>(reinterpret_cast<uintptr_t>(this->slots_) + size * i);
+                    current = current->next = reinterpret_cast<entry*>(reinterpret_cast<uintptr_t>(pool->slots_) + size * i);
                 }
 
                 current->next = nullptr;
@@ -79,9 +81,7 @@ namespace hyper
             }
             else
             {
-                PRINT_FATAL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
-
-                ASSERT_WITH_MESSAGE(false, "Slot pool ran out of slot entries");
+                ASSERT_PRINTED(false, "Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
             }
         }
 
@@ -124,9 +124,7 @@ namespace hyper
             }
             else
             {
-                PRINT_FATAL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
-
-                ASSERT_WITH_MESSAGE(false, "Slot pool ran out of slot entries");
+                ASSERT_PRINTED(false, "Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
             }
         }
 

@@ -90,6 +90,20 @@ namespace hyper
             return this->ptr_ + this->length_;
         }
 
+        inline auto slice(size_t start) -> span<T>
+        {
+            assert(start <= this->length_);
+
+            return { this->ptr_ + start, this->length_ - start };
+        }
+
+        inline auto slice(size_t start, size_t count) -> span<T>
+        {
+            assert(start + count <= this->length_);
+
+            return { this->ptr_ + start, count };
+        }
+
     private:
         T* ptr_;
         size_t length_;
@@ -97,6 +111,7 @@ namespace hyper
 
     template <typename T> class read_only_span final
     {
+    public:
         inline read_only_span() = default;
 
         inline read_only_span(const read_only_span& other) = default;
@@ -148,6 +163,20 @@ namespace hyper
         inline auto end() const -> const T*
         {
             return this->ptr_ + this->length_;
+        }
+
+        inline auto slice(size_t start) -> read_only_span<T>
+        {
+            assert(start <= this->length_);
+
+            return { this->ptr_ + start, this->length_ - start };
+        }
+
+        inline auto slice(size_t start, size_t count) -> read_only_span<T>
+        {
+            assert(start + count <= this->length_);
+
+            return { this->ptr_ + start, count };
         }
 
     private:
