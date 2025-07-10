@@ -1017,6 +1017,11 @@ namespace hyper
         constexpr inline static float epsilon = 1.17549435e-38f;
 
     public:
+        template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto is_aligned(T value, T align) -> T
+        {
+            return (value & (align - 1)) == 0;
+        }
+
         template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> constexpr inline static auto align_pow_2(T value, T align) -> T
         {
             return (value + align - 1) & ~(align - 1);

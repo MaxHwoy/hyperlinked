@@ -1641,6 +1641,19 @@ template <typename T> void dump_memory(const char* info, uint32_t address, const
 
 int main()
 {
+    for (std::uint32_t list_index = 4u; list_index < 40u; ++list_index)
+    {
+        std::uint32_t block_size = (list_index + 1u) << 4;
+
+        std::uint32_t prelign = block_size - 1u;
+
+        std::uint32_t align = (prelign & 0x7Fu) + 1u;
+
+        ::printf("list index = 0x%02X | block size = 0x%03X | prelign = 0x%03X | align = 0x%03X | EDIT = 0x%03X\n", list_index, block_size, prelign, align, block_size & 0x7Fu);
+    }
+
+    return 0;
+
     udmpparser::UserDumpParser parser{};
 
     parser.Parse("C:\\Users\\maxhw\\Desktop\\bootstrapper-2525-bc37e78c-dirty-11.dmp");
