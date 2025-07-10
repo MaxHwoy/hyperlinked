@@ -81,7 +81,7 @@ namespace hyper
             }
             else
             {
-                ASSERT_PRINTED(false, "Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
+                HYPER_FAIL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
             }
         }
 
@@ -124,7 +124,7 @@ namespace hyper
             }
             else
             {
-                ASSERT_PRINTED(false, "Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
+                HYPER_FAIL("Slot pool \"%s\" ran out of slot entries and is not expandable", this->name_);
             }
         }
 

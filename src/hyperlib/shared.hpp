@@ -32,6 +32,12 @@
 
 //#define NFSCO
 
+#if defined(LARGE_ADDRESS_ALLOC)
+typedef size_t alloc_size_t;
+#else
+typedef std::uint32_t alloc_size_t;
+#endif
+
 #include <hyperlib/hook.hpp>
 #include <hyperlib/math.hpp>
 #include <hyperlib/time.hpp>
@@ -86,10 +92,12 @@
         while (false)
 
 #define ASSERT(CONDITION) ASSERT_WITH_MESSAGE(CONDITION, "Assertion " #CONDITION " failed on line " nameof(__LINE__) " in file " __FILE__ ".")
+#define HYPER_FAIL(MESSAGE, ...) ASSERT_PRINTED(false, MESSAGE, ##__VA_ARGS__)
 #else
 #define ASSERT_WITH_MESSAGE(...)
 #define ASSERT_PRINTED(...)
 #define ASSERT(...)
+#define HYPER_FAIL(...)
 #endif
 
 inline bool assert_return(bool result)

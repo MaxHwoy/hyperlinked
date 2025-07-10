@@ -180,7 +180,7 @@ namespace hyper
             {
                 this->print_allocations_internal();
 
-                ASSERT_WITH_MESSAGE(false, "Closing memory pool when it has non-freed allocations!");
+                HYPER_FAIL("Closing memory pool number %d and name %s when it has non-freed allocations!", this->pool_number_, this->debug_name_);
             }
 
             for (buffer_block* i = this->buffer_block_list_.begin(); i != this->buffer_block_list_.end(); /* empty */)

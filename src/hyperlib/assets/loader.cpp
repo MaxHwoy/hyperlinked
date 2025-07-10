@@ -40,7 +40,7 @@ namespace hyper
     {
         if (++depth > 10u)
         {
-            ASSERT_WITH_MESSAGE(false, "Chunks are internally corrupted! Exceeding maximum recursive depth!");
+            HYPER_FAIL("Chunks are internally corrupted! Exceeding maximum recursive depth!");
         }
 
         const chunk* end = reinterpret_cast<const chunk*>(reinterpret_cast<uintptr_t>(block) + size);
@@ -75,9 +75,7 @@ namespace hyper
             std::uint32_t chunkid = static_cast<std::uint32_t>(curr->id());
             std::uint32_t chunksz = static_cast<std::uint32_t>(curr->size());
 
-            PRINT_FATAL("Warning: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)", address, chunkid, chunksz);
-
-            ASSERT_WITH_MESSAGE(false, "Loaded chunks are corrupted");
+            HYPER_FAIL("Error: chunks are corrupted around 0x%08X (chunk ID is 0x%08X, size is 0x%08X)", address, chunkid, chunksz);
         }
     }
 
@@ -85,7 +83,7 @@ namespace hyper
     {
         if (++depth > 10u)
         {
-            ASSERT_WITH_MESSAGE(false, "Chunks are internally corrupted! Exceeding maximum recursive depth!");
+            HYPER_FAIL("Chunks are internally corrupted! Exceeding maximum recursive depth!");
         }
 
         const chunk* end = reinterpret_cast<chunk*>(reinterpret_cast<uintptr_t>(block) + size);

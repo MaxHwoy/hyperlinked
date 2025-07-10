@@ -6,12 +6,6 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlib/utils/utils.hpp>
 
-#if defined(LARGE_ADDRESS_ALLOC)
-typedef size_t alloc_size_t;
-#else
-typedef std::uint32_t alloc_size_t;
-#endif
-
 namespace hyper
 {
     class memory_pool final

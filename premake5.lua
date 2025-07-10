@@ -1,5 +1,6 @@
 toolset("v143")
 systemversion("10.0.20348.0")
+cppdialect("c++latest")
 
 workspace "hyperlinked"
 	location ".\\build\\"
@@ -23,9 +24,7 @@ workspace "hyperlinked"
 	}
 
 	buildoptions {
-		"/Zm200",
-		"/utf-8",
-		"/std:c++latest",
+		"/utf-8"
 	}
 
 	flags {

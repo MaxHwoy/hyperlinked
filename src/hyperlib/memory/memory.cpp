@@ -418,9 +418,7 @@ namespace hyper
 
             const char* name = pool.pool_name();
 
-            PRINT_FATAL("ERROR:  Out of memory in pool %s allocating %s (size = %d).  Largest possible = %d  Total = %d", name, debug_text, size, largest, amount_free);
-
-            ASSERT_WITH_MESSAGE(false, "Memory pool ran out of memory!");
+            HYPER_FAIL("ERROR:  Out of memory in pool %s allocating %s (size = %d).  Largest possible = %d  Total = %d", name, debug_text, size, largest, amount_free);
         }
 
         memory::total_allocations_++;
@@ -465,7 +463,7 @@ namespace hyper
             }
             else
             {
-                ASSERT_WITH_MESSAGE(false, "Attempting to free memory that was not allocated with any memory pool, or was already freed, or the memory heap is corrupted");
+                HYPER_FAIL("Attempting to free memory at address 0x%08X that was not allocated with any memory pool, or was already freed, or the memory heap is corrupted", reinterpret_cast<uintptr_t>(ptr));
             }
         }
     }

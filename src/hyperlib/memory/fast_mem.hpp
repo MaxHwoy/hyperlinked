@@ -2,6 +2,7 @@
 
 #include <hyperlib/shared.hpp>
 #include <hyperlib/memory/memory_pool.hpp>
+#include <hyperlib/memory/ea_allocator.hpp>
 
 namespace hyper
 {
@@ -21,6 +22,11 @@ namespace hyper
             std::uint32_t high;
         };
 
+    private:
+        bool create_block(std::uint32_t list_index);
+
+        auto core_alloc(alloc_size_t size, const char* debug_name) -> void*;
+
     public:
         auto malloc(alloc_size_t size, const char* debug_name) -> void*;
 
@@ -39,7 +45,7 @@ namespace hyper
         std::uint32_t alloc_[0x40];
         std::uint32_t avail_[0x40];
         std::uint32_t alloc_over_;
-        void* allocator_;
+        ea_allocator::i_allocator* allocator_;
         alloc_desc* track_;
         std::uint32_t track_max_;
         std::uint32_t track_count_;
