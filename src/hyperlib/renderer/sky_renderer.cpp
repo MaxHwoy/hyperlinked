@@ -42,6 +42,9 @@ namespace hyper
                         size_scale = 1.0f;
                         break;
 
+                    case view_type::unknown:
+                        return;
+
                     case view_type::reflection:
                         math::flip_sign(transform->m33);
                         size_scale = 0.06f;
@@ -71,23 +74,27 @@ namespace hyper
 
                 if (view.id == view_id::player1 || view.id == view_id::player2 || view.id == view_id::player1_rvm)
                 {
-                    if (sky_renderer::modify_sky_in_main_views_)
+                    if (!sky_renderer::draw_sky_in_main_views_)
                     {
-                        transform->m11 *= size_scale * sky_renderer::sky_additive_scale_;
-                        transform->m22 *= size_scale * sky_renderer::sky_additive_scale_;
-                        transform->m33 *= size_scale * sky_renderer::sky_additive_scale_;
-                        transform->m43 += z_position;
+                        return;
+                    }
 
-                        if (rotate_sky)
-                        {
-                            matrix4x4 rotation;
+                    size_scale *= sky_renderer::sky_additive_scale_;
 
-                            sky_renderer::sky_rotation_ = static_cast<std::uint16_t>(static_cast<std::int32_t>(global::world_time_elapsed * 300.0f) + sky_renderer::sky_rotation_);
+                    transform->m11 *= size_scale;
+                    transform->m22 *= size_scale;
+                    transform->m33 *= size_scale;
+                    transform->m43 += z_position;
 
-                            math::create_rotation_z(sky_renderer::sky_rotation_, rotation);
+                    if (rotate_sky)
+                    {
+                        matrix4x4 rotation;
 
-                            math::multiply_matrix(rotation, *transform, *transform);
-                        }
+                        sky_renderer::sky_rotation_ = static_cast<std::uint16_t>(static_cast<std::int32_t>(global::world_time_elapsed * 300.0f) + sky_renderer::sky_rotation_);
+
+                        math::create_rotation_z(sky_renderer::sky_rotation_, rotation);
+
+                        math::multiply_matrix(rotation, *transform, *transform);
                     }
                 }
                 else

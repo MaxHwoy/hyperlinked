@@ -47,6 +47,8 @@ namespace hyper
 
         static void fill_with_color(::IDirect3DTexture9* texture, unsigned char color);
 
+        static void set_and_clear_target(::IDirect3DSurface9* surface);
+
     private:
         static inline ::IDirect3DQuery9*& query_ = *reinterpret_cast<::IDirect3DQuery9**>(0x00AB0AC4);
 

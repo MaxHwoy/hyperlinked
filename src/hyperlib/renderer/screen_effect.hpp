@@ -66,6 +66,8 @@ namespace hyper
 
         ~screen_effect();
 
+        void clear() const;
+
         inline auto acquire_texture_1(downscale scale) const -> ::IDirect3DTexture9*
         {
             return this->textures_1_[static_cast<std::uint32_t>(scale)];
@@ -97,11 +99,13 @@ namespace hyper
         }
 
     private:
-        static void get_downscale_4x4_offsets(std::uint32_t width, std::uint32_t height, vector4(&offsets)[16]);
+        static void get_downscale_2x2_offsets(std::uint32_t width, std::uint32_t height, vector4(&offsets)[0x10]);
 
-        static void gauss_blur_kernal_5x5(std::uint32_t width, std::uint32_t height, vector4(&offsets)[16], vector4(&weights)[16], float deviation);
+        static void get_downscale_4x4_offsets(std::uint32_t width, std::uint32_t height, vector4(&offsets)[0x10]);
 
-        static void get_bloom_kernal_params(std::uint32_t resolution, vector4(&offsets)[16], vector4(&weights)[16], float deviation, float multiplier, bool x_direction);
+        static void get_gauss_blur_kernal_5x5(std::uint32_t width, std::uint32_t height, vector4(&offsets)[0x10], vector4(&weights)[0x10], float deviation);
+
+        static void get_bloom_kernal_params(std::uint32_t resolution, vector4(&offsets)[0x10], vector4(&weights)[0x10], float deviation, float scale, bool x_direction);
 
     public:
         static void ctor(screen_effect& screen);
@@ -110,11 +114,13 @@ namespace hyper
 
         static void set_gaussian_kernals(float x_offset, float y_offset, float x_scale, float y_scale, float deviation);
 
+        static void downsample_2x2_texture(effect& effect, ::IDirect3DTexture9* texture_src, ::IDirect3DSurface9* surface_dst, const char* technique);
+
         static void downsample_4x4_texture(effect& effect, ::IDirect3DTexture9* texture_src, ::IDirect3DSurface9* surface_dst, const char* technique);
 
         static void gauss_blur_5x5_texture(effect& effect, ::IDirect3DTexture9* texture_src, ::IDirect3DTexture9* texture_dst, std::uint32_t level);
 
-        static void multipass_gauss_blur(effect& effect, ::IDirect3DTexture9* texture_src, bool bloom_across_width, ::IDirect3DSurface9* surface_dst, float multiplier);
+        static void multipass_gauss_blur(effect& effect, ::IDirect3DTexture9* texture_src, bool bloom_across_width, ::IDirect3DSurface9* surface_dst, float scale);
 
         static void blend_textures(effect& effect, ::IDirect3DSurface9* surface_dst, ::IDirect3DTexture9* texture_src1, ::IDirect3DTexture9* texture_src2, float x, float y, const char* technique);
 

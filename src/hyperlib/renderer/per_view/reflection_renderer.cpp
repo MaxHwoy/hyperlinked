@@ -33,6 +33,8 @@ namespace hyper
 
                     time_of_day::instance->update(reflection_view.rain->cloud_intensity);
 
+                    sky_renderer::render(reflection_view, sky_renderer::view_type::reflection, 2.0f);
+
                     if (options::road_reflection_detail >= 2u && player_view.rain->road_dampness >= 0.01f)
                     {
                         culler.stuff_scenery(reflection_view, prepass_flags::exclude_chopped_roads);
@@ -40,7 +42,7 @@ namespace hyper
                         world_renderer::render();
                     }
 
-                    if (options::flares_and_streaks_enabled && options::texture_blend_supported && effect_screen_effect::instance != nullptr)
+                    if (options::flares_and_streaks_enabled && options::texture_blend_supported)
                     {
                         screen_effect& screen = screen_effect::instance;
 
@@ -54,32 +56,37 @@ namespace hyper
 
                         flare_renderer::instance.render(render_view::views[reflection_view.id], global::fac_flush == 0u);
 
-                        effect_screen_effect& effect = *effect_screen_effect::instance;
-                        
-                        screen_effect::downsample_4x4_texture(effect, reflection_render_target::d3d_texture, screen.acquire_surface_2(screen_effect::downscale::d8x8), nullptr);
+                        if (effect_screen_effect::instance != nullptr)
+                        {
+                            effect_screen_effect& effect = *effect_screen_effect::instance;
 
-                        screen_effect::set_gaussian_kernals(0.0f, -6.0f, 0.0f, 2.0f, 9.0f);
+                            screen_effect::downsample_4x4_texture(effect, reflection_render_target::d3d_texture, screen.acquire_surface_2(screen_effect::downscale::d8x8), nullptr); // #FORCARBON 4x4 downsample to a 8x8 downsampled texture?
 
-                        screen_effect::multipass_gauss_blur(effect, screen.acquire_texture_2(screen_effect::downscale::d8x8), false, screen.acquire_surface_2(screen_effect::downscale::d4x4), 1.0f);
+                            screen_effect::set_gaussian_kernals(0.0f, -6.0f, 0.0f, 2.0f, 9.0f);
 
-                        screen_effect::set_gaussian_kernals(0.0f, 0.0f, 1.0f, 1.0f, 3.0f);
+                            screen_effect::multipass_gauss_blur(effect, screen.acquire_texture_2(screen_effect::downscale::d8x8), false, screen.acquire_surface_2(screen_effect::downscale::d4x4), 1.0f); // #FORCARBON downscale mismatch?
 
-                        directx::device()->SetRenderTarget(0u, screen.acquire_surface_2(screen_effect::downscale::d2x2));
+                            screen_effect::set_gaussian_kernals(0.0f, 0.0f, 1.0f, 1.0f, 3.0f);
 
-                        directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET, color32::clear(), 1.0f, 0u);
+                            directx::set_and_clear_target(screen.acquire_surface_2(screen_effect::downscale::d2x2));
 
-                        flare_renderer::instance.lock();
+                            flare_renderer::instance.lock();
 
-                        flare_renderer::submit_car_flares(reflection_view, true);
+                            flare_renderer::submit_car_flares(reflection_view, true);
 
-                        flare_renderer::instance.unlock();
+                            world_renderer::render(); // #FORCARBON why do we even need this here?
 
-                        flare_renderer::instance.render(render_view::views[reflection_view.id], global::fac_flush == 0u);
+                            flare_renderer::instance.unlock();
 
-                        screen_effect::blend_textures(effect, target->d3d_target, screen.acquire_texture_2(screen_effect::downscale::d4x4), screen.acquire_texture_2(screen_effect::downscale::d2x2), 0.0f, 0.0f, "CombineReflectionColourAndHeadlightAlpha");
+                            flare_renderer::instance.render(render_view::views[reflection_view.id], global::fac_flush == 0u);
+
+                            // blend gauss blurr with car flares
+
+                            screen_effect::blend_textures(effect, target->d3d_target, screen.acquire_texture_2(screen_effect::downscale::d4x4), screen.acquire_texture_2(screen_effect::downscale::d2x2), 0.0f, 0.0f, "CombineReflectionColourAndHeadlightAlpha");
+                        }
+
+                        renderer::current_cull_mode = ::D3DCULL_CW; // #FORCARBON why is this here and not outside braces?
                     }
-
-                    renderer::current_cull_mode = ::D3DCULL_CW;
 
                     world_renderer::use_lowlod_pass = false;
                 }

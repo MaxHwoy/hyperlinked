@@ -936,7 +936,7 @@ namespace hyper
             return this->sign_z_;
         }
 
-        inline void swap(std::int32_t& x, std::int32_t& y, std::int32_t& z)
+        inline void swap(std::int32_t& x, std::int32_t& y, std::int32_t& z) const
         {
             std::int32_t values[4];
 
@@ -949,7 +949,7 @@ namespace hyper
             z = values[static_cast<std::int32_t>(this->axis_z_)] * this->sign_z_;
         }
 
-        inline void swap(float& x, float& y, float& z)
+        inline void swap(float& x, float& y, float& z) const
         {
             float values[4];
 
@@ -962,7 +962,7 @@ namespace hyper
             z = values[static_cast<std::int32_t>(this->axis_z_)] * this->sign_z_;
         }
 
-        inline void swap(vector3& vector)
+        inline void swap(vector3& vector) const
         {
             float values[4];
 
@@ -975,7 +975,7 @@ namespace hyper
             vector.z = values[static_cast<std::int32_t>(this->axis_z_)] * this->sign_z_;
         }
 
-        inline void swap(vector4& vector)
+        inline void swap(vector4& vector) const
         {
             float values[4];
 
@@ -988,7 +988,7 @@ namespace hyper
             vector.z = values[static_cast<std::int32_t>(this->axis_z_)] * this->sign_z_;
         }
 
-        inline void swap(matrix4x4& matrix)
+        inline void swap(matrix4x4& matrix) const
         {
             this->swap(matrix.row(0u));
             this->swap(matrix.row(1u));

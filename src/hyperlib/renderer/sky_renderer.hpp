@@ -31,7 +31,7 @@ namespace hyper
 
         static inline bool& rotate_skydome_ = *reinterpret_cast<bool*>(0x00A7335C);
 
-        static inline bool& modify_sky_in_main_views_ = *reinterpret_cast<bool*>(0x00A7335C);
+        static inline bool& draw_sky_in_main_views_ = *reinterpret_cast<bool*>(0x00A7335C);
 
         static inline float& sky_additive_scale_ = *reinterpret_cast<float*>(0x00A732AC);
 

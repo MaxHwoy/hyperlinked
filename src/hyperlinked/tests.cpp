@@ -1,5 +1,6 @@
 #include <hyperlib/shared.hpp>
 #include <hyperlinked/tests.hpp>
+#include <hyperlib/renderer/screen_effect.hpp>
 
 namespace hyper
 {

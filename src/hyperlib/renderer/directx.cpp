@@ -271,4 +271,10 @@ namespace hyper
             texture->UnlockRect(0u);
         }
     }
+
+    void directx::set_and_clear_target(::IDirect3DSurface9* surface)
+    {
+        directx::device()->SetRenderTarget(0u, surface);
+        directx::device()->Clear(0u, nullptr, D3DCLEAR_TARGET, color32::clear(), 1.0f, 0u);
+    }
 }
